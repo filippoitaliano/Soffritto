@@ -1,11 +1,11 @@
 # Soffritto
 
+![Soffritto: tre ambienti di sviluppo saltano nella stessa padella sul fuoco](docs/soffritto-hero.png)
+
 Hai più copie dello stesso progetto, ognuna con il suo backend, il suo frontend, la sua app e il
 suo database? Soffritto te le mette tutte davanti in una finestra: cosa è acceso, su che branch
 sei, quali migrazioni mancano, chi è raggiungibile da fuori. E con un clic accendi, spegni,
 aggiorni e condividi.
-
-![Soffritto in modalità demo: tre ambienti affiancati con branch, migrazioni e dev tunnel](docs/soffritto-demo.png)
 
 ## Cosa fa
 

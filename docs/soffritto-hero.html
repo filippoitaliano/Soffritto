@@ -1,0 +1,290 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=JetBrains+Mono:wght@500&display=block" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:transparent;}
+  svg{display:block;}
+  .t{font-family:'Fredoka',sans-serif;}
+  .m{font-family:'JetBrains Mono',monospace;}
+</style></head>
+<body>
+<svg id="s" width="1600" height="760" viewBox="0 0 1600 760" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <clipPath id="frame"><rect width="1600" height="760" rx="56"/></clipPath>
+  <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#22102e"/>
+    <stop offset=".45" stop-color="#3f1d52"/>
+    <stop offset=".75" stop-color="#7a2b5c"/>
+    <stop offset="1" stop-color="#d24a4a"/>
+  </linearGradient>
+  <radialGradient id="glow" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#ffb347" stop-opacity=".85"/>
+    <stop offset=".45" stop-color="#ff6a3d" stop-opacity=".35"/>
+    <stop offset="1" stop-color="#ff3d6e" stop-opacity="0"/>
+  </radialGradient>
+  <radialGradient id="glowL" cx=".5" cy=".5" r=".5">
+    <stop offset="0" stop-color="#ff7ab0" stop-opacity=".35"/>
+    <stop offset="1" stop-color="#ff7ab0" stop-opacity="0"/>
+  </radialGradient>
+  <linearGradient id="fOut" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0" stop-color="#ff9a2e"/>
+    <stop offset=".55" stop-color="#ff5a3c"/>
+    <stop offset="1" stop-color="#ff3b6b"/>
+  </linearGradient>
+  <linearGradient id="fMid" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0" stop-color="#ffe066"/>
+    <stop offset="1" stop-color="#ffa23a"/>
+  </linearGradient>
+  <linearGradient id="fIn" x1="0" y1="1" x2="0" y2="0">
+    <stop offset="0" stop-color="#fffbe6"/>
+    <stop offset="1" stop-color="#ffe58a"/>
+  </linearGradient>
+  <path id="fp" d="M0,0 C-42,0 -52,-38 -34,-66 C-26,-79 -14,-86 -12,-108 C6,-92 22,-82 30,-62 C34,-72 34,-80 30,-90 C50,-70 50,-30 40,-14 C32,-4 18,0 0,0 Z"/>
+  <g id="flame">
+    <use href="#fp" fill="url(#fOut)"/>
+    <use href="#fp" fill="url(#fMid)" transform="scale(.68)"/>
+    <use href="#fp" fill="url(#fIn)" transform="scale(.38)"/>
+  </g>
+  <linearGradient id="title" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#ffe066"/>
+    <stop offset=".5" stop-color="#ff9a3d"/>
+    <stop offset="1" stop-color="#ff5c8a"/>
+  </linearGradient>
+  <linearGradient id="panBody" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#5a3478"/>
+    <stop offset="1" stop-color="#241233"/>
+  </linearGradient>
+  <linearGradient id="panSheen" x1="0" y1="0" x2="1" y2="0">
+    <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+    <stop offset=".25" stop-color="#ffb3d1" stop-opacity=".35"/>
+    <stop offset=".45" stop-color="#ffffff" stop-opacity="0"/>
+  </linearGradient>
+  <linearGradient id="handle" x1="0" y1="0" x2="0" y2="1">
+    <stop offset="0" stop-color="#9b6fd6"/>
+    <stop offset="1" stop-color="#5e3a8f"/>
+  </linearGradient>
+  <filter id="blur20" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="20"/></filter>
+  <filter id="blur6" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6"/></filter>
+  <filter id="soft" x="-20%" y="-20%" width="140%" height="160%">
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#14061c" flood-opacity=".45"/>
+  </filter>
+  <filter id="ember" x="-200%" y="-200%" width="500%" height="500%">
+    <feGaussianBlur stdDeviation="2.2" result="b"/>
+    <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <clipPath id="foodClip">
+    <rect x="830" y="250" width="560" height="200"/>
+    <ellipse cx="1110" cy="450" rx="268" ry="56"/>
+  </clipPath>
+</defs>
+
+<g clip-path="url(#frame)">
+  <rect width="1600" height="760" fill="url(#sky)"/>
+  <circle cx="260" cy="200" r="320" fill="url(#glowL)"/>
+  <ellipse cx="1110" cy="470" rx="560" ry="380" fill="url(#glow)"/>
+
+  <g id="skyBack" opacity=".55"></g>
+  <g id="skyFront"></g>
+
+  <!-- strada -->
+  <rect x="0" y="682" width="1600" height="10" fill="#5b3f6b"/>
+  <rect x="0" y="692" width="1600" height="68" fill="#2a1a33"/>
+  <g id="dashes"></g>
+
+  <!-- fiamme dietro la padella -->
+  <g id="backFlames"></g>
+
+  <!-- fornello -->
+  <rect x="930" y="640" width="360" height="40" rx="20" fill="#2a1436"/>
+  <rect x="950" y="630" width="320" height="18" rx="9" fill="#4a2a5e"/>
+
+  <!-- padella -->
+  <g filter="url(#soft)">
+    <g transform="translate(1388,452) rotate(-14)">
+      <rect x="-10" y="-16" width="120" height="32" rx="16" fill="url(#handle)"/>
+      <rect x="92" y="-21" width="118" height="42" rx="21" fill="#f472a8"/>
+      <rect x="104" y="-13" width="80" height="9" rx="4.5" fill="#ffffff" opacity=".45"/>
+      <circle cx="194" cy="0" r="7" fill="#2a1436"/>
+    </g>
+    <path d="M820,450 C828,566 952,598 1110,598 C1268,598 1392,566 1400,450 Z" fill="url(#panBody)"/>
+    <path d="M820,450 C828,566 952,598 1110,598 C1268,598 1392,566 1400,450 Z" fill="url(#panSheen)"/>
+  </g>
+  <ellipse cx="1110" cy="450" rx="282" ry="64" fill="#8f63c9"/>
+  <ellipse cx="1110" cy="452" rx="268" ry="56" fill="#2a1436"/>
+  <g id="food" clip-path="url(#foodClip)"></g>
+  <path d="M828,452 A282,64 0 0 0 1392,452" fill="none" stroke="#a77ee0" stroke-width="12" stroke-linecap="round"/>
+  <path d="M870,486 A250,50 0 0 0 1010,510" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- fiamme davanti, sotto la padella -->
+  <g id="frontFlames"></g>
+
+  <!-- cubetti in volo -->
+  <g id="swoosh" fill="none" stroke="#ffe9c7" stroke-width="5" stroke-linecap="round" opacity=".55">
+    <path d="M960,380 C930,300 960,230 1030,200"/>
+    <path d="M1240,370 C1290,300 1280,240 1220,205"/>
+  </g>
+  <g id="flying"></g>
+
+  <!-- braci -->
+  <g id="embers" filter="url(#ember)"></g>
+
+  <!-- card ambienti -->
+  <g id="cards"></g>
+
+  <!-- testo -->
+  <g class="t">
+    <g transform="translate(92,150)">
+      <rect width="306" height="44" rx="22" fill="#ffffff" fill-opacity=".1" stroke="#ffb3d1" stroke-opacity=".5" stroke-width="2"/>
+      <use href="#flame" transform="translate(30,36) scale(.27)"/>
+      <text x="52" y="29" fill="#ffd9e8" font-size="18" font-weight="600" letter-spacing="2.5">AMBIENTI DI SVILUPPO</text>
+    </g>
+    <text x="84" y="335" font-size="150" font-weight="700" fill="#ff6a3d" opacity=".55" filter="url(#blur20)">Soffritto</text>
+    <text x="84" y="335" font-size="150" font-weight="700" fill="url(#title)" letter-spacing="-2">Soffritto</text>
+    <text x="92" y="398" font-size="31" font-weight="500" fill="#fff1e0">Tutti i tuoi ambienti in una padella sola:</text>
+    <text x="92" y="440" font-size="31" font-weight="500" fill="#fff1e0" opacity=".8">accendi, aggiorna e condividi con un clic.</text>
+    <g id="chips" transform="translate(92,480)"></g>
+  </g>
+
+  <!-- gatto -->
+  <g id="cat"></g>
+  <g class="t" transform="translate(452,560)">
+    <rect width="214" height="48" rx="24" fill="#fffaf2"/>
+    <path d="M140,46 L160,64 L162,46 Z" fill="#fffaf2"/>
+    <text x="107" y="31" text-anchor="middle" font-size="19" font-weight="600" fill="#3b2347">Miao! Che profumino!</text>
+  </g>
+</g>
+</svg>
+
+<script>
+const NS = "http://www.w3.org/2000/svg";
+let seed = 7;
+const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+const r = (a, b) => a + rnd() * (b - a);
+function el(tag, attrs, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const k in attrs) e.setAttribute(k, attrs[k]);
+  parent.appendChild(e);
+  return e;
+}
+const $ = id => document.getElementById(id);
+
+// skyline
+function skyline(g, colors, hMin, hMax, windows) {
+  let x = -20;
+  while (x < 1620) {
+    const w = r(70, 150), h = r(hMin, hMax);
+    const c = colors[Math.floor(rnd() * colors.length)];
+    el("rect", { x, y: 690 - h, width: w, height: h + 20, rx: 14, fill: c }, g);
+    if (windows) {
+      for (let wy = 690 - h + 18; wy < 670; wy += 22)
+        for (let wx = x + 14; wx < x + w - 18; wx += 20)
+          if (rnd() < .45) el("rect", { x: wx, y: wy, width: 9, height: 11, rx: 3, fill: rnd() < .7 ? "#ffcf6b" : "#ff9fc4", opacity: r(.35, .9) }, g);
+    }
+    x += w + r(4, 18);
+  }
+}
+skyline($("skyBack"), ["#6b2f6e", "#7d3570", "#5b2a62"], 160, 300, false);
+skyline($("skyFront"), ["#3a1d4c", "#46245a", "#2f173d"], 70, 200, true);
+
+for (let x = 20; x < 1600; x += 92) el("rect", { x, y: 723, width: 44, height: 7, rx: 3.5, fill: "#ffd84d", opacity: .85 }, $("dashes"));
+
+// fiamme
+function flame(g, x, y, s, rot = 0, op = 1) {
+  el("use", { href: "#flame", transform: `translate(${x},${y}) rotate(${rot}) scale(${s})`, opacity: op }, g);
+}
+const back = $("backFlames");
+[[800, 560, 2.3, -14], [860, 600, 2.9, -8], [1365, 600, 2.9, 8], [1425, 560, 2.2, 14],
+ [940, 590, 2.4, -4], [1280, 590, 2.4, 5], [1040, 560, 2.2, -2], [1180, 560, 2.3, 3], [1110, 560, 2.5, 0]]
+  .forEach(([x, y, s, a]) => flame(back, x, y, s, a));
+const front = $("frontFlames");
+for (let i = 0; i < 9; i++) {
+  const x = 965 + i * 36;
+  flame(front, x, 640, r(.55, .9), r(-8, 8));
+}
+
+// cubetti
+const palette = [
+  ["#fff1d0", "#ffffff", "#e8cf9f"],   // cipolla
+  ["#ff8a3d", "#ffb47a", "#d9621c"],   // carota
+  ["#7fd16b", "#b4ef9f", "#4fa33e"],   // sedano
+];
+function cube(g, x, y, s, rot, kind) {
+  const [f, hi, sh] = palette[kind];
+  const grp = el("g", { transform: `translate(${x},${y}) rotate(${rot})` }, g);
+  el("rect", { x: -s / 2, y: -s / 2 + 4, width: s, height: s, rx: s * .28, fill: sh }, grp);
+  el("rect", { x: -s / 2, y: -s / 2, width: s, height: s, rx: s * .28, fill: f }, grp);
+  el("rect", { x: -s / 2 + s * .18, y: -s / 2 + s * .16, width: s * .38, height: s * .16, rx: s * .08, fill: hi, opacity: .9 }, grp);
+}
+const food = $("food");
+const pile = [];
+for (let i = 0; i < 95; i++) {
+  const x = r(860, 1360);
+  const dx = (x - 1110) / 250;
+  const top = 440 - 60 * (1 - dx * dx);
+  pile.push([x, r(top, 488)]);
+}
+pile.sort((a, b) => a[1] - b[1]).forEach(([x, y], i) => cube(food, x, y, r(22, 32), r(-30, 30), i % 3));
+
+const fly = $("flying");
+[[1000, 330, 30, 0], [990, 250, 26, 1], [1045, 196, 24, 2], [1110, 300, 32, 1], [1160, 230, 26, 0],
+ [1220, 205, 24, 2], [1265, 290, 30, 1], [1290, 360, 26, 2], [950, 395, 24, 1]]
+  .forEach(([x, y, s, k]) => cube(fly, x, y, s, r(-40, 40), k));
+
+// card ambienti
+const cards = $("cards");
+[[760, 92, -9, "AMBIENTE 1", "feature/torneo", "#43c46a"],
+ [1040, 40, 3, "AMBIENTE 2", "bugfix/pescata", "#5aa9ef"],
+ [1320, 98, 10, "AMBIENTE 3", "review/pr-418", "#43c46a"]]
+  .forEach(([x, y, a, title, branch, dot]) => {
+    const g = el("g", { transform: `translate(${x},${y}) rotate(${a})`, filter: "url(#soft)" }, cards);
+    el("rect", { width: 236, height: 96, rx: 26, fill: "#fffaf2" }, g);
+    const t = el("text", { x: 22, y: 38, class: "t", "font-size": 21, "font-weight": 700, fill: "#3b2347" }, g); t.textContent = title;
+    el("circle", { cx: 208, cy: 31, r: 8, fill: dot }, g);
+    el("circle", { cx: 208, cy: 31, r: 13, fill: dot, opacity: .25 }, g);
+    el("rect", { x: 18, y: 52, width: 200, height: 30, rx: 15, fill: "#efe6fb", stroke: "#c9b5ea", "stroke-width": 1.5 }, g);
+    const b = el("text", { x: 118, y: 72, class: "m", "font-size": 14, "text-anchor": "middle", fill: "#5a3f8a" }, g); b.textContent = branch;
+  });
+
+// chip in stile toolbar
+const chips = $("chips");
+let cx = 0;
+[["Accendi", "#58c45c", "#3f9a43"], ["Migrazioni", "#2fbfa0", "#21917a"], ["Tunnel", "#b98cf0", "#8c62c4"], ["Branch", "#f472a8", "#c94f81"]]
+  .forEach(([label, c, d]) => {
+    const w = label.length * 11.5 + 52;
+    const g = el("g", { transform: `translate(${cx},0)` }, chips);
+    el("rect", { y: 5, width: w, height: 50, rx: 25, fill: d }, g);
+    el("rect", { width: w, height: 50, rx: 25, fill: c }, g);
+    el("circle", { cx: 24, cy: 25, r: 6, fill: "#ffffff", opacity: .9 }, g);
+    const t = el("text", { x: 40, y: 33, "font-size": 21, "font-weight": 600, fill: "#ffffff" }, g); t.textContent = label;
+    cx += w + 14;
+  });
+
+// gatto pixel
+const catMap = [
+  "..O......O....",
+  "..OO....OO....",
+  "..OOOOOOOO....",
+  "..OKOOOOKO....",
+  "..OOOPPOOO...T",
+  "...OOOOOO...TT",
+  "..OOSOOSOOO.T.",
+  "..OOOOOOOOOOT.",
+  "..OSOOSOOSOO..",
+  "..WW.WW..WW...",
+];
+const catCol = { O: "#f29b38", S: "#c8641f", K: "#2a1436", P: "#ff8fb1", W: "#fff3e3", T: "#e0812a" };
+const cat = $("cat"), px = 7, ox = 540, oy = 690 - catMap.length * px;
+catMap.forEach((row, y) => [...row].forEach((ch, x) => {
+  if (catCol[ch]) el("rect", { x: ox + x * px, y: oy + y * px, width: px + .3, height: px + .3, fill: catCol[ch] }, cat);
+}));
+
+// braci
+const emb = $("embers");
+for (let i = 0; i < 80; i++) {
+  const x = r(720, 1590), y = r(20, 640);
+  const c = ["#ffe066", "#ffb347", "#ff7a59", "#ff9fc4"][Math.floor(rnd() * 4)];
+  el("circle", { cx: x, cy: y, r: r(1.5, 5), fill: c, opacity: r(.4, 1) }, emb);
+}
+for (let i = 0; i < 18; i++) el("circle", { cx: r(40, 700), cy: r(30, 640), r: r(1.2, 3), fill: "#ffcf6b", opacity: r(.25, .6) }, emb);
+</script>
+</body></html>
