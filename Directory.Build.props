@@ -11,6 +11,6 @@
          l'installer trova la stessa versione gia' presente ed esce con successo lasciando in
          Program Files i binari vecchi. Va alzata a ogni installazione che deve arrivare davvero
          in Visual Studio. -->
-    <Version>2.0.193</Version>
+    <Version>2.0.194</Version>
   </PropertyGroup>
 </Project>

@@ -6,7 +6,7 @@
 .DESCRIPTION
     Il pacchetto contiene:
       - Soffritto.exe self-contained: parte su qualunque Windows x64 senza runtime .NET;
-      - mcp\Soffritto.Mcp.exe, il server MCP, anche lui self-contained;
+      - mcp\Soffritto.Mcp.exe, il server MCP, anche lui self-contained, nella sua cartella;
       - vsix\Soffritto.Vsix.vsix, l'estensione di Visual Studio.
     MCP e VSIX si installano dalla scheda Componenti del setup dell'exe.
 
@@ -82,9 +82,11 @@ Invoke-Checked 'Publish dell''exe' {
 }
 
 Invoke-Checked 'Publish del server MCP' {
+    # Cartella e non file singolo: un bundle da 90 MB puo' metterci piu' di un minuto a partire
+    # (antivirus che lo analizza a ogni avvio) e il client MCP chiude la connessione prima
+    # (Claude Code aspetta 30 secondi). A cartella parte in pochi secondi.
     dotnet publish src\Soffritto.Mcp -c Release -r win-x64 --self-contained true `
-        -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true `
-        -o (Join-Path $pack 'mcp') --nologo -v minimal
+        -p:PublishSingleFile=false -o (Join-Path $pack 'mcp') --nologo -v minimal
 }
 
 if (-not $SkipVsix) {

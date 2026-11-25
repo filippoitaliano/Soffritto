@@ -1191,7 +1191,8 @@ Velopack installa per l'utente in `%LOCALAPPDATA%\Soffritto.App`, con i collegam
 pacchetto contiene:
 
 - l'exe Desktop **self-contained**: parte su qualunque Windows x64 senza runtime .NET;
-- `mcp\Soffritto.Mcp.exe`, il server MCP, self-contained in un file solo;
+- `mcp\Soffritto.Mcp.exe`, il server MCP, self-contained con le sue DLL nella cartella `mcp`
+  (non in un file solo, che a ogni avvio può superare il timeout di connessione del client MCP);
 - `vsix\Soffritto.Vsix.vsix`, l'estensione di Visual Studio.
 
 Il pacchetto non contiene nessuna configurazione e il setup non scrive la cartella dati
