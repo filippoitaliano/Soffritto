@@ -1,0 +1,20 @@
+# Artefatti di build
+[Bb]in/
+[Oo]bj/
+# Solo i pacchetti prodotti dalla build: un *.vsix senza percorso, con core.ignorecase,
+# intercetterebbe anche una cartella di progetto che finisce in .Vsix e i file al suo interno.
+**/[Bb]in/**/*.vsix
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Configurazioni di Soffritto: contengono percorsi e, cifrato, il PAT di Azure DevOps
+soffritto*.json
+
+# Piani di lavoro: restano in locale
+.claude/plans/
+
+# Pacchetti e release di Velopack prodotti da release.ps1
+artifacts/

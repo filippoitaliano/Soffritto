@@ -1,0 +1,1258 @@
+<!-- Pannello di setup: una card grande al centro della finestra, sopra tutto, divisa in schede.
+     In ogni scheda i titoli stanno sulla pagina e le card racchiudono un argomento ciascuna. Ogni campo ha un'etichetta (FieldLabel) con il bottone «i» che ne apre la descrizione; i
+     concetti da leggere sempre stanno nelle note azzurre (Note). La configurazione vale solo con
+     Salva e le sue sezioni portano il tag «in configurazione»; le altre (preferenze, seed, spazio
+     di Docker) hanno una gestione propria e si applicano appena si toccano. Il footer resta fermo: errori, esito del
+     salvataggio e bottoni sono sempre visibili mentre si scorre. Il DataContext e' un
+     SetupViewModel. -->
+<UserControl x:Class="Soffritto.Desktop.SetupPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Soffritto.Desktop"
+             xmlns:vm="clr-namespace:Soffritto.Desktop.ViewModels"
+             xmlns:core="clr-namespace:Soffritto.Core;assembly=Soffritto.Core"
+             Background="Transparent">
+  <UserControl.Resources>
+    <!-- Una scheda del setup: pillola, piena quando e' quella aperta. -->
+    <Style x:Key="SetupTab" TargetType="RadioButton">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="GroupName" Value="SetupTabs" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextStrong}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="Pill" CornerRadius="13" Padding="14,5" Background="Transparent">
+              <ContentPresenter />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Pill" Property="Background" Value="{DynamicResource Theme.Hover}" />
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Pill" Property="Background" Value="{DynamicResource Theme.CardBorder}" />
+                <Setter Property="FontWeight" Value="Bold" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="PreferenceTitle" TargetType="TextBlock">
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextStrong}" />
+    </Style>
+
+    <Style x:Key="PreferenceHint" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Opacity" Value="0.6" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Margin" Value="0,1,0,0" />
+    </Style>
+
+    <Style x:Key="PreferenceRow" TargetType="DockPanel">
+      <Setter Property="Margin" Value="0,0,28,14" />
+    </Style>
+
+    <Style x:Key="SectionTitle" TargetType="TextBlock">
+      <Setter Property="FontWeight" Value="ExtraBold" />
+      <Setter Property="FontSize" Value="18" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextStrong}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="SectionHint" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="Margin" Value="0,4,0,14" />
+    </Style>
+
+    <!-- Una sezione di una scheda: titolo, spiegazione e note stanno direttamente sulla pagina. -->
+    <Style x:Key="PageSection" TargetType="StackPanel">
+      <Setter Property="Margin" Value="4,6,4,26" />
+    </Style>
+
+    <!-- Il tag delle sezioni che fanno parte della configurazione: cio' che finisce in config.json
+         e in uno soffritto.json di provisioning. Le altre sezioni hanno una gestione propria. -->
+    <Style x:Key="ConfigBadge" TargetType="Border">
+      <Setter Property="Background" Value="#1F2F8A68" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="Padding" Value="8,1,8,2" />
+      <Setter Property="Margin" Value="10,1,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="ToolTip" Value="Fa parte della configurazione: è ciò che contiene uno soffritto.json di provisioning." />
+    </Style>
+
+    <Style x:Key="ConfigBadgeText" TargetType="TextBlock">
+      <Setter Property="Text" Value="in configurazione" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="Foreground" Value="#2F8A68" />
+    </Style>
+
+    <!-- Il tag dei provider DevOps mostrati ma non ancora supportati (GitHub, GitLab). -->
+    <Style x:Key="PreviewBadge" TargetType="Border" BasedOn="{StaticResource ConfigBadge}">
+      <Setter Property="Background" Value="#1FC27C0E" />
+      <Setter Property="ToolTip" Value="Non ancora supportato: i campi mostrano cosa servirà, non si salvano." />
+    </Style>
+
+    <Style x:Key="PreviewBadgeText" TargetType="TextBlock" BasedOn="{StaticResource ConfigBadgeText}">
+      <Setter Property="Text" Value="in anteprima" />
+      <Setter Property="Foreground" Value="#C27C0E" />
+    </Style>
+
+    <Style x:Key="ProviderTitle" TargetType="TextBlock">
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextStrong}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="ColumnHeader" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="11.5" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextMuted}" />
+      <Setter Property="Margin" Value="2,0,6,3" />
+    </Style>
+
+    <!-- Un gruppo di campi di una card del catalogo: riga col titolo (Header) e a cosa serve (Tag),
+         che apre e chiude i campi. -->
+    <Style x:Key="Group" TargetType="Expander">
+      <Setter Property="Margin" Value="0,0,0,8" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Expander">
+            <Border x:Name="Frame" Background="{DynamicResource Theme.SurfaceSoft}" BorderBrush="{DynamicResource Theme.SubtleBorder}" BorderThickness="1" CornerRadius="12">
+              <StackPanel>
+                <ToggleButton Cursor="Hand" Focusable="False"
+                              IsChecked="{Binding IsExpanded, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}">
+                  <ToggleButton.Template>
+                    <ControlTemplate TargetType="ToggleButton">
+                      <Border Background="Transparent" Padding="12,8">
+                        <DockPanel>
+                          <TextBlock x:Name="Chevron" DockPanel.Dock="Left" Text="&#xE76C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal"
+                                     FontSize="10" Opacity="0.6" VerticalAlignment="Center" Margin="0,1,9,0" />
+                          <ContentPresenter />
+                        </DockPanel>
+                      </Border>
+                      <ControlTemplate.Triggers>
+                        <Trigger Property="IsChecked" Value="True">
+                          <Setter TargetName="Chevron" Property="Text" Value="&#xE70D;" />
+                        </Trigger>
+                        <Trigger Property="IsMouseOver" Value="True">
+                          <Setter TargetName="Chevron" Property="Opacity" Value="1" />
+                        </Trigger>
+                      </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                  </ToggleButton.Template>
+                  <DockPanel>
+                    <TextBlock DockPanel.Dock="Left" Text="{Binding Header, RelativeSource={RelativeSource TemplatedParent}}" FontWeight="Bold" FontSize="13" Foreground="{DynamicResource Theme.TextStrong}" VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" FontSize="12" Opacity="0.6" VerticalAlignment="Center" Margin="10,0,0,0" TextTrimming="CharacterEllipsis" />
+                  </DockPanel>
+                </ToggleButton>
+                <ContentPresenter x:Name="Body" Margin="14,6,2,0" Visibility="Collapsed" />
+              </StackPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsExpanded" Value="True">
+                <Setter TargetName="Body" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Theme.Field}" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Caselle, tendine, spunte e scelte singole del pannello sono quelle comuni dell'exe
+         (App.xaml, stili Form*). -->
+    <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBox}" />
+    <Style TargetType="PasswordBox" BasedOn="{StaticResource FormPasswordBox}" />
+    <Style TargetType="ComboBox" BasedOn="{StaticResource FormComboBox}" />
+    <Style TargetType="CheckBox" BasedOn="{StaticResource FormCheckBox}" />
+    <Style TargetType="RadioButton" BasedOn="{StaticResource FormRadioButton}">
+      <Setter Property="Margin" Value="0,0,20,0" />
+    </Style>
+
+  </UserControl.Resources>
+
+  <Border CornerRadius="22" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1,1,1,3" Background="{DynamicResource Theme.Panel}">
+    <Border.Effect>
+      <DropShadowEffect Direction="270" ShadowDepth="6" BlurRadius="28" Opacity="0.24" Color="#5C4A2A" />
+    </Border.Effect>
+    <DockPanel>
+      <!-- Intestazione -->
+      <DockPanel DockPanel.Dock="Top" Margin="22,16,22,12">
+        <Button x:Name="CloseButton"
+                DockPanel.Dock="Right"
+                Click="Close_Click"
+                ToolTip="Chiudi senza salvare (Esc)"
+                Style="{StaticResource IconButton}"
+                Content="&#xE711;" />
+        <StackPanel>
+          <TextBlock Text="Setup" FontWeight="ExtraBold" FontSize="21" Foreground="{DynamicResource Theme.TextStrong}" />
+          <TextBlock x:Name="DemoHint" FontSize="12.5" Opacity="0.7" TextWrapping="Wrap" Margin="0,2,0,0" Visibility="Collapsed"
+                     Text="In modalità demo si cambiano solo le preferenze: configurazione, Docker e tunnel restano bloccati. Ctrl+D o l'interruttore qui sotto per uscire." />
+          <TextBlock x:Name="ConfigurationHint" FontSize="12.5" Opacity="0.7" TextWrapping="Wrap" Margin="0,2,0,0">
+            <Run Text="La configurazione vale con Salva: le sue sezioni hanno il tag «in configurazione». Per distribuirla metti uno soffritto.json" />
+            <Hyperlink Command="{Binding OpenExeFolderCommand}"><Run Text="accanto all'exe" /></Hyperlink><Run Text=": all'avvio, quando è cambiato, sostituisce questa." />
+          </TextBlock>
+        </StackPanel>
+      </DockPanel>
+
+      <!-- Schede: ognuna mostra le sezioni con il suo Tag (SetupPanel.ShowTab). -->
+      <StackPanel x:Name="Tabs" DockPanel.Dock="Top" Orientation="Horizontal" Margin="22,0,22,12">
+        <RadioButton x:Name="FirstTab" Content="Repository" Tag="Repository" Checked="Tab_Checked" Style="{StaticResource SetupTab}" />
+        <RadioButton Content="Ambienti locali" Tag="Ambienti" Checked="Tab_Checked" Style="{StaticResource SetupTab}" />
+        <RadioButton Content="Docker" Tag="Docker" Checked="Tab_Checked" Style="{StaticResource SetupTab}" />
+        <RadioButton Content="Tunnel" Tag="Tunnel" Checked="Tab_Checked" Style="{StaticResource SetupTab}" />
+        <RadioButton Content="DevOps" Tag="DevOps" Checked="Tab_Checked" Style="{StaticResource SetupTab}" />
+        <RadioButton x:Name="ComponentsTab" Content="Componenti" Tag="Componenti" Checked="Tab_Checked" Style="{StaticResource SetupTab}" />
+        <RadioButton x:Name="PreferencesTab" Content="Preferenze" Tag="Preferenze" Checked="Tab_Checked" Style="{StaticResource SetupTab}" />
+      </StackPanel>
+
+      <!-- Footer fermo: errori, esito, bottoni -->
+      <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="0,1,0,0" Padding="22,10,22,14">
+        <StackPanel>
+          <Border Visibility="{Binding ErrorsVisibility}" Background="#14C42B1C" CornerRadius="10" Padding="10,6" Margin="0,0,0,8" MaxHeight="120">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <TextBlock Text="{Binding ErrorsText}" Foreground="{DynamicResource Theme.ErrorText}" FontSize="13" TextWrapping="Wrap" />
+            </ScrollViewer>
+          </Border>
+          <Border Visibility="{Binding WarningsVisibility}" Background="#14B35C00" CornerRadius="10" Padding="10,6" Margin="0,0,0,8" MaxHeight="120">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <TextBlock Text="{Binding WarningsText}" Foreground="{DynamicResource Theme.WarningText}" FontSize="13" TextWrapping="Wrap" />
+            </ScrollViewer>
+          </Border>
+          <Border Visibility="{Binding NoticeVisibility}" Background="{DynamicResource Theme.InfoBackground}" CornerRadius="10" Padding="10,6" Margin="0,0,0,8" MaxHeight="120">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <TextBlock Text="{Binding Notice}" Foreground="{DynamicResource Theme.InfoText}" FontSize="13" TextWrapping="Wrap" />
+            </ScrollViewer>
+          </Border>
+          <DockPanel LastChildFill="False">
+            <Button x:Name="ImportButton" DockPanel.Dock="Left" Content="Importa json…" Click="Import_Click" Style="{StaticResource TextButton}" Margin="0" IsEnabled="{Binding IsIdle}"
+                    ToolTip="Carica i campi da un file json, per esempio una configurazione salvata. Si applica solo con Salva." />
+            <Button x:Name="SaveButton" DockPanel.Dock="Right" Content="{Binding SaveText}" Command="{Binding SaveCommand}" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0" IsEnabled="{Binding IsIdle}"
+                    ToolTip="Salva la configurazione, clona le cartelle mancanti e riapre l'exe con i nuovi ambienti." />
+            <Button x:Name="CancelButton" DockPanel.Dock="Right" Content="Annulla" Click="Close_Click" Style="{StaticResource TextButton}" IsEnabled="{Binding IsIdle}" />
+          </DockPanel>
+        </StackPanel>
+      </Border>
+
+      <ScrollViewer x:Name="SectionsScroll" VerticalScrollBarVisibility="Auto" Padding="22,0,22,4">
+        <StackPanel x:Name="Sections">
+
+          <!-- Preferenze: il DataContext e' AppSettings.Current, che salva a ogni cambio e la
+               finestra applica (MainWindow.ApplySettings). -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Preferenze" DataContext="{x:Static local:AppSettings.Current}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="Preferenze" Style="{StaticResource SectionTitle}" />
+            </StackPanel>
+            <TextBlock Text="Riguardano solo questo exe e si applicano subito: non fanno parte della configurazione e non si distribuiscono con soffritto.json." Style="{StaticResource SectionHint}" />
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <DockPanel Style="{StaticResource PreferenceRow}">
+                  <ComboBox DockPanel.Dock="Right"
+                            Width="220"
+                            VerticalAlignment="Center"
+                            ItemsSource="{x:Static local:AppSettings.ThemeOptions}"
+                            DisplayMemberPath="Label"
+                            SelectedValuePath="Mode"
+                            SelectedValue="{Binding Theme}" />
+                  <StackPanel Margin="0,0,16,0">
+                    <TextBlock Text="Tema" Style="{StaticResource PreferenceTitle}" />
+                    <TextBlock Text="Chiaro o scuro per finestra, card e pannelli. «Sistema» segue Windows, «In base allo sfondo» diventa scuro sulle scene buie di Ctrl+T" Style="{StaticResource PreferenceHint}" />
+                  </StackPanel>
+                </DockPanel>
+                <UniformGrid Columns="2">
+                  <DockPanel Style="{StaticResource PreferenceRow}">
+                    <CheckBox DockPanel.Dock="Right" IsChecked="{Binding ShowCat}" Style="{StaticResource Switch}" />
+                    <StackPanel Margin="0,0,16,0">
+                      <TextBlock Text="Gattino" Style="{StaticResource PreferenceTitle}" />
+                      <TextBlock Text="Passeggia sul footer e dice le notifiche nuove · Ctrl+G" Style="{StaticResource PreferenceHint}" />
+                    </StackPanel>
+                  </DockPanel>
+                  <DockPanel Style="{StaticResource PreferenceRow}">
+                    <CheckBox DockPanel.Dock="Right" IsChecked="{Binding ShowScenery}" Style="{StaticResource Switch}" />
+                    <StackPanel Margin="0,0,16,0">
+                      <TextBlock Text="Sfondo" Style="{StaticResource PreferenceTitle}" />
+                      <TextBlock Text="Paesaggio in pixel art dietro le card · Ctrl+T" Style="{StaticResource PreferenceHint}" />
+                    </StackPanel>
+                  </DockPanel>
+                  <DockPanel Style="{StaticResource PreferenceRow}">
+                    <CheckBox DockPanel.Dock="Right" IsChecked="{Binding IsDemo}" Style="{StaticResource Switch}" />
+                    <StackPanel Margin="0,0,16,0">
+                      <TextBlock Text="Modalità demo" Style="{StaticResource PreferenceTitle}" />
+                      <TextBlock Text="Dati inventati al posto degli ambienti veri; si spegne alla riapertura · Ctrl+D" Style="{StaticResource PreferenceHint}" />
+                    </StackPanel>
+                  </DockPanel>
+                </UniformGrid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Sfondi: le scene di PixelScenery tra cui sceglie Ctrl+T. La selezione sta in
+               AppSettings.Sceneries; l'ultima scena rimasta non si toglie. -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Preferenze">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="Sfondi" Style="{StaticResource SectionTitle}" />
+            </StackPanel>
+            <TextBlock Text="Le scene tra cui sceglie lo sfondo a ogni accensione, a caso e diversa dalla precedente. Clic su un'anteprima per metterla o toglierla dalla rotazione; almeno una resta sempre: per non avere sfondi spegni l'interruttore «Sfondo» qui sopra." Style="{StaticResource SectionHint}" />
+            <ItemsControl ItemsSource="{x:Static vm:SceneryChoiceViewModel.All}" Focusable="False">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <WrapPanel />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate DataType="{x:Type vm:SceneryChoiceViewModel}">
+                  <Button Command="{Binding ToggleCommand}" ToolTip="{Binding ToolTip}" Margin="0,0,14,14" Cursor="Hand"
+                          AutomationProperties.Name="{Binding Label}">
+                    <Button.Template>
+                      <ControlTemplate TargetType="Button">
+                        <Border x:Name="Frame" Width="212" Padding="4" CornerRadius="10" BorderThickness="2"
+                                BorderBrush="{DynamicResource Theme.SubtleBorder}" Background="{DynamicResource Theme.SurfaceSoft}">
+                          <StackPanel>
+                            <Grid>
+                              <Border CornerRadius="7" ClipToBounds="True">
+                                <Image x:Name="Thumb" Source="{Binding Preview}" Width="200" Height="117" Stretch="UniformToFill"
+                                       RenderOptions.BitmapScalingMode="HighQuality" />
+                              </Border>
+                              <Border x:Name="Check" Width="22" Height="22" CornerRadius="11" Background="#2F8A68"
+                                      HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,6,6,0">
+                                <TextBlock Text="&#xE73E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="12"
+                                           Foreground="White" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                              </Border>
+                            </Grid>
+                            <TextBlock x:Name="Caption" Text="{Binding Label}" FontWeight="Bold" Margin="4,6,4,2"
+                                       Foreground="{DynamicResource Theme.TextStrong}" />
+                          </StackPanel>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                          <DataTrigger Binding="{Binding IsSelected}" Value="True">
+                            <Setter TargetName="Frame" Property="BorderBrush" Value="#2F8A68" />
+                          </DataTrigger>
+                          <DataTrigger Binding="{Binding IsSelected}" Value="False">
+                            <Setter TargetName="Check" Property="Visibility" Value="Collapsed" />
+                            <Setter TargetName="Thumb" Property="Opacity" Value="0.45" />
+                            <Setter TargetName="Caption" Property="Opacity" Value="0.6" />
+                          </DataTrigger>
+                          <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Theme.Hover}" />
+                          </Trigger>
+                        </ControlTemplate.Triggers>
+                      </ControlTemplate>
+                    </Button.Template>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
+          <!-- Dove stanno i cloni -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Repository">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+              <TextBlock Text="Dove stanno i cloni" Style="{StaticResource SectionTitle}" />
+              <Border Style="{StaticResource ConfigBadge}"><TextBlock Style="{StaticResource ConfigBadgeText}" /></Border>
+            </StackPanel>
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <StackPanel Style="{StaticResource FormField}" Margin="0">
+                  <local:FieldLabel Text="Cartella dei cloni"
+                                    Info="La cartella che contiene i cloni di tutti gli ambienti: ogni repository sta in &lt;cartella dei cloni&gt;\&lt;cartella del repository&gt;. Percorso completo, es. C:\Dev. Un ambiente può averne una sua (scheda Ambienti locali)." />
+                  <DockPanel>
+                    <Button DockPanel.Dock="Right" Content="Sfoglia…" Click="Browse_Click" Style="{StaticResource TextButton}" Margin="8,0,0,0" />
+                    <TextBox Text="{Binding Root, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                  </DockPanel>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Catalogo dei repository: una card per repository, con il tipo e i suoi gruppi di campi. -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Repository">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="Catalogo dei repository" Style="{StaticResource SectionTitle}" />
+              <Border Style="{StaticResource ConfigBadge}"><TextBlock Style="{StaticResource ConfigBadgeText}" /></Border>
+            </StackPanel>
+            <TextBlock Text="Una card per repository, nell'ordine in cui compaiono nelle colonne degli ambienti. Con Salva le cartelle che mancano vengono clonate; quelle che ci sono non vengono toccate." Style="{StaticResource SectionHint}" />
+            <!-- La convenzione del branch di sviluppo: il valore viene da GitConventions. -->
+            <ContentControl Style="{StaticResource FormNote}">
+              <TextBlock TextWrapping="Wrap">
+                <Run Text="Ogni repository deve avere il branch" /> <Run Text="{x:Static core:GitConventions.DevelopmentBranch}" FontFamily="Cascadia Mono, Consolas" FontWeight="Bold" /> <Run Text="su origin: «Reset» riporta lì i repository e i branch nuovi degli ambienti Docker nascono da" /> <Run Text="{x:Static core:GitConventions.RemoteDevelopmentBranch}" FontFamily="Cascadia Mono, Consolas" /><Run Text="." />
+              </TextBlock>
+            </ContentControl>
+            <ItemsControl ItemsSource="{Binding Repositories}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource FormCard}" Padding="20,16,20,8">
+                    <StackPanel>
+                      <!-- Identità: tipo, id, da dove si clona e in quale cartella. -->
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="150" />
+                          <ColumnDefinition Width="220" />
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Style="{StaticResource FormField}">
+                          <local:FieldLabel Text="Tipo"
+                                            Info="Decide i campi di questa card, i bottoni e gli strumenti del repository. Il primo repository di ogni tipo nel catalogo è il predefinito: tiene i nomi di sempre di console e tunnel, e il primo backend è quello su cui lavorano VSIX e CLI." />
+                          <ComboBox ItemsSource="{x:Static vm:SetupViewModel.TypeOptions}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                    SelectedValue="{Binding Type}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Style="{StaticResource FormField}">
+                          <local:FieldLabel Text="Id"
+                                            Info="Il nome stabile del repository: lo usano gli ambienti e i nomi di console e tunnel. Lettere minuscole, cifre e trattini; inizia con una lettera, al massimo 24 caratteri." />
+                          <TextBox Text="{Binding Id, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Top">
+                          <Button Content="&#xE70E;" ToolTip="Sposta in su nel catalogo" CommandParameter="{Binding}" Style="{StaticResource IconButton}" Margin="0"
+                                  Command="{Binding DataContext.MoveUpCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                          <Button Content="&#xE70D;" ToolTip="Sposta in giù nel catalogo" CommandParameter="{Binding}" Style="{StaticResource IconButton}"
+                                  Command="{Binding DataContext.MoveDownCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                          <Button Content="&#xE74D;" ToolTip="Togli dal catalogo (la cartella sul disco resta)" CommandParameter="{Binding}" Style="{StaticResource IconButton}" Margin="10,0,0,0"
+                                  Command="{Binding DataContext.RemoveRepositoryCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                        </StackPanel>
+                      </Grid>
+                      <Grid>
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="2*" />
+                          <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Style="{StaticResource FormField}">
+                          <local:FieldLabel Text="URL di clone"
+                                            Info="Da qui Salva clona le cartelle che mancano; vuoto = non si clona. L'ultimo segmento dell'URL è il nome con cui si riconoscono le pull request del repository." />
+                          <TextBox Text="{Binding CloneUrl, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Style="{StaticResource FormField}" Margin="0,0,0,14">
+                          <local:FieldLabel Text="Cartella" LockText="{Binding DockerLockToolTip}"
+                                            Info="Il nome della cartella del clone dentro la cartella dei cloni. Scrivi {n} dove va il numero dell'ambiente: backend-{n} diventa backend-1, backend-2… Serve sempre quando il repository è in più ambienti." />
+                          <TextBox Text="{Binding Folder, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding IsDockerLocked}" />
+                        </StackPanel>
+                      </Grid>
+
+                      <!-- Campi del backend -->
+                      <Expander Style="{StaticResource Group}" Header="Backend" Tag="avvio di Kestrel, connection string e migrazioni · percorsi relativi al clone" IsExpanded="True" Visibility="{Binding BackendVisibility}">
+                        <StackPanel>
+                          <UniformGrid Columns="3">
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Soluzione" Info="Il file .sln che apre il bottone VS della card." />
+                              <TextBox Text="{Binding Backend.Solution, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Cartella del progetto API" Info="La cartella del progetto da cui parte Kestrel con dotnet run." />
+                              <TextBox Text="{Binding Backend.ApiProject, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Profilo di avvio" Info="Il profilo di launchSettings.json con cui parte Kestrel: dotnet run --launch-profile &lt;profilo&gt;." />
+                              <TextBox Text="{Binding Backend.LaunchProfile, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Processo dell'API" Info="Il nome dell'exe in esecuzione, es. MyApp.Web.Api.exe: riconosce Kestrel acceso anche quando è partito da Visual Studio." />
+                              <TextBox Text="{Binding Backend.ApiProcess, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Nome della connection string" Info="La chiave sotto ConnectionStrings da cui si leggono server e database dell'ambiente. Vale il primo appsettings dell'elenco che la contiene: la stessa connessione che usa dotnet ef." />
+                              <TextBox Text="{Binding Backend.ConnectionStringName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Tag da evidenziare" Info="Facoltativo. I nomi di database e di server, separati da virgole, il cui tag sulla card dell'ambiente diventa arancione: quelli da trattare con cautela, come una copia di produzione. Ogni tag si colora per conto suo, e il nome va scritto come compare nel tag." />
+                              <TextBox Text="{Binding HighlightedTagsText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                          </UniformGrid>
+                          <StackPanel Style="{StaticResource FormField}" Margin="0,0,14,14">
+                            <local:FieldLabel Text="Appsettings" Hint="Uno per riga, in ordine di lettura"
+                                              Info="I file in cui cercare la connection string, in ordine: vince il primo che la contiene." />
+                            <TextBox Text="{Binding AppSettingsText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" AcceptsReturn="True" MinHeight="48" />
+                          </StackPanel>
+                          <DockPanel Margin="0,0,14,4">
+                            <Button DockPanel.Dock="Right" Content="Aggiungi context" Command="{Binding AddContextCommand}" Style="{StaticResource TextButton}" />
+                            <local:FieldLabel Text="Context EF Core" VerticalAlignment="Center" Margin="0"
+                                              Info="I DbContext di cui seguire le migrazioni. Per ognuno servono tutti e quattro i campi: nome, cartella delle migrazioni, progetto che le contiene (--project) e progetto con la configurazione del DbContext (--startup-project)." />
+                          </DockPanel>
+                          <Grid Margin="0,2,46,0">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="0.8*" />
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Nome" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="1" Text="Cartella delle migrazioni" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="2" Text="Progetto (--project)" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="3" Text="Progetto di avvio (--startup-project)" Style="{StaticResource ColumnHeader}" />
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding Contexts}" Margin="0,0,14,8">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <DockPanel Margin="0,0,0,6">
+                                  <Button DockPanel.Dock="Right" Content="&#xE74D;" ToolTip="Togli il context"
+                                          Command="{Binding DataContext.RemoveContextCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                          CommandParameter="{Binding}" Style="{StaticResource IconButton}" Margin="6,0,0,0" />
+                                  <Grid>
+                                    <Grid.ColumnDefinitions>
+                                      <ColumnDefinition Width="0.8*" />
+                                      <ColumnDefinition Width="*" />
+                                      <ColumnDefinition Width="*" />
+                                      <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" Margin="0,0,6,0" />
+                                    <TextBox Grid.Column="1" Text="{Binding Migrations, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" Margin="0,0,6,0" />
+                                    <TextBox Grid.Column="2" Text="{Binding Project, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" Margin="0,0,6,0" />
+                                    <TextBox Grid.Column="3" Text="{Binding StartupProject, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                                  </Grid>
+                                </DockPanel>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                        </StackPanel>
+                      </Expander>
+
+                      <!-- Campi del frontend -->
+                      <Expander Style="{StaticResource Group}" Header="Frontend" Tag="comandi e porta del dev server" IsExpanded="True" Visibility="{Binding FrontendVisibility}">
+                        <UniformGrid Columns="3">
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="Comando di avvio" Info="Il comando che il bottone di avvio della card lancia in una console, nella cartella del clone." />
+                            <TextBox Text="{Binding Frontend.StartCommand, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                          </StackPanel>
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="Comando accessorio" Info="Facoltativo. Aggiunge alla card un bottone che lancia questo comando, col nome della sua ultima parola (es. per rigenerare le API)." />
+                            <TextBox Text="{Binding Frontend.ExtraCommand, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                          </StackPanel>
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="Processo del dev server" Info="Un testo presente nella riga di comando del node del dev server (es. webpack, vite): lo distingue dagli altri node del clone, per sapere se è acceso." />
+                            <TextBox Text="{Binding Frontend.DevServerProcessHint, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                          </StackPanel>
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="File di env" Info="Il file del clone da cui si legge la porta del dev server, relativo al clone." />
+                            <TextBox Text="{Binding Frontend.EnvFile, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                          </StackPanel>
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="Variabile della porta" Info="Il nome della variabile che nel file di env contiene la porta del dev server (righe «set NOME=porta» o «NOME=porta»)." />
+                            <TextBox Text="{Binding Frontend.DevServerPortVariable, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                          </StackPanel>
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="Porta predefinita" Info="La porta del dev server quando il file di env o la variabile mancano." />
+                            <TextBox Text="{Binding Frontend.DevServerDefaultPort, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                          </StackPanel>
+                        </UniformGrid>
+                      </Expander>
+
+                      <!-- Campi dell'app -->
+                      <Expander Style="{StaticResource Group}" Header="App" Tag="comandi" IsExpanded="True" Visibility="{Binding AppVisibility}">
+                        <UniformGrid Columns="3">
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="Comando di avvio" Info="Il comando che il bottone di avvio della card lancia in una console, nella cartella del clone." />
+                            <TextBox Text="{Binding App.StartCommand, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                          </StackPanel>
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="Comando del bundler" Info="Facoltativo. Aggiunge alla card il bottone «Metro», che lancia questo comando in una console sua." />
+                            <TextBox Text="{Binding App.BundlerCommand, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                          </StackPanel>
+                        </UniformGrid>
+                      </Expander>
+
+                      <!-- Dev tunnel -->
+                      <Expander Style="{StaticResource Group}" Header="Dev tunnel" Tag="condividere il repository fuori dal PC">
+                        <StackPanel>
+                          <DockPanel Margin="0,0,14,12">
+                            <CheckBox DockPanel.Dock="Left" IsChecked="{Binding TunnelEnabled}" Style="{StaticResource Switch}" Margin="0,0,12,0" />
+                            <StackPanel>
+                              <TextBlock Text="Condivisibile" Style="{StaticResource PreferenceTitle}" />
+                              <TextBlock Text="«Tunnel» nell'intestazione del suo ambiente gli dà una porta di un tunnel del pool (scheda Tunnel)." Style="{StaticResource PreferenceHint}" />
+                            </StackPanel>
+                          </DockPanel>
+                          <UniformGrid Columns="3" Visibility="{Binding TunnelVisibility}">
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Porte"
+                                                Info="Le porte da esporre, es. 8443/https, 3000/http. Vuoto = quelle del tipo: la porta https di Kestrel (dagli appsettings) per un backend, quella del dev server (dal file di env) per un frontend. Per un repository generico vanno scritte." />
+                              <TextBox Text="{Binding TunnelPortsText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                          </UniformGrid>
+                        </StackPanel>
+                      </Expander>
+
+                      <!-- Docker: i campi vuoti valgono i default del tipo, che il campo mostra. -->
+                      <Expander Style="{StaticResource Group}" Header="Docker" Tag="solo per gli ambienti Docker · worktree, compose e container">
+                        <StackPanel>
+                          <ContentControl Style="{StaticResource FormNote}" Margin="0,0,14,14">
+                            <TextBlock TextWrapping="Wrap" Text="Compose, Dockerfile, servizio e porte mostrano il valore predefinito del tipo finché non li cambi; i percorsi sono relativi alla radice del repository. Nei container girano solo il backend e il frontend predefiniti dell'ambiente." />
+                          </ContentControl>
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="Clone sorgente" LockText="{Binding DockerLockToolTip}"
+                                              Info="Il clone bare da cui nascono i worktree degli ambienti Docker. Se manca, Salva lo crea con git init --bare e fetch. Vuoto = il repository non entra negli ambienti Docker." />
+                            <DockPanel>
+                              <Button DockPanel.Dock="Right" Content="Proponi" Command="{Binding ProposeSourceCloneCommand}" Style="{StaticResource TextButton}" Margin="8,0,0,0"
+                                      IsEnabled="{Binding IsDockerEditable}"
+                                      ToolTip="Scrive &lt;cartella dei worktree&gt;\sorgenti\&lt;nome del repository&gt;.git (la cartella dei worktree è nella scheda Docker)" />
+                              <TextBox Text="{Binding SourceClone, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding IsDockerLocked}" />
+                            </DockPanel>
+                          </StackPanel>
+                          <UniformGrid Columns="4">
+                            <StackPanel Style="{StaticResource FormField}" Visibility="{Binding ComposeVisibility}">
+                              <local:FieldLabel Text="Compose" LockText="{Binding DockerLockToolTip}"
+                                                Info="Il file compose dell'ambiente Docker, con i servizi di api, web e database. Sta nel repository backend." />
+                              <TextBox Text="{Binding DockerCompose, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding IsDockerLocked}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Dockerfile"
+                                                Info="Il Dockerfile con cui si costruisce l'immagine del repository. Il percorso vale anche rispetto al contesto della build: niente percorsi assoluti né «..»." />
+                              <TextBox Text="{Binding DockerDockerfile, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Servizio nel compose" LockText="{Binding DockerLockToolTip}"
+                                                Info="Il nome del servizio di questo repository nel compose: di default api per il backend, web per il frontend." />
+                              <TextBox Text="{Binding DockerService, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding IsDockerLocked}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Porte pubblicate" LockText="{Binding DockerLockToolTip}"
+                                                Info="Formato base:porta del container, più voci separate da virgole. L'ambiente N pubblica sul PC la porta base + N: con 15000:8080 l'ambiente 11 risponde sulla 15011." />
+                              <TextBox Text="{Binding DockerPublishedPortsText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding IsDockerLocked}" />
+                            </StackPanel>
+                          </UniformGrid>
+                          <StackPanel Style="{StaticResource FormField}">
+                            <local:FieldLabel Text="File Docker di riserva"
+                                              Info="Cartella di un checkout che ha i file Docker: da qui si copiano nel worktree quelli che il branch non ha. Le copie nel worktree vengono riscritte a ogni avvio e spariscono con Distruggi: i file si modificano qui o nel repository." />
+                            <DockPanel>
+                              <Button DockPanel.Dock="Right" Content="Sfoglia…" Click="BrowseFallback_Click" Style="{StaticResource TextButton}" Margin="8,0,0,0" />
+                              <TextBox Text="{Binding DockerFilesFallback, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </DockPanel>
+                          </StackPanel>
+                          <UniformGrid Columns="2">
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="File locali dall'ambiente modello" Hint="Uno per riga, relativi alla radice"
+                                                Info="File copiati byte per byte dallo stesso repository dell'ambiente modello al worktree, alla creazione dell'ambiente e con «Ripara env». Non metterci il file di env né quello dei segreti: li scrive il gruppo Env." />
+                              <TextBox Text="{Binding DockerLocalFilesText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" AcceptsReturn="True" MinHeight="48" />
+                            </StackPanel>
+                          </UniformGrid>
+                        </StackPanel>
+                      </Expander>
+
+                      <!-- Env: costanti dal modello, segreti dalla loro fonte, valori per slot. -->
+                      <Expander Style="{StaticResource Group}" Header="Env" Tag="solo per gli ambienti Docker · le variabili d'ambiente del repository">
+                        <StackPanel>
+                          <ContentControl Style="{StaticResource FormNote}" Margin="0,0,14,14">
+                            <TextBlock TextWrapping="Wrap" Text="Un ambiente Docker riceve tre tipi di variabili: le costanti, copiate dall'ambiente modello; i segreti, letti dal loro file; i valori per ambiente, calcolati qui sotto. Il worktree le riceve nel file di env (alla creazione e con «Ripara env»), il container a ogni avvio." />
+                          </ContentControl>
+                          <StackPanel Orientation="Horizontal" Margin="0,0,14,14">
+                            <Button Content="Valori proposti" Command="{Binding ProposeEnvCommand}" Style="{StaticResource TextButton}" Margin="0"
+                                    ToolTip="Sostituisce tutto il gruppo Env con i valori tipici del tipo di repository: un buon punto di partenza da ritoccare." />
+                            <Button Content="Anteprima" Command="{Binding PreviewEnvCommand}" Style="{StaticResource TextButton}" Margin="8,0,0,0"
+                                    ToolTip="Mostra qui sotto le variabili che riceverebbe un ambiente Docker di prova: nomi e origini, mai i valori." />
+                          </StackPanel>
+                          <UniformGrid Columns="3">
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Formato del file di env"
+                                                Info="Come si legge e si scrive il file di env: .bat (righe set NOME=valore), dotenv (NOME=valore), appsettings (chiavi A:B di un json), manuale (nessun file: solo le variabili scritte qui). «(nessuno)» = Soffritto non gestisce gli env di questo repository." />
+                              <ComboBox ItemsSource="{x:Static vm:RepositoryCardEditor.EnvAdapterOptions}" DisplayMemberPath="Label" SelectedValuePath="Key"
+                                        SelectedValue="{Binding EnvAdapterKey}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="File di env" Info="Il file che viene scritto nel worktree, relativo alla radice del repository." />
+                              <TextBox Text="{Binding EnvTarget, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsEnabled="{Binding EnvEnabled}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Fonte delle costanti" Info="Il file dell'ambiente modello da cui si copiano le costanti, relativo alla radice. Vuoto = lo stesso percorso del file di env." />
+                              <TextBox Text="{Binding EnvConstantsSource, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsEnabled="{Binding EnvEnabled}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Formato dei segreti" Info="Il formato del file dei segreti condivisi; «(nessuna)» = il repository non ha segreti. I valori dei segreti non passano mai dal setup." />
+                              <ComboBox ItemsSource="{x:Static vm:RepositoryCardEditor.SecretsAdapterOptions}" DisplayMemberPath="Label" SelectedValuePath="Key"
+                                        SelectedValue="{Binding SecretsAdapterKey}" IsEnabled="{Binding EnvEnabled}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="File dei segreti" Info="Relativo alla radice del repository nell'ambiente modello, oppure un percorso completo." />
+                              <TextBox Text="{Binding SecretsSource, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsEnabled="{Binding EnvEnabled}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Esclusi dal container" Info="Prefissi di nome, separati da virgole: le costanti che iniziano così non vanno al container. Per un backend serve Kestrel: altrimenti gli endpoint Kestrel dell'ambiente modello vincono sulla porta del Dockerfile." />
+                              <TextBox Text="{Binding EnvContainerExcludeText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsEnabled="{Binding EnvEnabled}" />
+                            </StackPanel>
+                          </UniformGrid>
+
+                          <DockPanel Margin="0,0,14,4">
+                            <Button DockPanel.Dock="Right" Content="Aggiungi valore" Command="{Binding AddSlotCommand}" Style="{StaticResource TextButton}" IsEnabled="{Binding EnvEnabled}" />
+                            <local:FieldLabel Text="Valori per ambiente" VerticalAlignment="Center" Margin="0"
+                                              Info="Variabili che cambiano da un ambiente all'altro. Se «Nel container» è vuoto la variabile non va al container.&#x0a;&#x0a;Segnaposto ammessi nei valori:&#x0a;{n} · numero dell'ambiente&#x0a;{hostPort}, {containerPort} · porta pubblicata del repository&#x0a;{apiHostUrl}, {apiContainerUrl} · indirizzo dell'api&#x0a;{hostConnection}, {containerConnection} · connection string del database&#x0a;{poolUrl} · indirizzo della porta del pool di questo repository&#x0a;{poolUrl:&lt;id&gt;} · quello di un altro repository" />
+                          </DockPanel>
+                          <Grid Margin="0,2,46,0">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Nome" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="1" Text="Nel worktree" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="2" Text="Nel container" Style="{StaticResource ColumnHeader}" />
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding EnvSlotRows}" Margin="0,0,14,10">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <DockPanel Margin="0,0,0,6" ToolTip="{Binding LockToolTip}" ToolTipService.ShowOnDisabled="True">
+                                  <Button DockPanel.Dock="Right" Content="&#xE74D;" ToolTip="Togli il valore" CommandParameter="{Binding}" Style="{StaticResource IconButton}" Margin="6,0,0,0"
+                                          IsEnabled="{Binding IsEditable}"
+                                          Command="{Binding DataContext.RemoveSlotCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                  <Grid>
+                                    <Grid.ColumnDefinitions>
+                                      <ColumnDefinition Width="*" />
+                                      <ColumnDefinition Width="*" />
+                                      <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" Margin="0,0,6,0" IsReadOnly="{Binding IsLocked}" />
+                                    <TextBox Grid.Column="1" Text="{Binding Local, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" Margin="0,0,6,0" IsReadOnly="{Binding IsLocked}" />
+                                    <TextBox Grid.Column="2" Text="{Binding Container, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding IsLocked}" />
+                                  </Grid>
+                                </DockPanel>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+
+                          <DockPanel Margin="0,0,14,4">
+                            <Button DockPanel.Dock="Right" Content="Aggiungi variabile" Command="{Binding AddManualCommand}" Style="{StaticResource TextButton}" IsEnabled="{Binding EnvEnabled}" />
+                            <local:FieldLabel Text="Variabili manuali" VerticalAlignment="Center" Margin="0"
+                                              Info="Costanti scritte qui a mano, uguali per tutti gli ambienti Docker. Finiscono in chiaro nella configurazione: non metterci segreti." />
+                          </DockPanel>
+                          <Grid Margin="0,2,46,0">
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="*" />
+                              <ColumnDefinition Width="2*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Nome" Style="{StaticResource ColumnHeader}" />
+                            <TextBlock Grid.Column="1" Text="Valore" Style="{StaticResource ColumnHeader}" />
+                          </Grid>
+                          <ItemsControl ItemsSource="{Binding EnvManualRows}" Margin="0,0,14,8">
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate>
+                                <DockPanel Margin="0,0,0,6">
+                                  <Button DockPanel.Dock="Right" Content="&#xE74D;" ToolTip="Togli la variabile" CommandParameter="{Binding}" Style="{StaticResource IconButton}" Margin="6,0,0,0"
+                                          Command="{Binding DataContext.RemoveManualCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}" />
+                                  <Grid>
+                                    <Grid.ColumnDefinitions>
+                                      <ColumnDefinition Width="*" />
+                                      <ColumnDefinition Width="2*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" Margin="0,0,6,0" />
+                                    <TextBox Grid.Column="1" Text="{Binding Value, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                                  </Grid>
+                                </DockPanel>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+                          <TextBlock Text="{Binding EnvPreviewText}" FontFamily="Cascadia Mono, Consolas" FontSize="12" TextWrapping="Wrap" Margin="0,0,14,8" Opacity="0.85" />
+                        </StackPanel>
+                      </Expander>
+
+                      <!-- Seed database: il backup da cui partono gli ambienti Docker. -->
+                      <Expander Style="{StaticResource Group}" Header="Seed del database" Tag="solo per gli ambienti Docker · il backup da cui parte il loro database" Visibility="{Binding BackendVisibility}">
+                        <StackPanel>
+                          <Grid>
+                            <Grid.ColumnDefinitions>
+                              <ColumnDefinition Width="160" />
+                              <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Tipo" Info="Il database del seed: decide come si ripristina e come si salva." />
+                              <ComboBox ItemsSource="{x:Static vm:RepositoryCardEditor.SeedKindOptions}" DisplayMemberPath="Label" SelectedValuePath="Value"
+                                        SelectedValue="{Binding SeedKind}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="File del seed"
+                                                Info="Un .bak, oppure un .7z con dentro un solo .bak; percorso completo. «Allinea seed» (scheda Docker) scrive un file nuovo accanto a questo e ne mette qui il percorso: per tornare indietro rimetti il percorso di prima." />
+                              <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="Sfoglia…" Click="BrowseSeed_Click" Style="{StaticResource TextButton}" Margin="8,0,0,0" />
+                                <TextBox Text="{Binding SeedPath, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                              </DockPanel>
+                            </StackPanel>
+                          </Grid>
+                          <UniformGrid Columns="3">
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Immagine di SQL Server" Info="L'immagine Docker di SQL Server per i database degli ambienti e per il container temporaneo del seed." />
+                              <TextBox Text="{Binding SeedImage, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Database" LockText="{Binding DockerLockToolTip}" Info="Il nome del database dentro il seed e negli ambienti Docker." />
+                              <TextBox Text="{Binding SeedDatabaseName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding IsDockerLocked}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Servizio del database" LockText="{Binding DockerLockToolTip}" Info="Il nome del servizio del database nel compose del backend." />
+                              <TextBox Text="{Binding SeedService, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding IsDockerLocked}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Password di SQL Server" LockText="{Binding DockerLockToolTip}" Info="La password di SQL Server nei container. Non è un segreto: protegge solo container raggiungibili da 127.0.0.1, con dati di sviluppo." />
+                              <TextBox Text="{Binding SeedPassword, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding IsDockerLocked}" />
+                            </StackPanel>
+                            <StackPanel Style="{StaticResource FormField}">
+                              <local:FieldLabel Text="Memoria (MB)" Info="Il tetto di memoria di SQL Server in ogni container (MSSQL_MEMORY_LIMIT_MB). Almeno 512." />
+                              <TextBox Text="{Binding SeedMemoryText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                            </StackPanel>
+                          </UniformGrid>
+                          <DockPanel Margin="0,0,14,12">
+                            <Button DockPanel.Dock="Left" Content="Verifica seed" Command="{Binding VerifySeedCommand}" IsEnabled="{Binding CanVerifySeed}" Style="{StaticResource TextButton}" Margin="0" VerticalAlignment="Top"
+                                    ToolTip="Ripristina il seed in un SQL Server temporaneo e lo confronta con le migrazioni del branch di sviluppo (o del backend dell'ambiente modello). Lavora sui campi mostrati, anche non salvati." />
+                            <TextBlock Text="{Binding SeedVerifyText}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="13" TextWrapping="Wrap" />
+                          </DockPanel>
+                        </StackPanel>
+                      </Expander>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Content="Aggiungi repository" Command="{Binding AddRepositoryCommand}" Style="{StaticResource TextButton}" HorizontalAlignment="Left" Margin="0"
+                    ToolTip="Aggiunge in fondo un repository generico, non incluso in nessun ambiente: scegli tipo, id e cartella, poi spuntalo nella scheda Ambienti locali." />
+          </StackPanel>
+
+          <!-- Ambienti locali: quali repository include ognuno. Gli ambienti Docker non sono in elenco. -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Ambienti">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="Ambienti locali" Style="{StaticResource SectionTitle}" />
+              <Border Style="{StaticResource ConfigBadge}"><TextBlock Style="{StaticResource ConfigBadgeText}" /></Border>
+            </StackPanel>
+            <TextBlock Text="Ogni ambiente è una colonna dell'exe, con i repository spuntati qui." Style="{StaticResource SectionHint}" />
+            <ContentControl Style="{StaticResource FormNote}">
+              <TextBlock TextWrapping="Wrap" Text="Un ambiente locale è fatto di cloni sul PC, con i servizi avviati in console: sono gli ambienti non Docker, e si aggiungono e si tolgono qui. Gli ambienti Docker non sono in questo elenco: si creano dal «+» accanto ai numeri degli ambienti, nella testata, e si tolgono con «Distruggi» nella loro colonna." />
+            </ContentControl>
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <Grid Margin="0,0,0,2">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="72" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="250" />
+                    <ColumnDefinition Width="110" />
+                    <ColumnDefinition Width="32" />
+                  </Grid.ColumnDefinitions>
+                  <local:FieldLabel Text="Numero" Info="Da 1 a 99, senza doppioni: nemmeno con i numeri degli ambienti Docker. Prende il posto di {n} nei nomi delle cartelle dei repository." />
+                  <local:FieldLabel Grid.Column="1" Text="Repository inclusi" Info="I repository del catalogo che l'ambiente contiene: una card ciascuno nella sua colonna. Ne serve almeno uno." />
+                  <local:FieldLabel Grid.Column="2" Text="Cartella propria" Info="Facoltativa: la cartella in cui stanno i repository di questo ambiente, come percorso completo. Vuota = la cartella dei cloni della scheda Repository. Cambiarla non sposta i cloni che ci sono già." />
+                  <local:FieldLabel Grid.Column="3" Text="DB protetto" Info="Il database del backend è protetto, per esempio perché lo usano anche altri: le migrazioni si leggono ma non si applicano, né dall'exe né dalla VSIX, e il server MCP lo dichiara. Tutto il resto dell'ambiente funziona come sempre." />
+                </Grid>
+                <ItemsControl ItemsSource="{Binding EnvironmentsList}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Grid Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                          <ColumnDefinition Width="72" />
+                          <ColumnDefinition Width="*" />
+                          <ColumnDefinition Width="250" />
+                          <ColumnDefinition Width="110" />
+                          <ColumnDefinition Width="32" />
+                        </Grid.ColumnDefinitions>
+                        <TextBox Text="{Binding Number, UpdateSourceTrigger=PropertyChanged}" Width="48" HorizontalAlignment="Left" TextAlignment="Center" FontWeight="Bold" />
+                        <ItemsControl Grid.Column="1" ItemsSource="{Binding Inclusions}" VerticalAlignment="Center">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <WrapPanel />
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <CheckBox Content="{Binding Repository.Id}" IsChecked="{Binding IsIncluded}" Margin="0,2,16,2" />
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBox Grid.Column="2" Text="{Binding Root, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                        <CheckBox Grid.Column="3" IsChecked="{Binding ProtectedDatabase}" Style="{StaticResource Switch}" HorizontalAlignment="Center" VerticalAlignment="Center"
+                                  ToolTip="Database protetto: le migrazioni si leggono ma non si applicano e lo schema non si altera" />
+                        <Button Grid.Column="4" Content="&#xE74D;" ToolTip="Togli l'ambiente (le cartelle sul disco restano)" CommandParameter="{Binding}" Style="{StaticResource IconButton}" Margin="6,0,0,0"
+                                Command="{Binding DataContext.RemoveEnvironmentCommand, RelativeSource={RelativeSource AncestorType=UserControl}}" />
+                      </Grid>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <Button Content="Aggiungi ambiente" Command="{Binding AddEnvironmentCommand}" Style="{StaticResource TextButton}" HorizontalAlignment="Left" Margin="0,4,0,0"
+                        ToolTip="Aggiunge un ambiente locale con gli stessi repository dell'ultimo." />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Ambienti Docker: impostazioni comuni; con ambienti Docker esistenti cartella e porte
+               restano ferme. -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Docker">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+              <TextBlock Text="Ambienti Docker" Style="{StaticResource SectionTitle}" />
+              <Border Style="{StaticResource ConfigBadge}"><TextBlock Style="{StaticResource ConfigBadgeText}" /></Border>
+            </StackPanel>
+            <ContentControl Style="{StaticResource FormNote}">
+              <TextBlock TextWrapping="Wrap" Text="Un ambiente Docker è usa e getta: si crea dal «+» accanto ai numeri degli ambienti, nella testata. Ogni repository è un worktree nato dal suo clone sorgente; api, web e database girano nei container; variabili e file locali vengono dall'ambiente modello. Qui ci sono le impostazioni comuni: il resto sta nei gruppi Docker, Env e Seed di ogni card della scheda Repository." />
+            </ContentControl>
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Style="{StaticResource FormField}" Margin="0,0,14,0">
+                    <local:FieldLabel Text="Cartella dei worktree" LockText="{Binding DockerGlobalToolTip}"
+                                      Info="Contiene i worktree degli ambienti Docker e i cloni sorgente (sorgenti\&lt;repository&gt;.git). Percorso completo." />
+                    <TextBox Text="{Binding Draft.Docker.WorktreeRoot, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding HasDockerEnvironments}" />
+                    <TextBlock Text="{Binding WorktreeRootHint}" Style="{StaticResource PreferenceHint}" Margin="2,3,0,0" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Style="{StaticResource FormField}" Margin="0,0,14,0">
+                    <local:FieldLabel Text="Base delle porte dei database" LockText="{Binding DockerGlobalToolTip}"
+                                      Info="Il database dell'ambiente N risponde sul PC alla porta base + N; il container temporaneo del seed usa la base." />
+                    <TextBox Text="{Binding Draft.Docker.DatabasePortBase, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" IsReadOnly="{Binding HasDockerEnvironments}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="2" Style="{StaticResource FormField}" Margin="0">
+                    <local:FieldLabel Text="Ambiente modello"
+                                      Info="Il numero dell'ambiente locale da cui gli ambienti Docker leggono costanti, segreti e file locali. Vuoto = il primo ambiente locale." />
+                    <TextBox Text="{Binding TemplateEnvironmentText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Seed: stato del seed configurato e «Allinea seed», che vale subito senza Salva
+               (DockerPanelViewModel). Il percorso nuovo entra anche nella bozza aperta. -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Docker" DataContext="{Binding Pool}">
+            <DockPanel>
+              <Button DockPanel.Dock="Right"
+                      Command="{Binding RefreshCommand}"
+                      ToolTip="Rilegge il seed (con git fetch del clone sorgente) e lo spazio di Docker"
+                      Style="{StaticResource IconButton}"
+                      Content="&#xE72C;" />
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Seed del database" Style="{StaticResource SectionTitle}" />
+              </StackPanel>
+            </DockPanel>
+            <TextBlock Text="Il backup da cui parte il database di ogni ambiente Docker. Si configura nel gruppo «Seed del database» della card del backend (scheda Repository). «Allinea seed» agisce subito, senza Salva." Style="{StaticResource SectionHint}" />
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <TextBlock Text="{Binding SeedText}" TextWrapping="Wrap" FontSize="13" />
+                <TextBlock Text="{Binding MissingText}" TextWrapping="Wrap" FontSize="13" Opacity="0.75" Margin="0,4,0,0" />
+                <Button HorizontalAlignment="Left"
+                        Margin="0,10,0,0"
+                        Command="{Binding AlignCommand}"
+                        IsEnabled="{Binding IsIdle}"
+                        ToolTip="Ripristina il seed in un SQL Server temporaneo, applica le migrazioni del branch di sviluppo, compatta e salva un file nuovo accanto al seed configurato."
+                        Style="{StaticResource TextButton}"
+                        Content="Allinea seed" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Spazio di Docker: la preferenza si applica e si salva subito come le altre, i
+               bottoni agiscono subito (DockerPanelViewModel). -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Docker">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+              <TextBlock Text="Spazio di Docker" Style="{StaticResource SectionTitle}" />
+            </StackPanel>
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <StackPanel DataContext="{Binding Pool}">
+                  <TextBlock Text="{Binding DiskText}" TextWrapping="Wrap" FontSize="13" />
+                  <StackPanel Orientation="Horizontal" Margin="0,10,0,14">
+                    <Button Command="{Binding CleanCommand}"
+                            IsEnabled="{Binding IsIdle}"
+                            ToolTip="Toglie le immagini degli ambienti Docker che non esistono più e riduce la cache di build a 10 GB. Non ferma niente."
+                            Style="{StaticResource TextButton}"
+                            Margin="0"
+                            Content="Pulisci ora" />
+                    <Button Command="{Binding CompactCommand}"
+                            IsEnabled="{Binding IsIdle}"
+                            Margin="8,0,0,0"
+                            ToolTip="Restituisce al PC lo spazio liberato dentro Docker: chiude Docker Desktop e WSL, compatta docker_data.vhdx con i permessi di amministratore e riaccende Docker Desktop."
+                            Style="{StaticResource TextButton}"
+                            Content="Compatta disco" />
+                  </StackPanel>
+                </StackPanel>
+                <DockPanel DataContext="{x:Static local:AppSettings.Current}">
+                  <CheckBox DockPanel.Dock="Left" IsChecked="{Binding DockerCleanupOnExit}" Style="{StaticResource Switch}" Margin="0,0,12,0" />
+                  <StackPanel>
+                    <TextBlock Text="Pulisci alla chiusura dell'exe" Style="{StaticResource PreferenceTitle}" />
+                    <TextBlock Text="La stessa pulizia di «Pulisci ora»; salta se è in corso una build o un'azione." Style="{StaticResource PreferenceHint}" />
+                  </StackPanel>
+                </DockPanel>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- Log delle operazioni globali di Docker: seed, spazio, pool dei tunnel, esiti di
+               creazione e distruzione. Il dettaglio di un ambiente sta nella sua card. -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Docker" DataContext="{Binding Pool}">
+            <TextBlock Text="Log" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="Seed, spazio di Docker, pool dei tunnel e una riga per ogni ambiente creato o distrutto. Il dettaglio di un ambiente è in «Operazioni» nella sua card." Style="{StaticResource SectionHint}" />
+            <TextBox Text="{Binding Log, Mode=OneWay}"
+                     local:LogAutoScroll.IsEnabled="True"
+                     Style="{StaticResource LogBox}"
+                     MinHeight="80" />
+          </StackPanel>
+
+          <!-- Tunnel: il pool e le sue azioni, che valgono subito senza Salva (DockerPanelViewModel). -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Tunnel" DataContext="{Binding Pool}">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="Pool di tunnel" Style="{StaticResource SectionTitle}" />
+              <Border Style="{StaticResource ConfigBadge}"><TextBlock Style="{StaticResource ConfigBadgeText}" /></Border>
+            </StackPanel>
+            <TextBlock Text="I dev tunnel con cui condividere gli ambienti fuori dal PC." Style="{StaticResource SectionHint}" />
+            <ContentControl Style="{StaticResource FormNote}">
+              <TextBlock TextWrapping="Wrap" Text="Qui si crea il pool, e i bottoni agiscono subito, senza Salva; le porte si assegnano dagli ambienti. «Tunnel» nell'intestazione di un ambiente reclama un tunnel libero e dà una porta, con accesso anonimo, a ogni suo repository con il gruppo «Dev tunnel» acceso (scheda Repository). Un tunnel serve un solo ambiente e porta al massimo 9 porte." />
+            </ContentControl>
+            <TextBlock Text="{Binding PoolText}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource Theme.TextStrong}" Margin="0,0,0,8" />
+            <ItemsControl ItemsSource="{Binding PoolTunnels}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource FormCard}" Padding="16,10" Margin="0,0,0,8">
+                    <StackPanel>
+                      <DockPanel>
+                        <Button DockPanel.Dock="Right"
+                                Command="{Binding DeleteCommand}"
+                                IsEnabled="{Binding CanDelete}"
+                                ToolTip="{Binding DeleteToolTip}"
+                                ToolTipService.ShowOnDisabled="True"
+                                Style="{StaticResource TextButton}"
+                                Margin="6,0,0,0"
+                                Content="Elimina" />
+                        <local:StatusDot DockPanel.Dock="Left" Color="{Binding HostColor}" ToolTip="{Binding HostText}" VerticalAlignment="Center" Margin="-6" />
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12" Margin="8,0,8,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" ToolTip="{Binding HostText}" />
+                      </DockPanel>
+                      <TextBlock Text="{Binding Detail}" Visibility="{Binding DetailVisibility}" FontSize="11" Opacity="0.6" TextWrapping="Wrap" Margin="0,4,0,0" />
+                      <!-- Solo le porte rimaste a un ambiente che non c'e' piu': le altre si rilasciano
+                           spegnendo «Tunnel» nell'intestazione dell'ambiente. -->
+                      <ItemsControl ItemsSource="{Binding Assignments}">
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate>
+                            <DockPanel Margin="0,3,0,0">
+                              <Button DockPanel.Dock="Right"
+                                      Command="{Binding ReleaseCommand}"
+                                      IsEnabled="{Binding DataContext.IsIdle, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                      ToolTip="{Binding ReleaseToolTip}"
+                                      Style="{StaticResource TextButton}"
+                                      Content="Rilascia" />
+                              <StackPanel Margin="0,0,8,0">
+                                <TextBlock Text="{Binding Text}" FontSize="12" />
+                                <TextBlock Text="{Binding Url}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" ToolTip="{Binding Url}" />
+                              </StackPanel>
+                            </DockPanel>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+              <Button Content="Aggiungi tunnel" Command="{Binding AddTunnelCommand}" IsEnabled="{Binding IsIdle}" Style="{StaticResource TextButton}" Margin="0,0,8,0"
+                      ToolTip="Crea un tunnel in più, privato (Owner only) e senza porte, sul primo nome pool-K libero. Fallisce se l'account devtunnel non concede altri tunnel." />
+              <Button Content="Crea tutti i tunnel possibili" Command="{Binding FillPoolCommand}" IsEnabled="{Binding IsIdle}" Style="{StaticResource TextButton}" Margin="0"
+                      ToolTip="Crea tunnel pool-K finché l'account devtunnel ne concede: il pool diventa grande quanto la quota." />
+            </StackPanel>
+            <TextBlock Text="{Binding PoolNotice}" FontSize="12" Opacity="0.65" TextWrapping="Wrap" Margin="0,8,0,0" />
+          </StackPanel>
+
+          <!-- Componenti: programmi esterni, server MCP, VSIX e aggiornamenti (ComponentsViewModel).
+               Agiscono subito e non toccano config.json. -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="Componenti" DataContext="{Binding Components}">
+            <DockPanel>
+              <Button DockPanel.Dock="Right"
+                      Command="{Binding RefreshCommand}"
+                      ToolTip="Ricontrolla cosa è installato"
+                      Style="{StaticResource IconButton}"
+                      Content="&#xE72C;" />
+              <TextBlock Text="Programmi esterni" Style="{StaticResource SectionTitle}" />
+            </DockPanel>
+            <TextBlock Text="L'exe li usa ma non li installa da solo. «Installa» apre una console con winget, dove scegli e confermi tu; a installazione finita premi «Ricontrolla» qui sopra." Style="{StaticResource SectionHint}" />
+            <TextBlock Text="{Binding WingetStatus}" FontSize="13" Foreground="{DynamicResource Theme.WarningText}" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <ItemsControl ItemsSource="{Binding Prerequisites}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border Style="{StaticResource FormCard}" Padding="16,10" Margin="0,0,0,8">
+                    <DockPanel>
+                      <Button DockPanel.Dock="Right"
+                              Command="{Binding DataContext.InstallCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding CanInstall}"
+                              ToolTip="{Binding InstallCommandText}"
+                              ToolTipService.ShowOnDisabled="True"
+                              Style="{StaticResource TextButton}"
+                              VerticalAlignment="Center"
+                              Content="Installa" />
+                      <StackPanel Margin="0,0,8,0">
+                        <TextBlock Text="{Binding Name}" Style="{StaticResource PreferenceTitle}" />
+                        <TextBlock Text="{Binding Purpose}" Style="{StaticResource PreferenceHint}" />
+                        <TextBlock Text="{Binding Status}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" ToolTip="{Binding Status}" Margin="0,2,0,0" />
+                      </StackPanel>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button HorizontalAlignment="Left"
+                    Command="{Binding DevTunnelLoginCommand}"
+                    ToolTip="Apre una console con «devtunnel user login»: il pool dei tunnel usa l'account con cui accedi."
+                    Style="{StaticResource TextButton}"
+                    Margin="0,2,0,0"
+                    Content="Accedi a dev tunnel" />
+          </StackPanel>
+
+          <StackPanel Style="{StaticResource PageSection}" Tag="Componenti" DataContext="{Binding Components}">
+            <TextBlock Text="Server MCP" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="Gli stessi ambienti come strumenti per un client MCP, per esempio Claude Code." Style="{StaticResource SectionHint}" />
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <TextBlock Text="{Binding McpStatus}" TextWrapping="Wrap" FontSize="13" />
+                <DockPanel Margin="0,8,0,0">
+                  <Button DockPanel.Dock="Right"
+                          Command="{Binding CopyMcpPathCommand}"
+                          ToolTip="Copia il percorso dell'exe del server"
+                          Style="{StaticResource IconButton}"
+                          Content="&#xE8C8;" />
+                  <TextBlock Text="{Binding McpPath}" FontSize="11" Opacity="0.6" TextTrimming="CharacterEllipsis" ToolTip="{Binding McpPath}" VerticalAlignment="Center" />
+                </DockPanel>
+                <Button HorizontalAlignment="Left"
+                        Margin="0,10,0,0"
+                        Command="{Binding RegisterMcpCommand}"
+                        IsEnabled="{Binding CanRegisterMcp}"
+                        ToolTip="Apre una console con «claude mcp add --scope user soffritto»; un server con lo stesso nome viene prima tolto."
+                        Style="{StaticResource TextButton}"
+                        Content="Registra in Claude Code" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <StackPanel Style="{StaticResource PageSection}" Tag="Componenti" DataContext="{Binding Components}">
+            <TextBlock Text="Estensione di Visual Studio" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="Lo stato del clone aperto in un pannello di Visual Studio." Style="{StaticResource SectionHint}" />
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <TextBlock Text="{Binding VsixStatus}" TextWrapping="Wrap" FontSize="13" />
+                <Button HorizontalAlignment="Left"
+                        Margin="0,10,0,0"
+                        Command="{Binding InstallVsixCommand}"
+                        IsEnabled="{Binding CanInstallVsix}"
+                        ToolTip="Apre l'installer delle estensioni di Visual Studio con il pacchetto arrivato con il Setup.exe."
+                        Style="{StaticResource TextButton}"
+                        Content="Installa in Visual Studio" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <StackPanel Style="{StaticResource PageSection}" Tag="Componenti" DataContext="{Binding Components}">
+            <TextBlock Text="Aggiornamenti" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="L'exe installato con il Setup.exe cerca la release nuova a ogni avvio, la scarica e la installa quando lo chiudi. Configurazione e note restano dove sono." Style="{StaticResource SectionHint}" />
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <TextBlock Text="{Binding UpdateStatus}" TextWrapping="Wrap" FontSize="13" />
+                <Button HorizontalAlignment="Left"
+                        Margin="0,10,0,0"
+                        Command="{Binding CheckUpdatesCommand}"
+                        IsEnabled="{Binding CanCheckUpdates}"
+                        Style="{StaticResource TextButton}"
+                        Content="Cerca ora" />
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+          <!-- DevOps: oggi funziona solo Azure DevOps; GitHub e GitLab sono card finte, disabilitate,
+               senza binding e senza nulla in config.json, per mostrare dove arriveranno. -->
+          <StackPanel Style="{StaticResource PageSection}" Tag="DevOps">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="DevOps" Style="{StaticResource SectionTitle}" />
+              <Border Style="{StaticResource ConfigBadge}"><TextBlock Style="{StaticResource ConfigBadgeText}" /></Border>
+            </StackPanel>
+            <TextBlock Text="Il servizio che ospita repository, pull request e work item: alimenta il pannello delle pull request. Lascia vuoto l'URL per non usarlo." Style="{StaticResource SectionHint}" />
+            <local:FieldLabel Text="Provider" Info="Per ora si collega solo Azure DevOps. GitHub e GitLab sono in anteprima: le loro card mostrano cosa servirà, ma non si possono ancora scegliere." />
+            <StackPanel Orientation="Horizontal" Margin="0,2,0,12">
+              <RadioButton GroupName="DevOpsProvider" Content="Azure DevOps" IsChecked="True" />
+              <StackPanel Orientation="Horizontal" IsEnabled="False" Margin="18,0,0,0">
+                <RadioButton GroupName="DevOpsProvider" Content="GitHub" VerticalAlignment="Center" />
+                <Border Style="{StaticResource PreviewBadge}" Margin="6,0,0,0"><TextBlock Style="{StaticResource PreviewBadgeText}" /></Border>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" IsEnabled="False" Margin="18,0,0,0">
+                <RadioButton GroupName="DevOpsProvider" Content="GitLab" VerticalAlignment="Center" />
+                <Border Style="{StaticResource PreviewBadge}" Margin="6,0,0,0"><TextBlock Style="{StaticResource PreviewBadgeText}" /></Border>
+              </StackPanel>
+            </StackPanel>
+            <Border Style="{StaticResource FormCard}">
+              <StackPanel>
+                <TextBlock Text="Azure DevOps" Style="{StaticResource ProviderTitle}" Margin="0,0,0,10" />
+                <Grid>
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Style="{StaticResource FormField}">
+                    <local:FieldLabel Text="URL della collection" Info="L'URL della collection o dell'organizzazione, es. https://server/tfs/Collection oppure https://dev.azure.com/org." />
+                    <TextBox Text="{Binding Draft.AzureDevOps.CollectionUrl, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Style="{StaticResource FormField}" Margin="0,0,0,14">
+                    <local:FieldLabel Text="Progetto" Info="Il nome del progetto Azure DevOps. Serve sempre quando l'URL è scritto." />
+                    <TextBox Text="{Binding Draft.AzureDevOps.Project, UpdateSourceTrigger=PropertyChanged}" />
+                  </StackPanel>
+                </Grid>
+                <local:FieldLabel Text="Autenticazione" Info="Utente Windows: si usa l'utente che esegue l'exe, senza segreti da custodire. PAT: un personal access token, che Salva cifra con il tuo utente Windows; lo puoi leggere solo tu, su questo PC." />
+                <StackPanel Orientation="Horizontal" Margin="0,2,0,10">
+                  <RadioButton GroupName="Auth" Content="Il mio utente Windows" IsChecked="{Binding UsesWindows}" />
+                  <RadioButton GroupName="Auth" Content="Personal access token (PAT)" IsChecked="{Binding UsesPat}" />
+                </StackPanel>
+                <StackPanel Visibility="{Binding PatVisibility}" Margin="0,0,0,12">
+                  <PasswordBox x:Name="PatBox" PasswordChanged="Pat_Changed" MaxWidth="460" HorizontalAlignment="Left" Width="460" />
+                  <TextBlock Text="{Binding PatHint}" FontSize="12" Opacity="0.65" Margin="2,3,0,0" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal">
+                  <Button Content="Prova connessione" Command="{Binding TestAzureCommand}" Style="{StaticResource TextButton}" Margin="0"
+                          ToolTip="Prova URL, progetto e autenticazione scritti qui, anche non salvati." />
+                  <TextBlock Text="{Binding AzureStatus}" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="13" TextWrapping="Wrap" MaxWidth="560" />
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource FormCard}" Opacity="0.6">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                  <TextBlock Text="GitHub" Style="{StaticResource ProviderTitle}" />
+                  <Border Style="{StaticResource PreviewBadge}"><TextBlock Style="{StaticResource PreviewBadgeText}" /></Border>
+                </StackPanel>
+                <Grid IsEnabled="False">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Style="{StaticResource FormField}">
+                    <local:FieldLabel Text="Organizzazione o utente" Info="Il proprietario dei repository su github.com o su GitHub Enterprise." />
+                    <TextBox Text="es. my-org" Style="{StaticResource FormMono}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Style="{StaticResource FormField}" Margin="0,0,0,14">
+                    <local:FieldLabel Text="Autenticazione" Info="Un fine-grained personal access token, cifrato con il tuo utente Windows come il PAT di Azure DevOps." />
+                    <TextBox Text="fine-grained token" />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+
+            <Border Style="{StaticResource FormCard}" Opacity="0.6">
+              <StackPanel>
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                  <TextBlock Text="GitLab" Style="{StaticResource ProviderTitle}" />
+                  <Border Style="{StaticResource PreviewBadge}"><TextBlock Style="{StaticResource PreviewBadgeText}" /></Border>
+                </StackPanel>
+                <Grid IsEnabled="False">
+                  <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="2*" />
+                    <ColumnDefinition Width="*" />
+                  </Grid.ColumnDefinitions>
+                  <StackPanel Style="{StaticResource FormField}">
+                    <local:FieldLabel Text="URL dell'istanza" Info="https://gitlab.com oppure l'indirizzo di un GitLab self-managed." />
+                    <TextBox Text="es. https://gitlab.com" Style="{StaticResource FormMono}" />
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Style="{StaticResource FormField}" Margin="0,0,0,14">
+                    <local:FieldLabel Text="Gruppo" Info="Il gruppo che contiene i progetti dei repository." />
+                    <TextBox Text="es. my-group" />
+                  </StackPanel>
+                </Grid>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+
+        </StackPanel>
+      </ScrollViewer>
+    </DockPanel>
+  </Border>
+</UserControl>

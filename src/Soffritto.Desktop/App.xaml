@@ -1,0 +1,1426 @@
+<Application x:Class="Soffritto.Desktop.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Soffritto.Desktop"
+             xmlns:sys="clr-namespace:System;assembly=mscorlib">
+  <!-- Stili di pulsanti e tag condivisi tra la finestra principale e i pannelli flottanti. -->
+  <Application.Resources>
+    <ResourceDictionary>
+    <!-- Colori neutri (fondi, bordi, testi, campi) come risorse Theme.*: ThemeManager sostituisce
+         ThemeLight.xaml con ThemeDark.xaml, e ogni DynamicResource si aggiorna da solo. -->
+    <ResourceDictionary.MergedDictionaries>
+      <ResourceDictionary Source="ThemeLight.xaml" />
+    </ResourceDictionary.MergedDictionaries>
+    <!-- Icone git (branch, fetch, pull) disegnate come in Visual Studio: vengono dal font Codicons
+         incorporato, il resto delle icone resta Segoe Fluent Icons. -->
+    <FontFamily x:Key="Codicons">pack://application:,,,/Fonts/#codicon</FontFamily>
+    <FontFamily x:Key="Rounded">pack://application:,,,/Fonts/#Nunito</FontFamily>
+
+    <!-- Bottoni delle azioni (card, righe delle liste, pannelli): una sola misura, 26 px, e lo
+         stesso disegno dei bottoni-app (AppButton) in piccolo. Fondo pieno (crema di default, il
+         colore nel Background per le varianti), labbro scuro di 3 px in basso, filo chiaro in
+         alto. Al passaggio del mouse un velo bianco schiarisce il fondo e il bottone rimbalza un
+         po' piu' grande; alla pressione un velo nero lo scurisce e lo schiaccia. Il velo sta
+         sopra il fondo, quindi le varianti colorate (ServiceToggle, PrimaryButton del setup)
+         restano del loro colore. ButtonRadius e' esattamente meta' altezza: cerchio per i glifi,
+         pillola per i testi; un raggio piu' grande WPF lo ridurrebbe separatamente in larghezza e
+         in altezza e la pillola diventerebbe un ovale. -->
+    <CornerRadius x:Key="ButtonRadius">13</CornerRadius>
+
+
+    <!-- Interruttore: binario a pillola grigio, verde quando acceso, pomello bianco che scorre. -->
+    <Style x:Key="Switch" TargetType="CheckBox">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="CheckBox">
+            <Border x:Name="Track" Width="36" Height="20" CornerRadius="10" Background="#33808080">
+              <Ellipse x:Name="Knob" Width="14" Height="14" Fill="White" HorizontalAlignment="Left" Margin="3,0,0,0">
+                <Ellipse.RenderTransform>
+                  <TranslateTransform x:Name="KnobShift" />
+                </Ellipse.RenderTransform>
+              </Ellipse>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Track" Property="Background" Value="#3FB8A0" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="KnobShift" Storyboard.TargetProperty="X" To="16" Duration="0:0:0.12" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="KnobShift" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.12" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.ExitActions>
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Track" Property="Opacity" Value="0.85" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Track" Property="Opacity" Value="0.45" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="IconButton" TargetType="Button">
+      <Setter Property="Background" Value="{DynamicResource Theme.Control}" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextSoft}" />
+      <Setter Property="Width" Value="26" />
+      <Setter Property="Height" Value="26" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="4,0,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+      <Setter Property="FontWeight" Value="Normal" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Grid x:Name="Root" RenderTransformOrigin="0.5,0.5">
+              <Grid.RenderTransform>
+                <ScaleTransform />
+              </Grid.RenderTransform>
+              <Border Background="{TemplateBinding Background}" CornerRadius="{DynamicResource ButtonRadius}" />
+              <Border x:Name="Veil" Background="White" Opacity="0" CornerRadius="{DynamicResource ButtonRadius}" />
+              <Border BorderBrush="#2E000000" BorderThickness="0,0,0,3" CornerRadius="{DynamicResource ButtonRadius}" />
+              <Border BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0" CornerRadius="{DynamicResource ButtonRadius}" />
+              <!-- In basso 1 px per il labbro, come nei bottoni-app. -->
+              <Border Margin="0,0,0,1">
+                <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="False" />
+              </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Veil" Property="Opacity" Value="0.3" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.08" Duration="0:0:0.28">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.6" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.08" Duration="0:0:0.28">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.6" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.18" />
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.18" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.ExitActions>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Veil" Property="Background" Value="Black" />
+                <Setter TargetName="Veil" Property="Opacity" Value="0.1" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.92" Duration="0:0:0.08" />
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.92" Duration="0:0:0.08" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.08" Duration="0:0:0.22">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.8" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.08" Duration="0:0:0.22">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.8" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.ExitActions>
+              </Trigger>
+              <!-- L'uscita da IsPressed rimbalza a 1.08 dando per scontato il mouse sopra: se il
+                   rilascio arriva col mouse fuori (barra spaziatrice sul bottone col focus, mouse
+                   uscito prima del rilascio) il bottone restava ingrandito. Dichiarato dopo IsPressed
+                   perche' il suo storyboard parta per ultimo e vinca. -->
+              <MultiTrigger>
+                <MultiTrigger.Conditions>
+                  <Condition Property="IsMouseOver" Value="False" />
+                  <Condition Property="IsPressed" Value="False" />
+                </MultiTrigger.Conditions>
+                <MultiTrigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.18" />
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.18" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </MultiTrigger.EnterActions>
+              </MultiTrigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsEnabled" Value="False">
+          <Setter Property="Opacity" Value="0.35" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- 1 px in alto: le etichette dei bottoni (Reset, VS, Genapi…) sono quasi tutte senza
+         discendenti e Nunito riserva loro spazio sotto, quindi centrate sulla riga sembravano
+         alte rispetto ai glifi. -->
+    <Style x:Key="TextButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
+      <Setter Property="Width" Value="NaN" />
+      <Setter Property="MinWidth" Value="26" />
+      <Setter Property="Padding" Value="11,1,11,0" />
+      <Setter Property="FontFamily" Value="{StaticResource Rounded}" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontWeight" Value="Bold" />
+    </Style>
+
+    <!-- Titolo delle intestazioni delle card. Con Segoe UI serviva alzarlo di 2 px (il corpo
+         delle minuscole stava sotto il centro della riga); Nunito ha le metriche bilanciate e
+         centrato e' gia' allineato a pallini e icone. -->
+    <Style x:Key="CardTitle" TargetType="TextBlock">
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Tag dell'intestazione di colonna (server e database del backend): azzurro traslucido
+         (il blu informativo #0078D4), testo monospazio perche' sono nomi tecnici. -->
+    <Style x:Key="Tag" TargetType="Border">
+      <Setter Property="Background" Value="{DynamicResource Theme.TagBackground}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Theme.TagBorder}" />
+      <Setter Property="TextElement.Foreground" Value="{DynamicResource Theme.TagText}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="Padding" Value="6,1" />
+      <Setter Property="Margin" Value="8,0,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="TagText" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Consolas" />
+      <Setter Property="FontWeight" Value="Normal" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <!-- Segni dell'ambiente nel chip della testata (Docker, database protetto, sunset). -->
+    <Style x:Key="ChipGlyph" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+      <Setter Property="FontWeight" Value="Normal" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Margin" Value="5,1,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Bottone-app (riga delle app della testata, Aggiorna del pannello delle PR), come le app
+         del telefono di Animal Crossing: una pillola colorata (il colore nel Tag) con dentro il
+         glifo (Content) e l'etichetta (AppButton.Label) in bianco, labbro scuro in basso. Niente
+         alone fuori dal bottone: al passaggio del mouse la pillola si schiarisce e rimbalza un po'
+         piu' grande (BackEase), alla pressione si scurisce e si schiaccia. -->
+    <Style x:Key="AppButton" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Margin" Value="5,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Grid x:Name="Pill" Height="34" RenderTransformOrigin="0.5,0.5">
+              <Grid.RenderTransform>
+                <ScaleTransform />
+              </Grid.RenderTransform>
+              <Border CornerRadius="13" Background="{Binding Tag, RelativeSource={RelativeSource TemplatedParent}}" />
+              <Border x:Name="Veil" CornerRadius="13" Background="White" Opacity="0" />
+              <Border CornerRadius="13" BorderBrush="#2E000000" BorderThickness="0,0,0,3" />
+              <Border CornerRadius="13" BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0" />
+              <!-- Margini laterali uguali. In basso 1 px: a meta' tra il centro della faccia (sopra
+                   il labbro di 3 px) e quello dell'intera pillola, dove l'occhio li vede centrati. -->
+              <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,14,1">
+                <ContentPresenter VerticalAlignment="Center"
+                                  RecognizesAccessKey="False"
+                                  TextElement.FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" TextElement.FontWeight="Normal"
+                                  TextElement.FontSize="15"
+                                  TextElement.Foreground="White" />
+                <TextBlock Text="{Binding (local:AppButton.Label), RelativeSource={RelativeSource TemplatedParent}}"
+                           FontWeight="Bold"
+                           FontSize="13"
+                           Foreground="White"
+                           VerticalAlignment="Center"
+                           Margin="8,0,0,0" />
+              </StackPanel>
+              <!-- AppButton.Badge: il rosso delle segnalazioni, col bordo bianco che lo stacca
+                   dalla pillola, a cavallo dell'angolo in alto a destra. -->
+              <Border x:Name="Badge"
+                      MinWidth="18"
+                      Height="18"
+                      CornerRadius="9"
+                      Background="#E0533D"
+                      BorderBrush="White"
+                      BorderThickness="2"
+                      Padding="4,0"
+                      HorizontalAlignment="Right"
+                      VerticalAlignment="Top"
+                      Margin="0,-7,-7,0"
+                      IsHitTestVisible="False">
+                <TextBlock Text="{Binding (local:AppButton.Badge), RelativeSource={RelativeSource TemplatedParent}}"
+                           Foreground="White"
+                           FontSize="11"
+                           FontWeight="Bold"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center" />
+              </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="local:AppButton.Badge" Value="">
+                <Setter TargetName="Badge" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Veil" Property="Opacity" Value="0.14" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.05" Duration="0:0:0.28">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.6" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.05" Duration="0:0:0.28">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.6" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.18" />
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.18" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.ExitActions>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Veil" Property="Background" Value="Black" />
+                <Setter TargetName="Veil" Property="Opacity" Value="0.1" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.95" Duration="0:0:0.08" />
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.95" Duration="0:0:0.08" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.05" Duration="0:0:0.22">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.8" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.05" Duration="0:0:0.22">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.8" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.ExitActions>
+              </Trigger>
+              <!-- Come in IconButton: riporta la pillola a 1 se il rilascio arriva col mouse fuori. -->
+              <MultiTrigger>
+                <MultiTrigger.Conditions>
+                  <Condition Property="IsMouseOver" Value="False" />
+                  <Condition Property="IsPressed" Value="False" />
+                </MultiTrigger.Conditions>
+                <MultiTrigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.18" />
+                      <DoubleAnimation Storyboard.TargetName="Pill" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.18" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </MultiTrigger.EnterActions>
+              </MultiTrigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Pallino di stato: un cerchio di DotSize px (10) col colore della risorsa (i colori comuni
+         di StatusBadge); in lettura il blu di StatusBadge.InfoColor che pulsa. Lo stato e l'ora
+         dell'ultima lettura si leggono solo nel suo tooltip.
+         Il controllo e' un quadrato di 22 px con il cerchio al centro: l'area sensibile al mouse
+         coincide con i bordi del controllo, ed e' su quei bordi che il ToolTipService calcola se
+         il mouse e' ancora sul proprietario. Un'area allargata con un margine negativo dentro il
+         template, piu' grande dei bordi, faceva chiudere e riaprire il tooltip a ogni movimento.
+         I margini negativi del controllo (6 px per lato) tengono il cerchio dove starebbe un
+         elemento di 10 px: nelle intestazioni delle card 14 px dopo il bottone precedente e a
+         filo del padding, senza alzare la riga. Il tooltip aspetta un attimo prima di aprirsi;
+         passando da un pallino all'altro si apre subito. -->
+    <Style TargetType="local:StatusDot">
+      <Setter Property="Width" Value="22" />
+      <Setter Property="Height" Value="22" />
+      <Setter Property="Margin" Value="8,-6,-6,-6" />
+      <Setter Property="ToolTipService.InitialShowDelay" Value="150" />
+      <Setter Property="ToolTipService.BetweenShowDelay" Value="400" />
+      <Setter Property="ToolTipService.ShowDuration" Value="60000" />
+      <Setter Property="ToolTipService.Placement" Value="Bottom" />
+      <Setter Property="ToolTipService.VerticalOffset" Value="2" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="IsTabStop" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="local:StatusDot">
+            <Grid Background="Transparent">
+              <Ellipse x:Name="Dot"
+                       Width="{TemplateBinding DotSize}"
+                       Height="{TemplateBinding DotSize}"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"
+                       Fill="{TemplateBinding Color}" />
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsLoading" Value="True">
+                <Setter TargetName="Dot" Property="Fill" Value="#5AA9E6" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard x:Name="Pulse">
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Dot"
+                                       Storyboard.TargetProperty="Opacity"
+                                       From="1"
+                                       To="0.3"
+                                       Duration="0:0:0.6"
+                                       AutoReverse="True"
+                                       RepeatBehavior="Forever" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <StopStoryboard BeginStoryboardName="Pulse" />
+                </Trigger.ExitActions>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Azione di una lane con piu' azioni: solo il glifo, grigio come quello dell'azione
+         singola, in uno spazio largo 28 px e alto quanto la lane. Al passaggio del mouse compare
+         una pastiglia crema rientrata di 2 px dal bordo della lane, alla pressione si scurisce:
+         niente labbro ne' fondo pieno, che dentro la riga sembravano bottoni incastrati. -->
+    <Style x:Key="LaneActionButton" TargetType="Button">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="26" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextSoft}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+      <Setter Property="FontWeight" Value="Normal" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Grid Background="Transparent">
+              <Border x:Name="Chip" Margin="2" CornerRadius="10" Background="{DynamicResource Theme.Control}" Opacity="0" />
+              <ContentPresenter x:Name="Glyph"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Opacity="0.7"
+                                RecognizesAccessKey="False" />
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Chip" Property="Opacity" Value="1" />
+                <Setter TargetName="Glyph" Property="Opacity" Value="1" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Chip" Property="Background" Value="{DynamicResource Theme.ControlHover}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Glyph" Property="Opacity" Value="0.25" />
+                <Setter Property="Cursor" Value="Arrow" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Il riquadro dei contenuti dentro le card: bordo spesso e stondato tutto attorno, come la
+         tendina dei branch. Lo usano gli elenchi (LaneGrid), i box dei log (LogBox) e l'anteprima
+         del browser di Claude. -->
+    <Style x:Key="LaneFrame" TargetType="Border">
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Background" Value="{DynamicResource Theme.Field}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Theme.LaneBorder}" />
+      <Setter Property="BorderThickness" Value="2" />
+    </Style>
+
+    <!-- Box di un log: testo monospazio in sola lettura che si seleziona e si copia, nel riquadro
+         comune. Il margine interno tiene il testo lontano dagli angoli stondati. -->
+    <Style x:Key="LogBox" TargetType="TextBox">
+      <Setter Property="IsReadOnly" Value="True" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="FontFamily" Value="Consolas" />
+      <Setter Property="FontWeight" Value="Normal" />
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.Text}" />
+      <Setter Property="Padding" Value="8,6" />
+      <Setter Property="MaxHeight" Value="260" />
+      <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <Border Style="{StaticResource LaneFrame}">
+              <ScrollViewer x:Name="PART_ContentHost" Padding="{TemplateBinding Padding}" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Elenco delle card (LaneGrid): un solo riquadro, le righe dentro sono separate da un filo
+         sottile. Con un elemento solo e' identico alla lane di un tempo. Senza elementi non si vede. -->
+    <Style TargetType="local:LaneGrid">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="local:LaneGrid">
+            <Border Style="{StaticResource LaneFrame}">
+              <ItemsPresenter />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="HasItems" Value="False">
+          <Setter Property="Visibility" Value="Collapsed" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style TargetType="local:LaneGridRow">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="local:LaneGridRow">
+            <DockPanel>
+              <Border x:Name="Separator" DockPanel.Dock="Top" Height="1" Background="{DynamicResource Theme.Separator}" />
+              <ContentPresenter />
+            </DockPanel>
+            <ControlTemplate.Triggers>
+              <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                <Setter TargetName="Separator" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Riga di una LaneGrid: alta 26 px, senza bordo (lo disegna la griglia). Solo il testo
+         monospazio e' sempre presente; pallino di stato, badge a larghezza minima fissa (i testi
+         restano allineati da una riga all'altra), nota e azioni compaiono quando ci sono. Ogni
+         azione e' un LaneActionButton, in un gruppo separato dal testo da un filo verticale; la
+         riga in se' non si clicca. Niente padding a destra: le pastiglie delle azioni stanno a
+         filo dell'angolo della griglia. -->
+    <Style TargetType="local:Lane">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Cursor" Value="Arrow" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="local:Lane">
+            <Border Background="Transparent" MinHeight="26" Padding="5,0,0,0">
+              <DockPanel LastChildFill="True" TextElement.Foreground="{DynamicResource Theme.LaneText}">
+                <Ellipse x:Name="DotMark"
+                         DockPanel.Dock="Left"
+                         Width="8"
+                         Height="8"
+                         Fill="{TemplateBinding Dot}"
+                         VerticalAlignment="Center"
+                         Margin="4,0,4,0" />
+                <Border x:Name="BadgeBox"
+                        DockPanel.Dock="Left"
+                        Background="{DynamicResource Theme.LaneHeader}"
+                        BorderBrush="{DynamicResource Theme.FieldBorder}"
+                        BorderThickness="1"
+                        CornerRadius="8"
+                        Padding="6,1"
+                        MinWidth="38"
+                        Margin="0,0,8,0"
+                        VerticalAlignment="Center">
+                  <TextBlock Text="{TemplateBinding Badge}"
+                             FontFamily="Consolas"
+                             FontSize="12"
+                             FontWeight="Normal"
+                             Foreground="{DynamicResource Theme.LaneHeaderText}"
+                             TextAlignment="Center" />
+                </Border>
+                <ItemsControl x:Name="ActionButtons"
+                              DockPanel.Dock="Right"
+                              ItemsSource="{Binding Actions, RelativeSource={RelativeSource TemplatedParent}}"
+                              Visibility="Collapsed"
+                              Focusable="False"
+                              Margin="6,0,0,0">
+                  <ItemsControl.Template>
+                    <ControlTemplate TargetType="ItemsControl">
+                      <Border BorderBrush="{DynamicResource Theme.Separator}" BorderThickness="1,0,0,0" Padding="2,0,0,0" Margin="0,5,0,5">
+                        <ItemsPresenter Margin="0,-5" />
+                      </Border>
+                    </ControlTemplate>
+                  </ItemsControl.Template>
+                  <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                      <StackPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                  </ItemsControl.ItemsPanel>
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <Button Command="{Binding Command}"
+                              IsEnabled="{Binding IsEnabled}"
+                              ToolTip="{Binding ToolTip}"
+                              ToolTipService.ShowOnDisabled="True"
+                              Style="{StaticResource LaneActionButton}"
+                              Content="{Binding Glyph}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                <!-- Tag di cio' che non va, nel colore di NoteBrush (rosso o grigio): fondo e
+                     bordo sono lo stesso pennello ad alfa bassa, come i tag di server e database. -->
+                <Grid x:Name="NoteText"
+                      DockPanel.Dock="Right"
+                      VerticalAlignment="Center"
+                      Margin="8,0,2,0">
+                  <Border Background="{TemplateBinding NoteBrush}" CornerRadius="8" Opacity="0.1" />
+                  <Border BorderBrush="{TemplateBinding NoteBrush}" BorderThickness="1" CornerRadius="8" Opacity="0.4" />
+                  <TextBlock Text="{TemplateBinding Note}"
+                             Foreground="{TemplateBinding NoteBrush}"
+                             FontSize="11"
+                             FontWeight="Normal"
+                             Margin="6,1" />
+                </Grid>
+                <TextBlock x:Name="TextPart"
+                           Text="{TemplateBinding Text}"
+                           FontFamily="Consolas" FontWeight="Normal"
+                           FontSize="12"
+                           TextTrimming="CharacterEllipsis"
+                           VerticalAlignment="Center" />
+              </DockPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="Dot" Value="{x:Null}">
+                <Setter TargetName="DotMark" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <!-- Senza badge ne' pallino il testo si stacca dal bordo come farebbe il badge. -->
+              <MultiTrigger>
+                <MultiTrigger.Conditions>
+                  <Condition Property="Badge" Value="" />
+                  <Condition Property="Dot" Value="{x:Null}" />
+                </MultiTrigger.Conditions>
+                <Setter TargetName="TextPart" Property="Margin" Value="5,0,0,0" />
+              </MultiTrigger>
+              <Trigger Property="Badge" Value="">
+                <Setter TargetName="BadgeBox" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <Trigger Property="Note" Value="">
+                <Setter TargetName="NoteText" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <Trigger Property="HasActions" Value="True">
+                <Setter TargetName="ActionButtons" Property="Visibility" Value="Visible" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Tendina dei branch: casella bianca arrotondata come le lane, bordo che si scurisce in
+         hover e diventa blu col focus come la nota; menu bianco arrotondato. La voce evidenziata
+         (frecce o mouse, vedi BranchComboBox) cambia solo il bordo, il branch selezionato e' in
+         grassetto con la spunta. -->
+    <Style x:Key="BranchComboText" TargetType="TextBox">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.FieldText}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource Theme.FieldText}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <ScrollViewer x:Name="PART_ContentHost"
+                          Focusable="False"
+                          HorizontalScrollBarVisibility="Hidden"
+                          VerticalScrollBarVisibility="Hidden" />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="BranchComboItem" TargetType="ComboBoxItem">
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="Margin" Value="0,2" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="Chrome"
+                    Background="{DynamicResource Theme.Field}"
+                    BorderBrush="Transparent"
+                    BorderThickness="2"
+                    CornerRadius="11"
+                    Padding="{TemplateBinding Padding}"
+                    TextElement.Foreground="{DynamicResource Theme.FieldText}">
+              <DockPanel>
+                <TextBlock x:Name="Check"
+                           DockPanel.Dock="Right"
+                           Text="&#xE73E;"
+                           FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal"
+                           FontSize="11"
+                           Foreground="#3E9B78"
+                           VerticalAlignment="Center"
+                           Margin="10,0,1,0"
+                           Visibility="Collapsed" />
+                <ContentPresenter x:Name="Content" VerticalAlignment="Center" />
+              </DockPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="local:BranchComboBox.IsHighlightedItem" Value="True">
+                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Theme.FieldBorderHover}" />
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Content" Property="TextElement.FontWeight" Value="Bold" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="local:BranchComboBox">
+      <Setter Property="Background" Value="{DynamicResource Theme.Field}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Theme.LaneBorder}" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="Padding" Value="10,0,2,0" />
+      <Setter Property="MaxDropDownHeight" Value="320" />
+      <Setter Property="ItemContainerStyle" Value="{StaticResource BranchComboItem}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="local:BranchComboBox">
+            <Grid>
+              <Border x:Name="Chrome"
+                      Background="{TemplateBinding Background}"
+                      BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="{TemplateBinding BorderThickness}"
+                      CornerRadius="14">
+                <DockPanel>
+                  <ToggleButton DockPanel.Dock="Right"
+                                Width="26"
+                                Focusable="False"
+                                ClickMode="Press"
+                                Cursor="Hand"
+                                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                    <ToggleButton.Template>
+                      <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent">
+                          <TextBlock x:Name="Chevron"
+                                     Text="&#xE70D;"
+                                     FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal"
+                                     FontSize="10"
+                                     Opacity="0.55"
+                                     Foreground="{DynamicResource Theme.FieldText}"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                          <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chevron" Property="Text" Value="&#xE70E;" />
+                          </Trigger>
+                          <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chevron" Property="Opacity" Value="0.9" />
+                          </Trigger>
+                        </ControlTemplate.Triggers>
+                      </ControlTemplate>
+                    </ToggleButton.Template>
+                  </ToggleButton>
+                  <TextBox x:Name="PART_EditableTextBox"
+                           Style="{StaticResource BranchComboText}"
+                           Margin="{TemplateBinding Padding}"
+                           VerticalAlignment="Center"
+                           IsReadOnly="{TemplateBinding IsReadOnly}" />
+                </DockPanel>
+              </Border>
+              <Popup x:Name="PART_Popup"
+                     AllowsTransparency="True"
+                     Focusable="False"
+                     Placement="Bottom"
+                     PlacementTarget="{Binding ElementName=Chrome}"
+                     VerticalOffset="4"
+                     PopupAnimation="None"
+                     IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                <Border Background="{DynamicResource Theme.Field}"
+                        BorderBrush="{DynamicResource Theme.FieldBorder}"
+                        BorderThickness="2"
+                        CornerRadius="16"
+                        Padding="5"
+                        MinWidth="{Binding ActualWidth, ElementName=Chrome}"
+                        MaxWidth="600"
+                        MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                  <ScrollViewer>
+                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                  </ScrollViewer>
+                </Border>
+              </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Chrome" Property="BorderBrush" Value="{DynamicResource Theme.FieldBorderHover}" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter TargetName="Chrome" Property="BorderBrush" Value="#3E9B78" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Chrome" Property="Opacity" Value="0.5" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- I componenti dei form dell'exe (setup, nuovo ambiente Docker): card, nota, campo con
+         etichetta e bottone «i», caselle, tendine e bottone principale. Gli stili con chiave
+         Form* si applicano a tutte le caselle e le tendine di un pannello con uno stile senza
+         chiave basato su di loro, nelle risorse del pannello. -->
+    <!-- Una card racchiude un solo argomento configurabile: un repository, un tunnel, un gruppo di
+         impostazioni. Elenchi, anteprime e log stanno fuori dalle card. -->
+    <Style x:Key="FormCard" TargetType="Border">
+      <Setter Property="Background" Value="{DynamicResource Theme.Surface}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Theme.CardBorder}" />
+      <Setter Property="BorderThickness" Value="1,1,1,3" />
+      <Setter Property="CornerRadius" Value="16" />
+      <Setter Property="Padding" Value="20,16,20,16" />
+      <Setter Property="Margin" Value="0,0,0,12" />
+    </Style>
+
+    <!-- Nota azzurra: un concetto che va letto prima di compilare i campi che seguono. -->
+    <Style x:Key="FormNote" TargetType="ContentControl">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Margin" Value="0,0,0,14" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ContentControl">
+            <Border Background="{DynamicResource Theme.InfoBackground}" CornerRadius="12" Padding="12,9">
+              <DockPanel>
+                <TextBlock DockPanel.Dock="Left" Text="&#xE946;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal" FontSize="15"
+                           Foreground="{DynamicResource Theme.InfoText}" VerticalAlignment="Top" Margin="0,1,10,0" />
+                <ContentPresenter TextElement.Foreground="{DynamicResource Theme.InfoText}" TextElement.FontSize="12.5" />
+              </DockPanel>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="FormField" TargetType="StackPanel">
+      <Setter Property="Margin" Value="0,0,14,14" />
+    </Style>
+
+    <!-- Mentre la nuvoletta e' aperta il bottone non prende il mouse: il clic sul bottone la
+         chiude come un clic altrove, invece di chiuderla e riaprirla. -->
+    <Style TargetType="local:InfoTip">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="ToolTip" Value="{Binding Text, RelativeSource={RelativeSource Self}}" />
+      <Setter Property="ToolTipService.InitialShowDelay" Value="250" />
+      <Setter Property="ToolTipService.Placement" Value="Bottom" />
+      <Setter Property="ToolTipService.VerticalOffset" Value="2" />
+      <Setter Property="ToolTipService.ShowDuration" Value="60000" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="local:InfoTip">
+            <Grid>
+              <Border x:Name="Hit" Background="Transparent" Padding="2,1">
+                <TextBlock x:Name="Glyph" Text="&#xE946;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal" FontSize="13" Foreground="{DynamicResource Theme.IconMuted}" />
+              </Border>
+              <Popup IsOpen="{Binding IsChecked, RelativeSource={RelativeSource TemplatedParent}, Mode=TwoWay}"
+                     StaysOpen="False"
+                     AllowsTransparency="True"
+                     Focusable="False"
+                     Placement="Bottom"
+                     PlacementTarget="{Binding ElementName=Hit}"
+                     HorizontalOffset="-8"
+                     VerticalOffset="2"
+                     PopupAnimation="Fade">
+                <Border Margin="8,2,8,10" Background="{DynamicResource Theme.Field}" BorderBrush="#3E9B78" BorderThickness="1,1,1,3" CornerRadius="12" Padding="12,8,12,9" MaxWidth="360">
+                  <Border.Effect>
+                    <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="10" Opacity="0.18" Color="#5C4A2A" />
+                  </Border.Effect>
+                  <TextBlock Text="{Binding Text, RelativeSource={RelativeSource TemplatedParent}}" TextWrapping="Wrap" Foreground="{DynamicResource Theme.TextStrong}" FontSize="12.5" FontWeight="Normal" />
+                </Border>
+              </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Glyph" Property="Foreground" Value="#2F8A68" />
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Glyph" Property="Foreground" Value="#2F8A68" />
+                <Setter Property="IsHitTestVisible" Value="False" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="local:FieldLabel">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Margin" Value="0,0,0,4" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="local:FieldLabel">
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="{TemplateBinding Text}" FontSize="12" FontWeight="Bold" Foreground="{DynamicResource Theme.LabelText}" VerticalAlignment="Center" />
+                <local:InfoTip x:Name="Info" Text="{TemplateBinding Info}" Margin="4,0,0,0" />
+                <TextBlock x:Name="Lock" Text="&#xE72E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal" FontSize="11" Foreground="{DynamicResource Theme.WarningText}"
+                           VerticalAlignment="Center" Margin="5,0,0,0" ToolTip="{TemplateBinding LockText}" />
+              </StackPanel>
+              <TextBlock x:Name="Hint" Text="{TemplateBinding Hint}" FontSize="11.5" Opacity="0.65" TextWrapping="Wrap" Margin="0,1,0,0" />
+            </StackPanel>
+            <ControlTemplate.Triggers>
+              <Trigger Property="Info" Value="{x:Null}">
+                <Setter TargetName="Info" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <Trigger Property="LockText" Value="{x:Null}">
+                <Setter TargetName="Lock" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <Trigger Property="Hint" Value="{x:Null}">
+                <Setter TargetName="Hint" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Il margine interno va sul Padding del ScrollViewer, che TextBox lega gia' al proprio: come
+         Margin si sommava e le caselle venivano piu' alte delle tendine. -->
+    <Style x:Key="FormTextBox" TargetType="TextBox">
+      <Setter Property="Foreground" Value="{DynamicResource Theme.FieldText}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource Theme.FieldText}" />
+      <Setter Property="Padding" Value="7,5" />
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Background" Value="{DynamicResource Theme.Field}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Theme.FieldBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10">
+              <ScrollViewer x:Name="PART_ContentHost" Padding="{TemplateBinding Padding}" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <MultiTrigger>
+                <MultiTrigger.Conditions>
+                  <Condition Property="AcceptsReturn" Value="False" />
+                  <Condition Property="TextWrapping" Value="NoWrap" />
+                </MultiTrigger.Conditions>
+                <Setter TargetName="PART_ContentHost" Property="VerticalAlignment" Value="Center" />
+              </MultiTrigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="#3E9B78" />
+              </Trigger>
+              <Trigger Property="IsReadOnly" Value="True">
+                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Theme.FieldDisabled}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Frame" Property="Opacity" Value="0.5" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="FormMono" TargetType="TextBox" BasedOn="{StaticResource FormTextBox}">
+      <Setter Property="FontFamily" Value="Cascadia Mono, Consolas" />
+      <Setter Property="FontWeight" Value="Normal" />
+    </Style>
+
+    <Style x:Key="FormPasswordBox" TargetType="PasswordBox">
+      <Setter Property="Foreground" Value="{DynamicResource Theme.FieldText}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource Theme.FieldText}" />
+      <Setter Property="Padding" Value="7,5" />
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="PasswordBox">
+            <Border x:Name="Frame" Background="{DynamicResource Theme.Field}" BorderBrush="{DynamicResource Theme.FieldBorder}" BorderThickness="1" CornerRadius="10">
+              <ScrollViewer x:Name="PART_ContentHost" Padding="{TemplateBinding Padding}" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="#3E9B78" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Le tendine hanno lo stesso disegno delle caselle di testo. In quelle a scelta fissa un
+         bottone trasparente copre tutta la tendina, che si apre con un clic ovunque; in quelle
+         in cui si puo' scrivere (IsEditable) il clic sul testo scrive e l'elenco si apre dalla
+         freccia. -->
+    <ControlTemplate x:Key="FormComboToggle" TargetType="ToggleButton">
+      <Border Background="Transparent" />
+    </ControlTemplate>
+
+    <Style x:Key="FormComboItem" TargetType="ComboBoxItem">
+      <Setter Property="Padding" Value="9,5" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="Chrome" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <DockPanel>
+                <TextBlock x:Name="Check" DockPanel.Dock="Right" Text="&#xE73E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal" FontSize="11"
+                           Foreground="#3E9B78" VerticalAlignment="Center" Margin="12,0,0,0" Visibility="Hidden" />
+                <ContentPresenter VerticalAlignment="Center" />
+              </DockPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Hover}" />
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                <Setter Property="FontWeight" Value="Bold" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="FormComboBox" TargetType="ComboBox">
+      <Setter Property="Foreground" Value="{DynamicResource Theme.FieldText}" />
+      <Setter Property="Background" Value="{DynamicResource Theme.Field}" />
+      <Setter Property="BorderBrush" Value="{DynamicResource Theme.FieldBorder}" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="9,5,4,5" />
+      <Setter Property="MinHeight" Value="30" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="MaxDropDownHeight" Value="320" />
+      <Setter Property="ItemContainerStyle" Value="{StaticResource FormComboItem}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBox">
+            <Grid>
+              <Border x:Name="Frame" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                      BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10">
+                <DockPanel>
+                  <Grid DockPanel.Dock="Right" Width="26">
+                    <TextBlock x:Name="Chevron" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal"
+                               FontSize="10" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,1,2,0" />
+                    <ToggleButton x:Name="Arrow" Visibility="Collapsed" Focusable="False" ClickMode="Press" Cursor="Hand" Template="{StaticResource FormComboToggle}"
+                                  IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+                  </Grid>
+                  <Grid>
+                    <ContentPresenter x:Name="Selection" Margin="{TemplateBinding Padding}" VerticalAlignment="Center"
+                                      Content="{TemplateBinding SelectionBoxItem}"
+                                      ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                                      ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                                      ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}" />
+                    <TextBox x:Name="PART_EditableTextBox" Visibility="Collapsed" Style="{StaticResource BranchComboText}" Margin="{TemplateBinding Padding}"
+                             VerticalAlignment="Center" Cursor="IBeam" IsReadOnly="{TemplateBinding IsReadOnly}" />
+                  </Grid>
+                </DockPanel>
+              </Border>
+              <ToggleButton x:Name="Cover" Focusable="False" ClickMode="Press" Template="{StaticResource FormComboToggle}"
+                            IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}" />
+              <Popup x:Name="PART_Popup" AllowsTransparency="True" Focusable="False" Placement="Bottom" VerticalOffset="2" HorizontalOffset="-8" PopupAnimation="Fade"
+                     IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                <Grid MinWidth="{Binding ActualWidth, RelativeSource={RelativeSource TemplatedParent}}">
+                  <Border Margin="8,2,8,10" Background="{DynamicResource Theme.Field}" BorderBrush="{DynamicResource Theme.FieldBorder}" BorderThickness="1,1,1,3" CornerRadius="12" Padding="4"
+                          MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                    <Border.Effect>
+                      <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="10" Opacity="0.18" Color="#5C4A2A" />
+                    </Border.Effect>
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                      <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                    </ScrollViewer>
+                  </Border>
+                </Grid>
+              </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsEditable" Value="True">
+                <Setter TargetName="Cover" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="Arrow" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Selection" Property="Visibility" Value="Collapsed" />
+                <Setter TargetName="PART_EditableTextBox" Property="Visibility" Value="Visible" />
+                <Setter Property="IsTabStop" Value="False" />
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Theme.FieldBorderHover}" />
+                <Setter TargetName="Chevron" Property="Opacity" Value="0.9" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="#3E9B78" />
+              </Trigger>
+              <Trigger Property="IsDropDownOpen" Value="True">
+                <Setter TargetName="Frame" Property="BorderBrush" Value="#3E9B78" />
+                <Setter TargetName="Chevron" Property="Text" Value="&#xE70E;" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Frame" Property="Opacity" Value="0.5" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Stessa misura di tutti i bottoni (TextButton): cambia solo il colore. -->
+    <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
+      <Setter Property="Background" Value="#2F8A68" />
+      <Setter Property="Foreground" Value="White" />
+    </Style>
+
+    <!-- Casella di spunta e scelta singola dei form: stesso fondo e stesso bordo delle caselle di
+         testo, verdi con il segno bianco quando sono scelte. Per un sì/no con una spiegazione
+         accanto si usa invece l'interruttore (Switch). -->
+    <Style x:Key="FormCheckBox" TargetType="CheckBox">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextStrong}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="CheckBox">
+            <DockPanel Background="Transparent">
+              <Border x:Name="Box" DockPanel.Dock="Left" Width="18" Height="18" CornerRadius="6" Background="{DynamicResource Theme.Field}" BorderBrush="{DynamicResource Theme.FieldBorder}" BorderThickness="1,1,1,2"
+                      VerticalAlignment="Center">
+                <TextBlock x:Name="Mark" Text="&#xE73E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal" FontSize="11" Foreground="White"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Visibility="Collapsed" />
+              </Border>
+              <ContentPresenter x:Name="Label" Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="False" />
+            </DockPanel>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Box" Property="BorderBrush" Value="{DynamicResource Theme.FieldBorderHover}" />
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Box" Property="Background" Value="#2F8A68" />
+                <Setter TargetName="Box" Property="BorderBrush" Value="#226B50" />
+                <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+              </Trigger>
+              <Trigger Property="IsChecked" Value="{x:Null}">
+                <Setter TargetName="Box" Property="Background" Value="#2F8A68" />
+                <Setter TargetName="Box" Property="BorderBrush" Value="#226B50" />
+                <Setter TargetName="Mark" Property="Text" Value="&#xE738;" />
+                <Setter TargetName="Mark" Property="Visibility" Value="Visible" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Box" Property="BorderBrush" Value="#3E9B78" />
+              </Trigger>
+              <Trigger Property="HasContent" Value="False">
+                <Setter TargetName="Label" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="FormRadioButton" TargetType="RadioButton">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextStrong}" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <DockPanel Background="Transparent">
+              <Grid DockPanel.Dock="Left" Width="18" Height="18" VerticalAlignment="Center">
+                <Border x:Name="Ring" CornerRadius="9" Background="{DynamicResource Theme.Field}" BorderBrush="{DynamicResource Theme.FieldBorder}" BorderThickness="1,1,1,2" />
+                <Ellipse x:Name="Dot" Width="7" Height="7" Fill="White" Visibility="Collapsed" />
+              </Grid>
+              <ContentPresenter x:Name="Label" Margin="8,0,0,0" VerticalAlignment="Center" RecognizesAccessKey="False" />
+            </DockPanel>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Ring" Property="BorderBrush" Value="{DynamicResource Theme.FieldBorderHover}" />
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Ring" Property="Background" Value="#2F8A68" />
+                <Setter TargetName="Ring" Property="BorderBrush" Value="#226B50" />
+                <Setter TargetName="Dot" Property="Visibility" Value="Visible" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Ring" Property="BorderBrush" Value="#3E9B78" />
+              </Trigger>
+              <Trigger Property="HasContent" Value="False">
+                <Setter TargetName="Label" Property="Visibility" Value="Collapsed" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.5" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- I tooltip di tutto l'exe: una nuvoletta color crema, con il testo che va a capo. -->
+    <Style TargetType="ToolTip">
+      <Setter Property="HasDropShadow" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ToolTip">
+            <Border Margin="8,2,8,10" Background="{DynamicResource Theme.Field}" BorderBrush="{DynamicResource Theme.FieldBorder}" BorderThickness="1,1,1,3" CornerRadius="12" Padding="12,8,12,9" MaxWidth="420">
+              <Border.Effect>
+                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="10" Opacity="0.18" Color="#5C4A2A" />
+              </Border.Effect>
+              <ContentPresenter TextElement.FontFamily="{StaticResource Rounded}" TextElement.Foreground="{DynamicResource Theme.TextStrong}" TextElement.FontSize="12.5" TextElement.FontWeight="SemiBold">
+                <ContentPresenter.Resources>
+                  <Style TargetType="TextBlock">
+                    <Setter Property="TextWrapping" Value="Wrap" />
+                  </Style>
+                </ContentPresenter.Resources>
+              </ContentPresenter>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Menu a comparsa nello stile dell'exe (il menu «Apri in» delle PR): una card arrotondata con
+         le voci a pillola. Il margine attorno alla card e' lo spazio dell'ombra. Le intestazioni
+         non riconoscono i tasti di accesso, perche' sono nomi di ambienti e di branch e un «_» va
+         mostrato com'e'. -->
+    <Style x:Key="CardMenu" TargetType="ContextMenu">
+      <Setter Property="HasDropShadow" Value="False" />
+      <Setter Property="FontFamily" Value="{StaticResource Rounded}" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="FontWeight" Value="SemiBold" />
+      <Setter Property="Foreground" Value="{DynamicResource Theme.TextStrong}" />
+      <Setter Property="VerticalOffset" Value="2" />
+      <Setter Property="HorizontalOffset" Value="-8" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ContextMenu">
+            <Border Margin="8,2,8,10" MinWidth="180" Background="{DynamicResource Theme.Field}" BorderBrush="{DynamicResource Theme.FieldBorder}" BorderThickness="1,1,1,3" CornerRadius="12" Padding="4">
+              <Border.Effect>
+                <DropShadowEffect Direction="270" ShadowDepth="2" BlurRadius="10" Opacity="0.18" Color="#5C4A2A" />
+              </Border.Effect>
+              <StackPanel IsItemsHost="True" KeyboardNavigation.DirectionalNavigation="Cycle" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="CardMenuItem" TargetType="MenuItem">
+      <Setter Property="Padding" Value="10,6" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="MenuItem">
+            <Border x:Name="Chrome" Background="Transparent" CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <ContentPresenter ContentSource="Header" RecognizesAccessKey="False" VerticalAlignment="Center" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="Chrome" Property="Background" Value="{DynamicResource Theme.Hover}" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Chrome" Property="Opacity" Value="0.4" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="CardMenuSeparator" TargetType="Separator">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Separator">
+            <Border Height="1" Background="{DynamicResource Theme.CardBorder}" Margin="8,4" />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Scrollbar a scomparsa, come quelle di blindtales.app: binario trasparente largo
+         ScrollBarSize, pollice a capsula che si vede largo 10 px (il resto e' margine, ma il mouse
+         lo prende tutto). Da fermo il pollice e' trasparente: quando si accende lo decide
+         ScrollBarFade. Il grigio del testo al posto del bianco: qui gli sfondi sono chiari. Il
+         colore e' una risorsa dinamica: un pannello su fondo scuro (la riunione punti storia)
+         ridefinisce ScrollBarThumbBrush nelle sue risorse. -->
+    <sys:Double x:Key="ScrollBarSize">16</sys:Double>
+
+    <Style x:Key="ScrollBarPage" TargetType="RepeatButton">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="IsTabStop" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RepeatButton">
+            <Border Background="Transparent" />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="ScrollBarThumb" TargetType="Thumb">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="IsTabStop" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Thumb">
+            <Border Background="Transparent">
+              <Border Margin="3" CornerRadius="5" Background="{DynamicResource ScrollBarThumbBrush}" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="ScrollBar">
+      <Setter Property="local:ScrollBarFade.IsEnabled" Value="True" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Width" Value="{StaticResource ScrollBarSize}" />
+      <Setter Property="MinWidth" Value="{StaticResource ScrollBarSize}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollBar">
+            <Grid Background="{TemplateBinding Background}">
+              <Track x:Name="PART_Track" IsDirectionReversed="True" Opacity="0">
+                <Track.DecreaseRepeatButton>
+                  <RepeatButton Style="{StaticResource ScrollBarPage}" Command="ScrollBar.PageUpCommand" />
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                  <Thumb Style="{StaticResource ScrollBarThumb}" MinHeight="40" />
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                  <RepeatButton Style="{StaticResource ScrollBarPage}" Command="ScrollBar.PageDownCommand" />
+                </Track.IncreaseRepeatButton>
+              </Track>
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="Orientation" Value="Horizontal">
+          <Setter Property="Width" Value="Auto" />
+          <Setter Property="MinWidth" Value="0" />
+          <Setter Property="Height" Value="{StaticResource ScrollBarSize}" />
+          <Setter Property="MinHeight" Value="{StaticResource ScrollBarSize}" />
+          <Setter Property="Template">
+            <Setter.Value>
+              <ControlTemplate TargetType="ScrollBar">
+                <Grid Background="{TemplateBinding Background}">
+                  <Track x:Name="PART_Track" Opacity="0">
+                    <Track.DecreaseRepeatButton>
+                      <RepeatButton Style="{StaticResource ScrollBarPage}" Command="ScrollBar.PageLeftCommand" />
+                    </Track.DecreaseRepeatButton>
+                    <Track.Thumb>
+                      <Thumb Style="{StaticResource ScrollBarThumb}" MinWidth="40" />
+                    </Track.Thumb>
+                    <Track.IncreaseRepeatButton>
+                      <RepeatButton Style="{StaticResource ScrollBarPage}" Command="ScrollBar.PageRightCommand" />
+                    </Track.IncreaseRepeatButton>
+                  </Track>
+                </Grid>
+              </ControlTemplate>
+            </Setter.Value>
+          </Setter>
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- Le barre stanno sopra il contenuto, non accanto: il viewport e' largo quanto lo
+         ScrollViewer e i margini restano quelli che il contenuto si da', senza la striscia
+         riservata alla barra. Niente angolo grigio tra le due barre. -->
+    <Style TargetType="ScrollViewer">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollViewer">
+            <Grid Background="{TemplateBinding Background}">
+              <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
+                                      Margin="{TemplateBinding Padding}"
+                                      CanContentScroll="{TemplateBinding CanContentScroll}"
+                                      CanHorizontallyScroll="False"
+                                      CanVerticallyScroll="False"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}" />
+              <ScrollBar x:Name="PART_VerticalScrollBar"
+                         HorizontalAlignment="Right"
+                         Cursor="Arrow"
+                         Minimum="0"
+                         Maximum="{TemplateBinding ScrollableHeight}"
+                         ViewportSize="{TemplateBinding ViewportHeight}"
+                         Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
+                         Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+              <ScrollBar x:Name="PART_HorizontalScrollBar"
+                         VerticalAlignment="Bottom"
+                         Orientation="Horizontal"
+                         Cursor="Arrow"
+                         Minimum="0"
+                         Maximum="{TemplateBinding ScrollableWidth}"
+                         ViewportSize="{TemplateBinding ViewportWidth}"
+                         Value="{Binding HorizontalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
+                         Visibility="{TemplateBinding ComputedHorizontalScrollBarVisibility}" />
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+    </ResourceDictionary>
+  </Application.Resources>
+</Application>

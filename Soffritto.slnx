@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Soffritto.Cli/Soffritto.Cli.csproj" />
+    <Project Path="src/Soffritto.Core/Soffritto.Core.csproj" />
+    <Project Path="src/Soffritto.Desktop/Soffritto.Desktop.csproj" />
+    <Project Path="src/Soffritto.Mcp/Soffritto.Mcp.csproj" />
+    <Project Path="src/Soffritto.Presentation/Soffritto.Presentation.csproj" />
+    <Project Path="src/Soffritto.Vsix/Soffritto.Vsix.csproj" />
+  </Folder>
+</Solution>

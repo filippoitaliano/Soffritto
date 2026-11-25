@@ -1,0 +1,1134 @@
+<!-- Gli stessi componenti dell'exe Desktop (App.xaml e MainWindow.xaml) rifatti per il Remote UI,
+     nei colori del tema di Visual Studio: fondo, card, campi, testo e scrollbar prendono i pennelli
+     di VS (EnvironmentColors), quindi il pannello e' chiaro o scuro come l'IDE. Gli accenti (tag,
+     pallini, pastiglie, rosso degli errori) sono tinte medie che reggono entrambi i temi.
+
+     Componenti dell'exe e loro corrispondenti qui:
+     - Section: la card, angoli a 20 e labbro di 3 px in basso; il backend e' una card sola con
+       dentro tendina, tunnel, migrazioni sconosciute e context, ognuno con la sua intestazione
+       separata da un filo (CardSeparator), come nella colonna dell'exe;
+     - LaneGrid e Lane: riquadro stondato (LaneFrame) con le righe separate da un filo, badge grigio,
+       pastiglia colorata e azioni dietro un filo verticale (LaneActionButton);
+     - BranchComboBox: tendina editabile stondata con il menu arrotondato;
+     - IconButton e ServiceToggle: pulsanti tondi col labbro, che rimbalzano al passaggio del mouse;
+     - StatusDot: pallino sul bordo destro dell'intestazione, con stato e ora nel tooltip;
+     - Switch, Tag e NoteBox come nell'exe.
+
+     Cosa cambia per i limiti del Remote UI (niente codice dietro ne' controlli propri): le
+     intestazioni si aprono con un bottone trasparente che sta sotto, non con un MouseBinding; il
+     filo tra le righe nasce da AlternationIndex letto nel DataTemplate, non da LaneGridRow; il
+     pollice della scrollbar compare col mouse sopra il pannello (ScrollBarFade e' codice); il font
+     e' Segoe UI, perche' Nunito e Codicons dell'exe non si caricano nel processo di VS, e le icone
+     sono glifi Segoe Fluent Icons e non <vs:Image> (il perche' e' in UI/StatusViewModel.cs). Gli
+     stili si raggiungono con DynamicResource anche dai template annidati, dove StaticResource nel
+     dialetto del Remote UI e' fragile. -->
+<DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0">
+  <Grid TextElement.Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" TextElement.FontFamily="Segoe UI" TextElement.FontSize="13">
+  <Grid.Resources>
+    <!-- IconButton dell'exe: cerchio di 26 px col labbro scuro in basso e il filo chiaro in alto;
+         al passaggio del mouse si schiarisce e rimbalza un po' piu' grande, alla pressione si
+         scurisce e si schiaccia. -->
+    <Style x:Key="IconButton" TargetType="Button">
+      <Setter Property="Background" Value="#26808080" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Width" Value="26" />
+      <Setter Property="Height" Value="26" />
+      <Setter Property="Padding" Value="0" />
+      <Setter Property="Margin" Value="4,0,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+      <Setter Property="FontSize" Value="13" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Grid x:Name="Root" RenderTransformOrigin="0.5,0.5">
+              <Grid.RenderTransform>
+                <ScaleTransform />
+              </Grid.RenderTransform>
+              <Border Background="{TemplateBinding Background}" CornerRadius="13" />
+              <Border x:Name="Veil" Background="White" Opacity="0" CornerRadius="13" />
+              <Border BorderBrush="#2E000000" BorderThickness="0,0,0,3" CornerRadius="13" />
+              <Border BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0" CornerRadius="13" />
+              <Border Margin="0,0,0,1">
+                <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="False" />
+              </Border>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Veil" Property="Opacity" Value="0.25" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1.08" Duration="0:0:0.28">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.6" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1.08" Duration="0:0:0.28">
+                        <DoubleAnimation.EasingFunction>
+                          <BackEase EasingMode="EaseOut" Amplitude="0.6" />
+                        </DoubleAnimation.EasingFunction>
+                      </DoubleAnimation>
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.18" />
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.18" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.ExitActions>
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Veil" Property="Background" Value="Black" />
+                <Setter TargetName="Veil" Property="Opacity" Value="0.1" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="0.92" Duration="0:0:0.08" />
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="0.92" Duration="0:0:0.08" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+              </Trigger>
+              <!-- Il rilascio col mouse fuori (barra spaziatrice, mouse uscito prima) riporta la
+                   scala a 1: dichiarato per ultimo perche' il suo storyboard vinca. -->
+              <MultiTrigger>
+                <MultiTrigger.Conditions>
+                  <Condition Property="IsMouseOver" Value="False" />
+                  <Condition Property="IsPressed" Value="False" />
+                </MultiTrigger.Conditions>
+                <MultiTrigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleX" To="1" Duration="0:0:0.18" />
+                      <DoubleAnimation Storyboard.TargetName="Root" Storyboard.TargetProperty="RenderTransform.ScaleY" To="1" Duration="0:0:0.18" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </MultiTrigger.EnterActions>
+              </MultiTrigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsEnabled" Value="False">
+          <Setter Property="Opacity" Value="0.35" />
+        </Trigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- Avvia/ferma dei servizi (ServiceToggle dell'exe, Tag = il bottone ferma): rosso pieno
+         con il glifo bianco quando ferma. -->
+    <Style x:Key="ServiceToggle" TargetType="Button" BasedOn="{StaticResource IconButton}">
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+          <Setter Property="Background" Value="#C42B1C" />
+          <Setter Property="Foreground" Value="White" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- LaneActionButton dell'exe: solo il glifo, che al passaggio del mouse prende una
+         pastiglia grigia. -->
+    <Style x:Key="LaneActionButton" TargetType="Button">
+      <Setter Property="Width" Value="28" />
+      <Setter Property="Height" Value="26" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="ToolTipService.ShowOnDisabled" Value="True" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Grid Background="Transparent">
+              <Border x:Name="Chip" Margin="2" CornerRadius="10" Background="#26808080" Opacity="0" />
+              <ContentPresenter x:Name="Glyph" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.7" RecognizesAccessKey="False" />
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Chip" Property="Opacity" Value="1" />
+                <Setter TargetName="Glyph" Property="Opacity" Value="1" />
+              </Trigger>
+              <Trigger Property="IsPressed" Value="True">
+                <Setter TargetName="Chip" Property="Background" Value="#40808080" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Glyph" Property="Opacity" Value="0.25" />
+                <Setter Property="Cursor" Value="Arrow" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Il bottone che apre e chiude una sezione: trasparente e largo quanto l'intestazione,
+         sotto i suoi contenuti. Freccia, icona e titolo lasciano passare il clic; i pulsanti delle
+         azioni lo gestiscono da se'. -->
+    <Style x:Key="HeaderToggle" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border Background="Transparent" />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Section dell'exe: la card. Il fondo e' quello delle finestre degli strumenti di VS, sul
+         fondo dell'ambiente: nel tema scuro le due tinte sono vicine e parlano bordo e labbro. -->
+    <Style x:Key="Section" TargetType="Border">
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+      <Setter Property="BorderBrush" Value="#33808080" />
+      <Setter Property="BorderThickness" Value="1,1,1,3" />
+      <Setter Property="CornerRadius" Value="20" />
+      <Setter Property="Padding" Value="14,8" />
+      <Setter Property="Margin" Value="0,0,0,8" />
+    </Style>
+
+    <!-- Filo tra le sezioni di una card, da bordo a bordo: i margini negativi annullano il
+         padding laterale della card. -->
+    <Style x:Key="CardSeparator" TargetType="Border">
+      <Setter Property="Height" Value="1" />
+      <Setter Property="Background" Value="#26808080" />
+      <Setter Property="Margin" Value="-14,8,-14,0" />
+    </Style>
+
+    <Style x:Key="CardHeader" TargetType="DockPanel">
+      <Setter Property="LastChildFill" Value="True" />
+      <Setter Property="MinHeight" Value="26" />
+    </Style>
+
+    <!-- Intestazione di una sezione dentro la card: stessa aria sopra e sotto del filo. -->
+    <Style x:Key="SectionHeader" TargetType="Grid">
+      <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+
+    <Style x:Key="ExpanderGlyph" TargetType="TextBlock">
+      <Setter Property="IsHitTestVisible" Value="False" />
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+      <Setter Property="FontSize" Value="10" />
+      <Setter Property="Opacity" Value="0.6" />
+      <Setter Property="Width" Value="12" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,6,0" />
+    </Style>
+
+    <Style x:Key="CardIcon" TargetType="TextBlock">
+      <Setter Property="IsHitTestVisible" Value="False" />
+      <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
+      <Setter Property="FontSize" Value="14" />
+      <Setter Property="Width" Value="16" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+    </Style>
+
+    <!-- In Segoe UI il corpo delle minuscole sta sotto il centro della riga: si alza di 1 px. -->
+    <Style x:Key="CardTitle" TargetType="TextBlock">
+      <Setter Property="IsHitTestVisible" Value="False" />
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="RenderTransform">
+        <Setter.Value>
+          <TranslateTransform Y="-1" />
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Microtesto grigio centrato delle card (dettagli, note dei context). -->
+    <Style x:Key="Hint" TargetType="TextBlock">
+      <Setter Property="Opacity" Value="0.65" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="TextAlignment" Value="Center" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+
+    <!-- StatusDot dell'exe: 8 px, primo elemento ancorato a destra, quindi sul bordo della card
+         dopo i bottoni. Il tooltip dice stato e ora dell'ultima lettura. -->
+    <Style x:Key="ToolDot" TargetType="Ellipse">
+      <Setter Property="Width" Value="8" />
+      <Setter Property="Height" Value="8" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Margin" Value="8,0,0,0" />
+      <Setter Property="DockPanel.Dock" Value="Right" />
+    </Style>
+
+    <!-- Il pallino dell'ambiente: mentre si legge e' l'azzurro di StatusBadge.InfoColor che pulsa. -->
+    <Style x:Key="EnvironmentDot" TargetType="Ellipse" BasedOn="{StaticResource ToolDot}">
+      <Setter Property="Fill" Value="{Binding EnvironmentStatusColor}" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding IsLoading}" Value="True">
+          <Setter Property="Fill" Value="#5AA9E6" />
+          <DataTrigger.EnterActions>
+            <BeginStoryboard x:Name="Pulse">
+              <Storyboard>
+                <DoubleAnimation Storyboard.TargetProperty="Opacity" From="1" To="0.3" Duration="0:0:0.6" AutoReverse="True" RepeatBehavior="Forever" />
+              </Storyboard>
+            </BeginStoryboard>
+          </DataTrigger.EnterActions>
+          <DataTrigger.ExitActions>
+            <StopStoryboard BeginStoryboardName="Pulse" />
+          </DataTrigger.ExitActions>
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <Style x:Key="DotStamp" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="11" />
+      <Setter Property="Opacity" Value="0.7" />
+      <Setter Property="Margin" Value="0,2,0,0" />
+    </Style>
+
+    <!-- Tag stondati dell'exe: tinta al 15% e bordo al 45% dello stesso colore. Azzurro per
+         database e server, rosso per il database protetto, viola per Docker. -->
+    <Style x:Key="Tag" TargetType="Border">
+      <Setter Property="Background" Value="#263B8FD9" />
+      <Setter Property="BorderBrush" Value="#733B8FD9" />
+      <Setter Property="TextElement.Foreground" Value="#3B8FD9" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="Padding" Value="6,1" />
+      <Setter Property="Margin" Value="4,0,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="ProtectedTag" TargetType="Border" BasedOn="{StaticResource Tag}">
+      <Setter Property="Background" Value="#26E5484D" />
+      <Setter Property="BorderBrush" Value="#80E5484D" />
+      <Setter Property="TextElement.Foreground" Value="#E5484D" />
+    </Style>
+
+    <Style x:Key="DockerTag" TargetType="Border" BasedOn="{StaticResource Tag}">
+      <Setter Property="Background" Value="#268B5CF6" />
+      <Setter Property="BorderBrush" Value="#808B5CF6" />
+      <Setter Property="TextElement.Foreground" Value="#8B5CF6" />
+    </Style>
+
+    <Style x:Key="TagText" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Consolas" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+    </Style>
+
+    <!-- Switch dell'exe: binario a capsula, verde acqua da acceso, pomello bianco che scorre. -->
+    <Style x:Key="Switch" TargetType="CheckBox">
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="CheckBox">
+            <Border x:Name="Track" Width="36" Height="20" CornerRadius="10" Background="#4D808080">
+              <Ellipse Width="14" Height="14" Fill="White" HorizontalAlignment="Left" Margin="3,0,0,0">
+                <Ellipse.RenderTransform>
+                  <TranslateTransform x:Name="KnobShift" />
+                </Ellipse.RenderTransform>
+              </Ellipse>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="Track" Property="Background" Value="#3FB8A0" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="KnobShift" Storyboard.TargetProperty="X" To="16" Duration="0:0:0.12" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard>
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="KnobShift" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.12" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.ExitActions>
+              </Trigger>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Track" Property="Opacity" Value="0.85" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Track" Property="Opacity" Value="0.45" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- NoteBox dell'exe: bordo leggero che diventa verde acqua mentre si scrive, fino a quattro
+         righe e poi scroll. Fondo trasparente perche' sotto c'e' il segnaposto. -->
+    <Style x:Key="NoteBox" TargetType="TextBox">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="TextWrapping" Value="Wrap" />
+      <Setter Property="AcceptsReturn" Value="True" />
+      <Setter Property="MaxLines" Value="4" />
+      <Setter Property="VerticalScrollBarVisibility" Value="Auto" />
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderBrush" Value="#40808080" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="Padding" Value="6,3" />
+      <Setter Property="ToolTip" Value="Nota dell'ambiente: si salva da sola ed e' la stessa nell'exe Desktop" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="10">
+              <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" />
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Chrome" Property="BorderBrush" Value="#73808080" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="Chrome" Property="BorderBrush" Value="#3E9B78" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="NotePlaceholder" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Opacity" Value="0.45" />
+      <Setter Property="FontStyle" Value="Italic" />
+      <Setter Property="Margin" Value="13,5,0,0" />
+      <Setter Property="IsHitTestVisible" Value="False" />
+    </Style>
+
+    <!-- LaneFrame dell'exe: il riquadro stondato degli elenchi, bordo spesso tutto attorno come la
+         tendina dei branch. -->
+    <Style x:Key="LaneFrame" TargetType="Border">
+      <Setter Property="CornerRadius" Value="14" />
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+      <Setter Property="BorderBrush" Value="#40808080" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Margin" Value="0,8,0,0" />
+    </Style>
+
+    <!-- Il filo in cima a ogni riga di una lista tranne la prima (LaneGridRow dell'exe): la riga
+         lo sa da AlternationIndex del suo contenitore. Le liste hanno AlternationCount alto. -->
+    <Style x:Key="LaneSeparator" TargetType="Border">
+      <Setter Property="Height" Value="1" />
+      <Setter Property="Background" Value="#26808080" />
+      <Setter Property="DockPanel.Dock" Value="Top" />
+      <Style.Triggers>
+        <DataTrigger Binding="{Binding (ItemsControl.AlternationIndex), RelativeSource={RelativeSource TemplatedParent}}" Value="0">
+          <Setter Property="Visibility" Value="Collapsed" />
+        </DataTrigger>
+      </Style.Triggers>
+    </Style>
+
+    <!-- La riga di una lista (Lane dell'exe): alta 26 px, senza bordo proprio. -->
+    <Style x:Key="LaneRow" TargetType="DockPanel">
+      <Setter Property="LastChildFill" Value="True" />
+      <Setter Property="MinHeight" Value="26" />
+      <Setter Property="Margin" Value="5,0,0,0" />
+    </Style>
+
+    <!-- Badge grigio a sinistra (numero di porta, posizione della migrazione), largo almeno 38
+         px perche' i testi restino allineati da una riga all'altra. -->
+    <Style x:Key="LaneBadge" TargetType="Border">
+      <Setter Property="DockPanel.Dock" Value="Left" />
+      <Setter Property="Background" Value="#1A808080" />
+      <Setter Property="BorderBrush" Value="#33808080" />
+      <Setter Property="BorderThickness" Value="1" />
+      <Setter Property="CornerRadius" Value="8" />
+      <Setter Property="Padding" Value="6,1" />
+      <Setter Property="MinWidth" Value="38" />
+      <Setter Property="Margin" Value="0,0,8,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <Style x:Key="LaneMono" TargetType="TextBlock">
+      <Setter Property="FontFamily" Value="Consolas" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="TextTrimming" Value="CharacterEllipsis" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+    <!-- Il gruppo delle azioni di una riga, separato dal testo da un filo verticale. -->
+    <Style x:Key="LaneActions" TargetType="Border">
+      <Setter Property="DockPanel.Dock" Value="Right" />
+      <Setter Property="BorderBrush" Value="#26808080" />
+      <Setter Property="BorderThickness" Value="1,0,0,0" />
+      <Setter Property="Padding" Value="2,0,0,0" />
+      <Setter Property="Margin" Value="6,5,0,5" />
+    </Style>
+
+    <!-- BranchComboBox dell'exe: casella stondata col bordo spesso, verde acqua col focus; menu
+         arrotondato, voce selezionata in grassetto con la spunta. -->
+    <Style x:Key="BranchComboText" TargetType="TextBox">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="BorderThickness" Value="0" />
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="CaretBrush" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <ScrollViewer x:Name="PART_ContentHost" Focusable="False" HorizontalScrollBarVisibility="Hidden" VerticalScrollBarVisibility="Hidden" />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="BranchComboItem" TargetType="ComboBoxItem">
+      <Setter Property="Padding" Value="10,5" />
+      <Setter Property="Margin" Value="0,1" />
+      <Setter Property="Cursor" Value="Hand" />
+      <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+      <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBoxItem">
+            <Border x:Name="Chrome" Background="Transparent" BorderBrush="Transparent" BorderThickness="2" CornerRadius="11" Padding="{TemplateBinding Padding}">
+              <DockPanel>
+                <TextBlock x:Name="Check" DockPanel.Dock="Right" Text="&#xE73E;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="11" Foreground="#3E9B78" VerticalAlignment="Center" Margin="10,0,1,0" Visibility="Collapsed" />
+                <ContentPresenter x:Name="Content" VerticalAlignment="Center" />
+              </DockPanel>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsHighlighted" Value="True">
+                <Setter TargetName="Chrome" Property="Background" Value="#1F808080" />
+              </Trigger>
+              <Trigger Property="IsSelected" Value="True">
+                <Setter TargetName="Check" Property="Visibility" Value="Visible" />
+                <Setter TargetName="Content" Property="TextElement.FontWeight" Value="Bold" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="BranchCombo" TargetType="ComboBox">
+      <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
+      <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
+      <Setter Property="BorderBrush" Value="#40808080" />
+      <Setter Property="BorderThickness" Value="2" />
+      <Setter Property="Height" Value="30" />
+      <Setter Property="Padding" Value="10,0,2,0" />
+      <Setter Property="MaxDropDownHeight" Value="320" />
+      <Setter Property="ItemContainerStyle" Value="{StaticResource BranchComboItem}" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ComboBox">
+            <Grid>
+              <Border x:Name="Chrome" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="14">
+                <DockPanel>
+                  <ToggleButton DockPanel.Dock="Right" Width="26" Focusable="False" ClickMode="Press" Cursor="Hand"
+                                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                    <ToggleButton.Template>
+                      <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent">
+                          <TextBlock x:Name="Chevron" Text="&#xE70D;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="10" Opacity="0.55" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                          <Trigger Property="IsChecked" Value="True">
+                            <Setter TargetName="Chevron" Property="Text" Value="&#xE70E;" />
+                          </Trigger>
+                          <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="Chevron" Property="Opacity" Value="0.9" />
+                          </Trigger>
+                        </ControlTemplate.Triggers>
+                      </ControlTemplate>
+                    </ToggleButton.Template>
+                  </ToggleButton>
+                  <TextBox x:Name="PART_EditableTextBox" Style="{StaticResource BranchComboText}" Margin="{TemplateBinding Padding}" VerticalAlignment="Center" IsReadOnly="{TemplateBinding IsReadOnly}" />
+                </DockPanel>
+              </Border>
+              <Popup x:Name="PART_Popup" AllowsTransparency="True" Focusable="False" Placement="Bottom" PlacementTarget="{Binding ElementName=Chrome}" VerticalOffset="4" PopupAnimation="None"
+                     IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource TemplatedParent}}">
+                <Border Background="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" BorderBrush="#40808080" BorderThickness="2" CornerRadius="16" Padding="5"
+                        TextElement.Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}"
+                        MinWidth="{Binding ActualWidth, ElementName=Chrome}" MaxWidth="600" MaxHeight="{TemplateBinding MaxDropDownHeight}">
+                  <ScrollViewer>
+                    <ItemsPresenter KeyboardNavigation.DirectionalNavigation="Contained" />
+                  </ScrollViewer>
+                </Border>
+              </Popup>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="Chrome" Property="BorderBrush" Value="#73808080" />
+              </Trigger>
+              <Trigger Property="IsKeyboardFocusWithin" Value="True">
+                <Setter TargetName="Chrome" Property="BorderBrush" Value="#3E9B78" />
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="Chrome" Property="Opacity" Value="0.5" />
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Scrollbar dell'exe: binario trasparente largo 10, pollice a capsula largo 4 nel colore del
+         tema di VS. Compare col mouse sul pannello. -->
+    <Style x:Key="ScrollBarPage" TargetType="RepeatButton">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="IsTabStop" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RepeatButton">
+            <Border Background="Transparent" />
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="ScrollBarThumb" TargetType="Thumb">
+      <Setter Property="Focusable" Value="False" />
+      <Setter Property="IsTabStop" Value="False" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Thumb">
+            <Border Background="Transparent">
+              <Border Margin="3" CornerRadius="2" Background="{DynamicResource {x:Static vs:EnvironmentColors.ScrollBarThumbBackgroundBrushKey}}" />
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="ScrollBar">
+      <Setter Property="Background" Value="Transparent" />
+      <Setter Property="Width" Value="10" />
+      <Setter Property="MinWidth" Value="10" />
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollBar">
+            <Grid Background="{TemplateBinding Background}">
+              <Track x:Name="PART_Track" IsDirectionReversed="True" Opacity="0">
+                <Track.DecreaseRepeatButton>
+                  <RepeatButton Style="{DynamicResource ScrollBarPage}" Command="ScrollBar.PageUpCommand" />
+                </Track.DecreaseRepeatButton>
+                <Track.Thumb>
+                  <Thumb Style="{DynamicResource ScrollBarThumb}" MinHeight="24" />
+                </Track.Thumb>
+                <Track.IncreaseRepeatButton>
+                  <RepeatButton Style="{DynamicResource ScrollBarPage}" Command="ScrollBar.PageDownCommand" />
+                </Track.IncreaseRepeatButton>
+              </Track>
+            </Grid>
+            <ControlTemplate.Triggers>
+              <DataTrigger Binding="{Binding IsMouseOver, RelativeSource={RelativeSource AncestorType=ScrollViewer}}" Value="True">
+                <Setter TargetName="PART_Track" Property="Opacity" Value="1" />
+              </DataTrigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- La barra sta sopra il contenuto, non accanto: i margini restano quelli delle card. -->
+    <Style TargetType="ScrollViewer">
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ScrollViewer">
+            <Grid Background="{TemplateBinding Background}">
+              <ScrollContentPresenter x:Name="PART_ScrollContentPresenter"
+                                      Margin="{TemplateBinding Padding}"
+                                      CanContentScroll="{TemplateBinding CanContentScroll}"
+                                      Content="{TemplateBinding Content}"
+                                      ContentTemplate="{TemplateBinding ContentTemplate}" />
+              <ScrollBar x:Name="PART_VerticalScrollBar"
+                         HorizontalAlignment="Right"
+                         Cursor="Arrow"
+                         Minimum="0"
+                         Maximum="{TemplateBinding ScrollableHeight}"
+                         ViewportSize="{TemplateBinding ViewportHeight}"
+                         Value="{Binding VerticalOffset, Mode=OneWay, RelativeSource={RelativeSource TemplatedParent}}"
+                         Visibility="{TemplateBinding ComputedVerticalScrollBarVisibility}" />
+            </Grid>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </Grid.Resources>
+
+  <Grid.RowDefinitions>
+    <RowDefinition Height="Auto" />
+    <RowDefinition Height="*" />
+    <RowDefinition Height="Auto" />
+  </Grid.RowDefinitions>
+
+  <!-- Sfondo del pannello: il fondo dell'ambiente di Visual Studio, sotto le card. -->
+  <Border Grid.Row="0" Grid.RowSpan="3" Background="{DynamicResource {x:Static vs:EnvironmentColors.EnvironmentBackgroundBrushKey}}" />
+
+  <ScrollViewer Grid.Row="1"
+                VerticalScrollBarVisibility="Auto"
+                HorizontalScrollBarVisibility="Disabled"
+                Visibility="{Binding MainVisibility}">
+    <StackPanel Margin="8,8,8,3">
+
+      <!-- L'ambiente, come la testata di colonna dell'exe: nome, tag, attivita', Aggiorna e
+           pallino; sotto la nota e le azioni secondarie. Le righe di stato hanno sempre il loro
+           spazio e sono a riga singola con ellissi, cosi' il resto non scatta su e giu'. -->
+      <Border Style="{DynamicResource Section}">
+        <StackPanel>
+          <DockPanel Style="{DynamicResource CardHeader}">
+            <Ellipse Style="{DynamicResource EnvironmentDot}" ToolTip="{Binding ActivityLine}" />
+            <Button DockPanel.Dock="Right"
+                    Command="{Binding RefreshCommand}"
+                    IsEnabled="{Binding IsNotBusy}"
+                    ToolTip="Rilegge configurazione e stato, esegue git fetch e interroga il dev tunnel"
+                    Style="{DynamicResource IconButton}"
+                    Content="&#xE72C;" />
+            <TextBlock DockPanel.Dock="Left"
+                       Text="{Binding EnvironmentTitle}"
+                       FontWeight="Bold"
+                       FontSize="15"
+                       VerticalAlignment="Center" />
+            <!-- Tag dell'ambiente come nell'exe: database protetto per primo, poi Docker,
+                 database e server del backend (il server non in Docker, dove e' sempre il
+                 container dello slot). -->
+            <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
+              <Border Style="{DynamicResource ProtectedTag}" Visibility="{Binding ProtectedDatabaseVisibility}" ToolTip="{Binding ProtectedDatabaseToolTip}">
+                <TextBlock Text="{Binding ProtectedDatabaseTag}" Style="{DynamicResource TagText}" />
+              </Border>
+              <Border Style="{DynamicResource DockerTag}" Visibility="{Binding DockerVisibility}"
+                      ToolTip="Ambiente Docker: worktree dai cloni sorgente, api, web e database nei container dello slot">
+                <TextBlock Text="Docker" Style="{DynamicResource TagText}" />
+              </Border>
+              <Border Style="{DynamicResource Tag}" ToolTip="{Binding Database}">
+                <TextBlock Text="{Binding Database}" Style="{DynamicResource TagText}" />
+              </Border>
+              <Border Style="{DynamicResource Tag}" Visibility="{Binding ServerVisibility}" ToolTip="{Binding Server}">
+                <TextBlock Text="{Binding Server}" Style="{DynamicResource TagText}" />
+              </Border>
+            </StackPanel>
+            <TextBlock Text="{Binding ActivityLine}"
+                       ToolTip="{Binding ActivityLine}"
+                       Opacity="0.6"
+                       FontSize="12"
+                       TextTrimming="CharacterEllipsis"
+                       VerticalAlignment="Center"
+                       Margin="8,0,6,0" />
+          </DockPanel>
+          <!-- Nota libera dell'ambiente, la stessa dell'exe: si scrive qui e si salva da sola. -->
+          <Grid Margin="0,8,0,0" Visibility="{Binding NoteVisibility}">
+            <TextBlock Text="{Binding NotePlaceholder}"
+                       Visibility="{Binding NotePlaceholderVisibility}"
+                       Style="{DynamicResource NotePlaceholder}" />
+            <TextBox Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{DynamicResource NoteBox}" />
+          </Grid>
+          <!-- Azioni secondarie sotto la nota, come nell'exe: l'interruttore del tunnel del pool. -->
+          <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding TunnelSwitchVisibility}">
+            <TextBlock Text="Tunnel" FontWeight="Bold" VerticalAlignment="Center" ToolTip="{Binding TunnelSwitchToolTip}" />
+            <CheckBox Style="{DynamicResource Switch}"
+                      IsChecked="{Binding TunnelOn, Mode=OneWay}"
+                      Command="{Binding TunnelSwitchCommand}"
+                      IsEnabled="{Binding TunnelSwitchEnabled}"
+                      ToolTip="{Binding TunnelSwitchToolTip}"
+                      Margin="6,0,0,0" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Il backend, come la sua card nell'exe: intestazione con le azioni di git e avvia/ferma;
+           nel corpo la tendina dei branch, lo stato git e una sezione ciascuno per tunnel,
+           migrazioni sconosciute e context. Pull resta fast-forward only: e' git a rifiutare. -->
+      <Border Style="{DynamicResource Section}">
+        <StackPanel>
+          <Grid>
+            <Button Command="{Binding RepoExpander.ToggleCommand}" ToolTip="{Binding RepoToolTip}" Style="{DynamicResource HeaderToggle}" />
+            <DockPanel Style="{DynamicResource CardHeader}">
+              <!-- Stato di Kestrel (o del container dell'api): verde acceso, arancio solo
+                   console aperta o in avvio, grigio spento. -->
+              <Ellipse Fill="{Binding KestrelColor}" Style="{DynamicResource ToolDot}">
+                <Ellipse.ToolTip>
+                  <StackPanel>
+                    <TextBlock Text="{Binding KestrelToolTip}" />
+                    <TextBlock Text="{Binding RepoStamp}" Style="{DynamicResource DotStamp}" />
+                  </StackPanel>
+                </Ellipse.ToolTip>
+              </Ellipse>
+              <Button DockPanel.Dock="Right"
+                      Command="{Binding PullCommand}"
+                      Visibility="{Binding GitActionsVisibility}"
+                      ToolTip="{Binding PullToolTip}"
+                      IsEnabled="{Binding IsNotBusy}"
+                      Style="{DynamicResource IconButton}"
+                      Content="&#xE896;" />
+              <Button DockPanel.Dock="Right"
+                      Command="{Binding FetchCommand}"
+                      Visibility="{Binding GitActionsVisibility}"
+                      ToolTip="git fetch — aggiorna i remote-tracking ref e rilegge lo stato del repository"
+                      IsEnabled="{Binding IsNotBusy}"
+                      Style="{DynamicResource IconButton}"
+                      Content="&#xE895;" />
+              <Button DockPanel.Dock="Right"
+                      Command="{Binding PruneCommand}"
+                      Visibility="{Binding GitActionsVisibility}"
+                      ToolTip="Elimina i branch locali il cui branch remoto non esiste piu' (chiede conferma)"
+                      IsEnabled="{Binding IsNotBusy}"
+                      Style="{DynamicResource IconButton}"
+                      Content="&#xE74D;" />
+              <Button DockPanel.Dock="Right"
+                      Command="{Binding KestrelToggleCommand}"
+                      IsEnabled="{Binding KestrelToggleEnabled}"
+                      ToolTip="{Binding KestrelToggleToolTip}"
+                      ToolTipService.ShowOnDisabled="True"
+                      Tag="{Binding KestrelCanStop}"
+                      Style="{DynamicResource ServiceToggle}"
+                      Content="{Binding KestrelToggleGlyph}" />
+              <TextBlock DockPanel.Dock="Left" Text="{Binding RepoExpander.Glyph}" Style="{DynamicResource ExpanderGlyph}" />
+              <TextBlock DockPanel.Dock="Left" Text="&#xE8AB;" Style="{DynamicResource CardIcon}" />
+              <TextBlock Text="{Binding RepoLine}" Style="{DynamicResource CardTitle}" />
+            </DockPanel>
+          </Grid>
+
+          <StackPanel Visibility="{Binding RepoExpander.BodyVisibility}">
+            <Border Style="{DynamicResource CardSeparator}" />
+            <!-- Tendina editabile con ricerca integrata, sul modello della BranchComboBox
+                 dell'exe: scrivendo le voci si filtrano per sottostringa e il menu si apre da
+                 solo; una scelta esegue git switch. -->
+            <ComboBox ItemsSource="{Binding Branches}"
+                      SelectedItem="{Binding SelectedBranch, Mode=TwoWay}"
+                      Text="{Binding BranchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                      IsDropDownOpen="{Binding BranchDropDownOpen, Mode=TwoWay}"
+                      IsEditable="True"
+                      IsTextSearchEnabled="False"
+                      StaysOpenOnEdit="True"
+                      Visibility="{Binding GitActionsVisibility}"
+                      IsEnabled="{Binding IsNotBusy}"
+                      ToolTip="Scrivi per cercare, scegli una voce per cambiare branch (git switch)"
+                      Style="{DynamicResource BranchCombo}"
+                      FontFamily="Consolas"
+                      FontSize="13"
+                      Margin="0,8,0,0" />
+
+            <!-- Stato git e avviso sulla stessa riga, centrati. -->
+            <DockPanel HorizontalAlignment="Center" Margin="0,6,0,0">
+              <TextBlock DockPanel.Dock="Right"
+                         Text="{Binding UpstreamWarning}"
+                         Visibility="{Binding UpstreamWarningVisibility}"
+                         Foreground="#E5484D"
+                         FontSize="12"
+                         FontWeight="Bold" />
+              <TextBlock DockPanel.Dock="Right"
+                         Text="·"
+                         Visibility="{Binding UpstreamWarningVisibility}"
+                         Opacity="0.65"
+                         FontSize="12"
+                         Margin="5,0" />
+              <TextBlock Text="{Binding RepoDetail}"
+                         ToolTip="{Binding RepoDetail}"
+                         Opacity="0.65"
+                         FontSize="12"
+                         TextTrimming="CharacterEllipsis" />
+            </DockPanel>
+
+            <!-- Dev tunnel: sezione con la sua intestazione. Il pallino e' lo stato dell'host,
+                 che si accende e si spegne con l'interruttore Tunnel dell'ambiente. -->
+            <Border Style="{DynamicResource CardSeparator}" />
+            <Grid Style="{DynamicResource SectionHeader}">
+              <Button Command="{Binding TunnelExpander.ToggleCommand}" ToolTip="{Binding TunnelLine}" Style="{DynamicResource HeaderToggle}" />
+              <DockPanel Style="{DynamicResource CardHeader}">
+                <Ellipse Fill="{Binding TunnelHostColor}" Style="{DynamicResource ToolDot}">
+                  <Ellipse.ToolTip>
+                    <StackPanel>
+                      <TextBlock Text="{Binding TunnelHostToolTip}" />
+                      <TextBlock Text="{Binding TunnelStamp}" Style="{DynamicResource DotStamp}" />
+                    </StackPanel>
+                  </Ellipse.ToolTip>
+                </Ellipse>
+                <TextBlock DockPanel.Dock="Left" Text="{Binding TunnelExpander.Glyph}" Style="{DynamicResource ExpanderGlyph}" />
+                <TextBlock DockPanel.Dock="Left" Text="&#xE774;" Style="{DynamicResource CardIcon}" />
+                <TextBlock Text="{Binding TunnelLine}" Style="{DynamicResource CardTitle}" />
+              </DockPanel>
+            </Grid>
+            <StackPanel Visibility="{Binding TunnelExpander.BodyVisibility}">
+              <TextBlock Text="{Binding TunnelDetail}" Visibility="{Binding TunnelDetailVisibility}" Style="{DynamicResource Hint}" />
+
+              <!-- Una riga per porta: numero nel badge, host senza schema, copia e apertura nel
+                   browser. La pastiglia compare per una porta che non risponde o per la copia. -->
+              <Border Style="{DynamicResource LaneFrame}" Visibility="{Binding TunnelPortsVisibility}">
+                <ItemsControl ItemsSource="{Binding TunnelPorts}" AlternationCount="1000">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <DockPanel>
+                        <Border Style="{DynamicResource LaneSeparator}" />
+                        <DockPanel Style="{DynamicResource LaneRow}">
+                          <Border Style="{DynamicResource LaneBadge}" Visibility="{Binding BadgeVisibility}">
+                            <TextBlock Text="{Binding PortNumber}" FontFamily="Consolas" FontSize="12" TextAlignment="Center" />
+                          </Border>
+                          <Border Style="{DynamicResource LaneActions}">
+                            <StackPanel Orientation="Horizontal" Margin="0,-5">
+                              <Button Command="{Binding CopyCommand}" ToolTip="{Binding CopyToolTip}" Style="{DynamicResource LaneActionButton}" Content="&#xE8C8;" />
+                              <Button Command="{Binding OpenCommand}" ToolTip="{Binding OpenToolTip}" Style="{DynamicResource LaneActionButton}" Content="&#xE8A7;" />
+                            </StackPanel>
+                          </Border>
+                          <Grid DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,2,0" Visibility="{Binding NoteVisibility}">
+                            <Border Background="{Binding NoteColor}" CornerRadius="8" Opacity="0.12" />
+                            <Border BorderBrush="{Binding NoteColor}" BorderThickness="1" CornerRadius="8" Opacity="0.45" />
+                            <TextBlock Text="{Binding Note}" Foreground="{Binding NoteColor}" FontSize="11" Margin="6,1" />
+                          </Grid>
+                          <TextBlock Text="{Binding Host}" ToolTip="{Binding Endpoint}" Style="{DynamicResource LaneMono}" />
+                        </DockPanel>
+                      </DockPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
+
+              <!-- Nessun tunnel corrisponde al clone: tunnel dell'account con pallino di stato e,
+                   nella pastiglia grigia, host e porte. -->
+              <Border Style="{DynamicResource LaneFrame}" Visibility="{Binding TunnelListVisibility}">
+                <ItemsControl ItemsSource="{Binding TunnelList}" AlternationCount="1000">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <DockPanel>
+                        <Border Style="{DynamicResource LaneSeparator}" />
+                        <DockPanel Style="{DynamicResource LaneRow}">
+                          <Ellipse DockPanel.Dock="Left" Width="8" Height="8" Fill="{Binding StatusColor}" VerticalAlignment="Center" Margin="4,0,6,0" />
+                          <Grid DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,6,0">
+                            <Border Background="#8A8F98" CornerRadius="8" Opacity="0.12" />
+                            <Border BorderBrush="#8A8F98" BorderThickness="1" CornerRadius="8" Opacity="0.45" />
+                            <TextBlock Text="{Binding Kind}" Foreground="#8A8F98" FontSize="11" Margin="6,1" />
+                          </Grid>
+                          <TextBlock Text="{Binding Title}" ToolTip="{Binding Title}" Style="{DynamicResource LaneMono}" />
+                        </DockPanel>
+                      </DockPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
+            </StackPanel>
+
+            <!-- Migrazioni applicate che il codice non conosce: prima dei context, perche' vanno
+                 viste prima di leggere i loro contatori. -->
+            <StackPanel Visibility="{Binding UnknownVisibility}">
+              <Border Style="{DynamicResource CardSeparator}" />
+              <Grid Style="{DynamicResource SectionHeader}">
+                <Button Command="{Binding UnknownExpander.ToggleCommand}" ToolTip="{Binding UnknownHeader}" Style="{DynamicResource HeaderToggle}" />
+                <DockPanel Style="{DynamicResource CardHeader}">
+                  <Ellipse Fill="#E76F6F" Style="{DynamicResource ToolDot}" ToolTip="{Binding UnknownHeader}" />
+                  <TextBlock DockPanel.Dock="Left" Text="{Binding UnknownExpander.Glyph}" Style="{DynamicResource ExpanderGlyph}" />
+                  <TextBlock DockPanel.Dock="Left" Text="&#xE9CE;" Style="{DynamicResource CardIcon}" />
+                  <TextBlock Text="{Binding UnknownHeader}" Style="{DynamicResource CardTitle}" />
+                </DockPanel>
+              </Grid>
+              <Border Style="{DynamicResource LaneFrame}" Visibility="{Binding UnknownExpander.BodyVisibility}">
+                <ItemsControl ItemsSource="{Binding Unknown}" AlternationCount="1000">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <DockPanel>
+                        <Border Style="{DynamicResource LaneSeparator}" />
+                        <DockPanel Style="{DynamicResource LaneRow}">
+                          <TextBlock Text="{Binding MigrationId}" ToolTip="{Binding MigrationId}" Style="{DynamicResource LaneMono}" Margin="5,0,0,0" />
+                        </DockPanel>
+                      </DockPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Border>
+            </StackPanel>
+
+            <!-- Una sezione per context: intestazione con nome e pallino (contatori e ora nel
+                 tooltip); nel corpo le ultime migrazioni, con la posizione nel badge, lo stato
+                 nella pastiglia, l'update fino a quella riga (Play avanti, Undo per un rollback,
+                 con conferma) e la copia del comando. -->
+            <ItemsControl ItemsSource="{Binding Contexts}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <StackPanel>
+                    <Border Style="{DynamicResource CardSeparator}" />
+                    <Grid Style="{DynamicResource SectionHeader}">
+                      <Button Command="{Binding Expander.ToggleCommand}" ToolTip="{Binding Name}" Style="{DynamicResource HeaderToggle}" />
+                      <DockPanel Style="{DynamicResource CardHeader}">
+                        <Ellipse Fill="{Binding StatusColor}" Style="{DynamicResource ToolDot}">
+                          <Ellipse.ToolTip>
+                            <StackPanel>
+                              <TextBlock Text="{Binding Counters}" />
+                              <TextBlock Text="{Binding Stamp}" Style="{DynamicResource DotStamp}" />
+                            </StackPanel>
+                          </Ellipse.ToolTip>
+                        </Ellipse>
+                        <Button DockPanel.Dock="Right"
+                                Command="{Binding ApplyCommand}"
+                                Visibility="{Binding ApplyVisibility}"
+                                ToolTip="{Binding ApplyToolTip}"
+                                IsEnabled="{Binding IsNotBusy}"
+                                Style="{DynamicResource IconButton}"
+                                Content="&#xE768;" />
+                        <TextBlock DockPanel.Dock="Left" Text="{Binding Expander.Glyph}" Style="{DynamicResource ExpanderGlyph}" />
+                        <TextBlock DockPanel.Dock="Left" Text="&#xEE94;" Style="{DynamicResource CardIcon}" />
+                        <TextBlock Text="{Binding Name}" Style="{DynamicResource CardTitle}" />
+                      </DockPanel>
+                    </Grid>
+
+                    <StackPanel Visibility="{Binding Expander.BodyVisibility}">
+                      <TextBlock Text="{Binding Note}" Visibility="{Binding NoteVisibility}" Style="{DynamicResource Hint}" />
+
+                      <Border Style="{DynamicResource LaneFrame}" Visibility="{Binding RecentVisibility}">
+                        <ItemsControl ItemsSource="{Binding Recent}" AlternationCount="1000">
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                              <DockPanel>
+                                <Border Style="{DynamicResource LaneSeparator}" />
+                                <DockPanel Style="{DynamicResource LaneRow}">
+                                  <Border Style="{DynamicResource LaneBadge}" Visibility="{Binding BadgeVisibility}">
+                                    <TextBlock Text="{Binding Position}" FontFamily="Consolas" FontSize="12" TextAlignment="Center" />
+                                  </Border>
+                                  <Border Style="{DynamicResource LaneActions}">
+                                    <StackPanel Orientation="Horizontal" Margin="0,-5">
+                                      <Button Command="{Binding RunCommand}" IsEnabled="{Binding RunEnabled}" ToolTip="{Binding RunToolTip}" Style="{DynamicResource LaneActionButton}" Content="{Binding RunGlyph}" />
+                                      <Button Command="{Binding CopyCommand}" ToolTip="{Binding CopyToolTip}" Style="{DynamicResource LaneActionButton}" Content="&#xE8C8;" />
+                                    </StackPanel>
+                                  </Border>
+                                  <Grid DockPanel.Dock="Right" VerticalAlignment="Center" Margin="8,0,2,0" Visibility="{Binding NoteVisibility}">
+                                    <Border Background="{Binding NoteColor}" CornerRadius="8" Opacity="0.12" />
+                                    <Border BorderBrush="{Binding NoteColor}" BorderThickness="1" CornerRadius="8" Opacity="0.45" />
+                                    <TextBlock Text="{Binding Note}" Foreground="{Binding NoteColor}" FontSize="11" Margin="6,1" />
+                                  </Grid>
+                                  <TextBlock Text="{Binding Name}" ToolTip="{Binding Name}" Style="{DynamicResource LaneMono}" />
+                                </DockPanel>
+                              </DockPanel>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </Border>
+
+                      <!-- Pager delle recenti, centrato: compare solo se non stanno in una pagina. -->
+                      <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Visibility="{Binding PagerVisibility}" Margin="0,8,0,0">
+                        <Button Command="{Binding PreviousPageCommand}"
+                                IsEnabled="{Binding CanGoPrevious}"
+                                ToolTip="Migrazioni più recenti"
+                                Style="{DynamicResource IconButton}"
+                                Margin="0"
+                                Content="&#xE76B;" />
+                        <TextBlock Text="{Binding PageLabel}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" Margin="8,0,4,0" />
+                        <Button Command="{Binding NextPageCommand}"
+                                IsEnabled="{Binding CanGoNext}"
+                                ToolTip="Migrazioni più vecchie"
+                                Style="{DynamicResource IconButton}"
+                                Content="&#xE76C;" />
+                      </StackPanel>
+                    </StackPanel>
+                  </StackPanel>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+
+          <!-- Errori di configurazione, database, git o azioni: visibili anche a card chiusa,
+               perche' sono la premessa per leggere il resto. Rosso ad alfa bassa. -->
+          <Border CornerRadius="12"
+                  Background="#1FE5484D"
+                  BorderBrush="#59E5484D"
+                  BorderThickness="1"
+                  Padding="8,7"
+                  Margin="0,8,0,0"
+                  Visibility="{Binding ErrorVisibility}">
+            <DockPanel LastChildFill="True">
+              <Border DockPanel.Dock="Left" Width="16" Height="16" CornerRadius="8" Background="#E5484D" VerticalAlignment="Top" Margin="0,0,8,0">
+                <TextBlock Text="&#10005;" Foreground="White" FontSize="10" FontWeight="Bold" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-1,0,0" />
+              </Border>
+              <TextBlock Text="{Binding ErrorLine}" TextWrapping="Wrap" FontSize="11" VerticalAlignment="Center" />
+            </DockPanel>
+          </Border>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+
+  <!-- Footer minimale come nell'exe: la versione, sul fondo dell'ambiente di VS. -->
+  <Border Grid.Row="2" Visibility="{Binding MainVisibility}">
+    <TextBlock HorizontalAlignment="Center" Margin="0,2,0,5" FontSize="10" Opacity="0.6">
+      <Run Text="{Binding AppVersion, Mode=OneWay}" />
+    </TextBlock>
+  </Border>
+
+  <!-- Splash: visibile dall'apertura finche' non parte la prima lettura vera (soluzione
+       risolta). Tutto vettoriale, niente bitmap: il Remote UI non le carica in modo affidabile
+       e un disegno in XAML segue il DPI. Il logo e' l'icona dell'exe (app.ico) ridisegnata in
+       XAML: va tenuto allineato a mano. -->
+  <Grid Grid.Row="1" Visibility="{Binding SplashVisibility}">
+    <Ellipse Width="460" Height="460" Stroke="#1A808080" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    <Ellipse Width="330" Height="330" Stroke="#22808080" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+    <Ellipse Width="210" Height="210" Stroke="#2A808080" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
+
+    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="380">
+      <Image Width="56" Height="56" HorizontalAlignment="Center">
+        <Image.Source>
+          <DrawingImage>
+            <DrawingImage.Drawing>
+              <DrawingGroup>
+                <GeometryDrawing Brush="#101014">
+                  <GeometryDrawing.Geometry>
+                    <RectangleGeometry Rect="0,0,8,8" RadiusX="1.44" RadiusY="1.44" />
+                  </GeometryDrawing.Geometry>
+                </GeometryDrawing>
+                <DrawingGroup>
+                  <DrawingGroup.ClipGeometry>
+                    <RectangleGeometry Rect="0.5,0.5,7,7" RadiusX="0.94" RadiusY="0.94" />
+                  </DrawingGroup.ClipGeometry>
+                  <GeometryDrawing Brush="#8FD64E" Geometry="M0,0H2V1H0Z M3,0H6V1H3Z M7,0H8V1H7Z" />
+                  <GeometryDrawing Brush="#5DB03A" Geometry="M2,0H3V1H2Z M6,0H7V1H6Z M0,1H8V2H0Z M1,2H2V3H1Z M5,2H6V3H5Z" />
+                  <GeometryDrawing Brush="#865C3A" Geometry="M0,2H1V3H0Z M2,2H5V3H2Z M6,2H8V3H6Z M0,3H8V4H0Z" />
+                  <GeometryDrawing Brush="#A993E8" Geometry="M0,4H8V8H0Z" />
+                </DrawingGroup>
+              </DrawingGroup>
+            </DrawingImage.Drawing>
+          </DrawingImage>
+        </Image.Source>
+      </Image>
+
+      <TextBlock Text="{Binding ErrorLine}"
+                 Visibility="{Binding ErrorVisibility}"
+                 FontSize="12"
+                 Opacity="0.6"
+                 TextWrapping="Wrap"
+                 TextAlignment="Center"
+                 HorizontalAlignment="Center"
+                 Margin="0,12,0,0" />
+
+      <Button Command="{Binding RefreshCommand}"
+              IsEnabled="{Binding IsNotBusy}"
+              ToolTip="Rilegge lo stato, esegue git fetch e interroga il dev tunnel"
+              Style="{DynamicResource IconButton}"
+              Width="NaN"
+              Padding="12,0"
+              HorizontalAlignment="Center"
+              Margin="0,14,0,0">
+        <StackPanel Orientation="Horizontal">
+          <TextBlock Text="&#xE72C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" />
+          <TextBlock Text="Aggiorna" FontFamily="Segoe UI" FontWeight="Bold" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
+        </StackPanel>
+      </Button>
+    </StackPanel>
+  </Grid>
+
+  <!-- Barra di attivita' fissa sul bordo superiore, fuori dallo scroll e sopra anche allo
+       splash: 3 px sempre presenti, trasparenti da ferma, animata in modo indeterminato finche'
+       almeno una lettura, un'azione o l'attesa iniziale e' in corso. -->
+  <ProgressBar Grid.Row="0"
+               Height="3"
+               IsIndeterminate="{Binding IsLoading}"
+               Minimum="0"
+               Maximum="100"
+               Value="0"
+               Background="Transparent"
+               BorderThickness="0"
+               Foreground="#3E9B78" />
+  </Grid>
+</DataTemplate>

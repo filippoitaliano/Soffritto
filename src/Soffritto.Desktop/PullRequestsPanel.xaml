@@ -1,0 +1,312 @@
+<!-- Pannello delle pull request, a scomparsa su un lato della finestra principale: le
+     proprie e quelle da revisionare, raggruppate per work item. L'occhio deve cadere su cio' che c'e' da fare: barra e testo blu, chip «da fare»
+     sul gruppo. Lo stato dei voti e' un testo grigio col pallino di stato delle card, e i work
+     item senza niente da fare partono chiusi. -->
+<UserControl x:Class="Soffritto.Desktop.PullRequestsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Soffritto.Desktop"
+             Background="Transparent">
+  <UserControl.Resources>
+    <!-- Il blu delle azioni da fare: lo stesso tono per barra, testo e chip. -->
+
+    <Style x:Key="SectionTitle" TargetType="TextBlock">
+      <Setter Property="FontWeight" Value="Bold" />
+      <Setter Property="FontSize" Value="16" />
+    </Style>
+
+    <Style x:Key="SectionSummary" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="Opacity" Value="0.6" />
+      <Setter Property="VerticalAlignment" Value="Bottom" />
+      <Setter Property="Margin" Value="10,0,0,2" />
+    </Style>
+
+    <Style x:Key="EmptyText" TargetType="TextBlock">
+      <Setter Property="Opacity" Value="0.5" />
+      <Setter Property="FontSize" Value="12" />
+      <Setter Property="FontStyle" Value="Italic" />
+      <Setter Property="Margin" Value="2,0,0,4" />
+    </Style>
+
+    <!-- Una PR: barra blu a sinistra se c'e' da fare, tag dello strato, titolo e contesto, e a
+         destra lo stato dei voti in sordina. Tutta la riga apre la PR. -->
+    <DataTemplate x:Key="RowTemplate">
+      <Border BorderBrush="{DynamicResource Theme.Separator}" BorderThickness="0,1,0,0" Background="Transparent" Cursor="Hand" ToolTip="{Binding ToolTip}">
+        <Border.InputBindings>
+          <MouseBinding Gesture="LeftClick" Command="{Binding OpenCommand}" />
+        </Border.InputBindings>
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="4" />
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="Auto" />
+          </Grid.ColumnDefinitions>
+
+          <Border Grid.Column="0" Background="{DynamicResource Theme.TagText}" CornerRadius="2" Margin="0,8" Visibility="{Binding TodoVisibility}" />
+
+          <!-- Il Tag dell'app, tinto col colore dello strato. -->
+          <Border Grid.Column="1"
+                  Style="{StaticResource Tag}"
+                  MinWidth="42"
+                  Margin="10,8,10,0"
+                  VerticalAlignment="Top"
+                  Background="{Binding RepoBackground}"
+                  BorderBrush="{Binding RepoBorder}"
+                  ToolTip="{Binding RepoToolTip}">
+            <TextBlock Text="{Binding RepoTag}"
+                       Style="{StaticResource TagText}"
+                       Foreground="{Binding RepoForeground}"
+                       HorizontalAlignment="Center" />
+          </Border>
+
+          <StackPanel Grid.Column="2" Margin="0,8,8,8">
+            <TextBlock Text="{Binding Title}" TextWrapping="Wrap" />
+            <DockPanel Margin="0,2,0,0">
+              <Border DockPanel.Dock="Left"
+                      Visibility="{Binding DraftVisibility}"
+                      Style="{StaticResource Tag}"
+                      Background="#1AD13438"
+                      BorderBrush="#4DD13438"
+                      Padding="5,0"
+                      Margin="0,0,6,0">
+                <TextBlock Text="Draft" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.ErrorText}" FontSize="11" />
+              </Border>
+              <TextBlock Text="{Binding Meta}" Opacity="0.6" FontSize="12" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Text="{Binding TodoText}"
+                       Visibility="{Binding TodoVisibility}"
+                       Foreground="{DynamicResource Theme.TagText}"
+                       FontSize="12"
+                       FontWeight="Bold"
+                       TextWrapping="Wrap"
+                       Margin="0,3,0,0" />
+          </StackPanel>
+
+          <StackPanel Grid.Column="3"
+                      Orientation="Horizontal"
+                      VerticalAlignment="Top"
+                      Margin="0,10,12,0"
+                      Opacity="0.75"
+                      Background="Transparent"
+                      ToolTip="{Binding StatusToolTip}">
+            <local:StatusDot Color="{Binding StatusDot}" Margin="-6,-6,0,-6" />
+            <TextBlock Text="{Binding StatusText}" FontSize="11" />
+          </StackPanel>
+        </Grid>
+      </Border>
+    </DataTemplate>
+
+    <!-- Un work item: intestazione col numero (apre il WI) e il titolo, chip «da fare» se serve,
+         poi le sue PR, una per strato. IsHighlighted (clic su una notifica) accende il bordo
+         nel verde di StatusBadge.OkColor e lo spegne sfumando; il bordo piu' spesso rientra nel
+         margine, cosi' il contenuto non si sposta. -->
+    <DataTemplate x:Key="GroupTemplate">
+      <Border x:Name="Card"
+              Background="{DynamicResource Theme.Surface}"
+              BorderBrush="{DynamicResource Theme.CardBorder}"
+              BorderThickness="1,1,1,3"
+              CornerRadius="18"
+              Margin="0,0,0,10">
+        <StackPanel>
+          <!-- Tutta l'intestazione apre e chiude la card; i bottoni gestiscono il proprio clic. -->
+          <DockPanel Margin="14,10,14,9" Background="Transparent" Cursor="Hand" ToolTip="{Binding TitleToolTip}">
+            <DockPanel.InputBindings>
+              <MouseBinding Gesture="LeftClick" Command="{Binding Expander.ToggleCommand}" />
+            </DockPanel.InputBindings>
+            <TextBlock DockPanel.Dock="Left"
+                       Text="{Binding Expander.Glyph}"
+                       FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal"
+                       FontSize="11"
+                       Opacity="0.6"
+                       Width="12"
+                       VerticalAlignment="Center"
+                       Margin="0,0,6,0" />
+            <!-- Apre un menu con gli ambienti: la scelta porta quell'ambiente sui branch delle PR.
+                 Primo dei Dock="Right", cosi' resta sempre sul bordo destro e i tag gli si
+                 allineano a sinistra. -->
+            <Button DockPanel.Dock="Right"
+                    Click="OpenIn_Click"
+                    IsEnabled="{Binding CheckoutEnabled}"
+                    ToolTip="{Binding CheckoutToolTip}"
+                    ToolTipService.ShowOnDisabled="True"
+                    Style="{StaticResource TextButton}"
+                    Margin="8,0,0,0"
+                    Content="Apri in ▾" />
+            <Border DockPanel.Dock="Right"
+                    Visibility="{Binding TodoVisibility}"
+                    Style="{StaticResource Tag}">
+              <TextBlock Text="{Binding TodoText}" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.TagText}" />
+            </Border>
+            <Border DockPanel.Dock="Right"
+                    Visibility="{Binding AllApprovedVisibility}"
+                    Style="{StaticResource Tag}"
+                    Background="#1A6BB36B"
+                    BorderBrush="#4D6BB36B">
+              <TextBlock Text="Tutte approvate" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.SuccessText}" />
+            </Border>
+            <!-- Gli ambienti gia' sui branch di queste PR: lo stesso stato che lascia «Apri in».
+                 Viola, distinto dal blu del «da fare» e dalle tinte degli strati. -->
+            <Border DockPanel.Dock="Right"
+                    Visibility="{Binding MatchVisibility}"
+                    Style="{StaticResource Tag}"
+                    Background="#1A7C4DFF"
+                    BorderBrush="#4D7C4DFF"
+                    ToolTip="{Binding MatchToolTip}">
+              <TextBlock Text="{Binding MatchText}" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.MatchText}" />
+            </Border>
+            <Button DockPanel.Dock="Left"
+                    Visibility="{Binding WorkItemVisibility}"
+                    Command="{Binding OpenWorkItemCommand}"
+                    ToolTip="Apri il work item"
+                    Style="{StaticResource TextButton}"
+                    Margin="0,0,8,0"
+                    Content="{Binding WorkItemId}" />
+            <TextBlock Text="{Binding Title}"
+                       Style="{StaticResource CardTitle}"
+                       FontSize="14" />
+          </DockPanel>
+          <TextBlock Text="{Binding ActionLine}"
+                     Visibility="{Binding ActionVisibility}"
+                     ToolTip="{Binding ActionLine}"
+                     FontSize="12"
+                     Opacity="0.75"
+                     TextWrapping="Wrap"
+                     Margin="12,0,12,7" />
+          <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource RowTemplate}" Visibility="{Binding Expander.BodyVisibility}" />
+        </StackPanel>
+      </Border>
+      <DataTemplate.Triggers>
+        <DataTrigger Binding="{Binding IsHighlighted}" Value="True">
+          <Setter TargetName="Card" Property="BorderThickness" Value="2,2,2,4" />
+          <Setter TargetName="Card" Property="Margin" Value="-1,-1,-1,9" />
+          <DataTrigger.EnterActions>
+            <BeginStoryboard>
+              <Storyboard>
+                <ColorAnimation Storyboard.TargetName="Card" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)" To="#6BB36B" Duration="0:0:0.2" />
+              </Storyboard>
+            </BeginStoryboard>
+          </DataTrigger.EnterActions>
+          <DataTrigger.ExitActions>
+            <BeginStoryboard>
+              <Storyboard>
+                <ColorAnimation Storyboard.TargetName="Card" Storyboard.TargetProperty="(Border.BorderBrush).(SolidColorBrush.Color)" Duration="0:0:0.8" />
+              </Storyboard>
+            </BeginStoryboard>
+          </DataTrigger.ExitActions>
+        </DataTrigger>
+      </DataTemplate.Triggers>
+    </DataTemplate>
+  </UserControl.Resources>
+
+  <!-- Una card che galleggia sopra la finestra: angoli ampi, sfondo della finestra, ombra
+       morbida su un bordo dietro (sul pannello sfocherebbe il testo). Il contenuto resta lontano
+       dagli angoli grazie ai margini, cosi' non serve ritagliarlo. -->
+  <Grid>
+    <!-- Lo stesso sfondo della finestra principale (MainWindow): base crema e tre macchie
+         morbide, ogni strato con gli angoli della card. -->
+    <Border CornerRadius="22">
+      <Border.Effect>
+        <DropShadowEffect Direction="270" ShadowDepth="6" BlurRadius="28" Opacity="0.24" Color="#5C4A2A" />
+      </Border.Effect>
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Offset="0" Color="{DynamicResource Theme.Base0}" />
+          <GradientStop Offset="0.5" Color="{DynamicResource Theme.Base1}" />
+          <GradientStop Offset="1" Color="{DynamicResource Theme.Base2}" />
+        </LinearGradientBrush>
+      </Border.Background>
+    </Border>
+    <Border CornerRadius="22">
+      <Border.Background>
+        <RadialGradientBrush Center="0.15,0.08" GradientOrigin="0.15,0.08" RadiusX="0.25" RadiusY="0.4">
+          <GradientStop Offset="0" Color="{DynamicResource Theme.SpotMint}" />
+          <GradientStop Offset="1" Color="{DynamicResource Theme.SpotMintClear}" />
+        </RadialGradientBrush>
+      </Border.Background>
+    </Border>
+    <Border CornerRadius="22">
+      <Border.Background>
+        <RadialGradientBrush Center="0.45,0.05" GradientOrigin="0.45,0.05" RadiusX="0.3" RadiusY="0.45">
+          <GradientStop Offset="0" Color="{DynamicResource Theme.SpotLight}" />
+          <GradientStop Offset="1" Color="{DynamicResource Theme.SpotLightClear}" />
+        </RadialGradientBrush>
+      </Border.Background>
+    </Border>
+    <Border CornerRadius="22">
+      <Border.Background>
+        <RadialGradientBrush Center="0.88,0.95" GradientOrigin="0.88,0.95" RadiusX="0.25" RadiusY="0.35">
+          <GradientStop Offset="0" Color="{DynamicResource Theme.SpotWarm}" />
+          <GradientStop Offset="1" Color="{DynamicResource Theme.SpotWarmClear}" />
+        </RadialGradientBrush>
+      </Border.Background>
+    </Border>
+    <Border CornerRadius="22" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1,1,1,3" />
+
+    <DockPanel Margin="0,0,0,16">
+      <StackPanel DockPanel.Dock="Top" Margin="22,18,16,4">
+        <DockPanel>
+          <Button DockPanel.Dock="Right"
+                  Click="Close_Click"
+                  ToolTip="Chiudi il pannello (Esc)"
+                  Style="{StaticResource IconButton}"
+                  Content="&#xE711;" />
+          <Button DockPanel.Dock="Right"
+                  Command="{Binding RefreshCommand}"
+                  ToolTip="Rilegge le pull request da Azure DevOps"
+                  Style="{StaticResource AppButton}"
+                  Tag="#7CC56A"
+                  Content="&#xE72C;"
+                  local:AppButton.Label="Aggiorna" />
+          <Button DockPanel.Dock="Right"
+                  Click="SwitchSide_Click"
+                  ToolTip="Sposta il pannello sull'altro lato della finestra"
+                  Style="{StaticResource AppButton}"
+                  Tag="#7B8CDE"
+                  Content="&#xE8AB;"
+                  local:AppButton.Label="Cambia lato" />
+          <StackPanel VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="Pull request" FontWeight="ExtraBold" FontSize="21" Foreground="{DynamicResource Theme.TextStrong}" />
+              <local:StatusDot Color="{Binding StatusColor}" IsLoading="{Binding IsLoading}" ToolTip="{Binding StatusLine}" Margin="4,-6,-6,-6" />
+            </StackPanel>
+          </StackPanel>
+        </DockPanel>
+      </StackPanel>
+
+      <!-- La barra sta sopra il margine destro del contenuto: 4 + 12 = i 16 di sinistra. -->
+      <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,4,0">
+        <StackPanel Margin="16,0,12,4">
+          <Border CornerRadius="12"
+                  Background="{DynamicResource Theme.NoteWarm}"
+                  BorderBrush="{DynamicResource Theme.NoteFrame}"
+                  BorderThickness="1"
+                  Padding="8,7"
+                  Margin="0,12,0,0"
+                  Visibility="{Binding ErrorVisibility}">
+            <TextBlock Text="{Binding ErrorLine}" TextWrapping="Wrap" FontSize="12" />
+          </Border>
+
+          <StackPanel Orientation="Horizontal" Margin="2,14,0,8">
+            <TextBlock Text="Le mie PR" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="{Binding CreatedSummary}" Style="{StaticResource SectionSummary}" />
+          </StackPanel>
+          <TextBlock Text="Nessuna PR attiva aperta da te" Visibility="{Binding CreatedEmptyVisibility}" Style="{StaticResource EmptyText}" />
+          <ItemsControl x:Name="CreatedList" ItemsSource="{Binding Created}" ItemTemplate="{StaticResource GroupTemplate}" />
+
+          <StackPanel Orientation="Horizontal" Margin="2,14,0,8">
+            <TextBlock Text="Da revisionare" Style="{StaticResource SectionTitle}" />
+            <TextBlock Text="{Binding ToReviewSummary}" Style="{StaticResource SectionSummary}" />
+          </StackPanel>
+          <TextBlock Text="Nessuna PR in cui sei reviewer" Visibility="{Binding ToReviewEmptyVisibility}" Style="{StaticResource EmptyText}" />
+          <ItemsControl x:Name="ToReviewList" ItemsSource="{Binding ToReview}" ItemTemplate="{StaticResource GroupTemplate}" />
+        </StackPanel>
+      </ScrollViewer>
+    </DockPanel>
+
+    <!-- Lettura delle PR in corso: la stessa isola della finestra principale, in alto al centro e
+         ferma (non schiva il mouse). -->
+    <local:LoadingIsland Margin="0,4,0,0" Label="lettura delle pull request" />
+  </Grid>
+</UserControl>

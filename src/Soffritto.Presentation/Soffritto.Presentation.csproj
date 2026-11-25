@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Righe di comando dei processi (WMI): servono a riconoscere Kestrel, dev server, app e
+         host del tunnel, anche avviati prima dell'host o da Visual Studio. -->
+    <PackageReference Include="System.Management" Version="11.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Soffritto.Core\Soffritto.Core.csproj" />
+  </ItemGroup>
+
+</Project>

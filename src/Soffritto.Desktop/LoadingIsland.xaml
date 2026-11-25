@@ -1,0 +1,104 @@
+<!-- Indicatore delle letture in corso, come una dynamic island: una pillola azzurra semitrasparente con bordo
+     luminoso, alone che respira, riflesso che scorre e tre puntini che ondeggiano. Compare quando
+     IsLoading del DataContext diventa vero, allargandosi come una goccia, e si richiude quando
+     torna falso; le animazioni stanno in LoadingIsland.xaml.cs. Non intercetta il mouse. Con
+     FromBottom entra dal basso, con DodgesMouse si sposta sul lato opposto della finestra quando
+     il mouse le passa sopra. L'ombra sta su un bordo dietro, per non toccare la resa del testo. -->
+<UserControl x:Class="Soffritto.Desktop.LoadingIsland"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Name="Root"
+             HorizontalAlignment="Center"
+             VerticalAlignment="Top"
+             IsHitTestVisible="False">
+  <UserControl.Resources>
+    <Style x:Key="Dot" TargetType="Ellipse">
+      <Setter Property="Width" Value="7" />
+      <Setter Property="Height" Value="7" />
+      <Setter Property="Margin" Value="0,0,4,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Fill">
+        <Setter.Value>
+          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Offset="0" Color="#FFFFFF" />
+            <GradientStop Offset="1" Color="#CFE8FF" />
+          </LinearGradientBrush>
+        </Setter.Value>
+      </Setter>
+    </Style>
+  </UserControl.Resources>
+
+  <Grid x:Name="Shell" Opacity="0" Visibility="Collapsed" RenderTransformOrigin="0.5,0.5" Margin="6">
+    <Grid.RenderTransform>
+      <TransformGroup>
+        <ScaleTransform x:Name="Scale" />
+        <TranslateTransform x:Name="Shift" />
+      </TransformGroup>
+    </Grid.RenderTransform>
+
+    <!-- Alone azzurro sfocato dietro la pillola: respira mentre l'isola e' accesa. -->
+    <Border x:Name="Halo" CornerRadius="22" Margin="-3" Background="#5AA9E6" Opacity="0.25">
+      <Border.Effect>
+        <BlurEffect Radius="14" />
+      </Border.Effect>
+    </Border>
+
+    <Border CornerRadius="20" BorderThickness="1">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+          <GradientStop Offset="0" Color="#B8587AB8" />
+          <GradientStop Offset="1" Color="#B83E5A94" />
+        </LinearGradientBrush>
+      </Border.Background>
+      <Border.BorderBrush>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Offset="0" Color="#C0B9E0FF" />
+          <GradientStop Offset="0.5" Color="#5090C8F5" />
+          <GradientStop Offset="1" Color="#A0B9E0FF" />
+        </LinearGradientBrush>
+      </Border.BorderBrush>
+      <Border.Effect>
+        <DropShadowEffect Direction="270" ShadowDepth="3" BlurRadius="16" Opacity="0.22" Color="#1B2A55" />
+      </Border.Effect>
+    </Border>
+
+    <!-- Riflesso che attraversa la pillola: lo sfondo di un bordo arrotondato resta dentro gli angoli. -->
+    <Border CornerRadius="20" Margin="1">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">
+          <LinearGradientBrush.RelativeTransform>
+            <TranslateTransform x:Name="Sheen" X="-1" />
+          </LinearGradientBrush.RelativeTransform>
+          <GradientStop Offset="0.3" Color="#00FFFFFF" />
+          <GradientStop Offset="0.5" Color="#26FFFFFF" />
+          <GradientStop Offset="0.7" Color="#00FFFFFF" />
+        </LinearGradientBrush>
+      </Border.Background>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" Margin="16,9,19,10">
+      <Ellipse x:Name="Dot1" Style="{StaticResource Dot}">
+        <Ellipse.RenderTransform>
+          <TranslateTransform />
+        </Ellipse.RenderTransform>
+      </Ellipse>
+      <Ellipse x:Name="Dot2" Style="{StaticResource Dot}">
+        <Ellipse.RenderTransform>
+          <TranslateTransform />
+        </Ellipse.RenderTransform>
+      </Ellipse>
+      <Ellipse x:Name="Dot3" Style="{StaticResource Dot}">
+        <Ellipse.RenderTransform>
+          <TranslateTransform />
+        </Ellipse.RenderTransform>
+      </Ellipse>
+      <TextBlock Text="{Binding Label, ElementName=Root}"
+                 Foreground="White"
+                 FontFamily="{StaticResource Rounded}"
+                 FontSize="13"
+                 FontWeight="Bold"
+                 VerticalAlignment="Center"
+                 Margin="6,0,0,1" />
+    </StackPanel>
+  </Grid>
+</UserControl>

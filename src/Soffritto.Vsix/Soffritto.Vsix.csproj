@@ -1,0 +1,38 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows8.0</TargetFramework>
+    <RootNamespace>Soffritto.Vsix</RootNamespace>
+    <NoWarn>$(NoWarn);NETSDK1057</NoWarn>
+
+    <!-- Il VSIX non contiene un .deps.json, quindi a runtime non avviene la risoluzione per RID:
+         l'host caricherebbe il Microsoft.Data.SqlClient.dll segnaposto in radice (~911 KB), che
+         lancia "not supported on this platform". Fissando il RID, MSBuild appiattisce nella root
+         l'implementazione Windows reale (~2,1 MB) e la SNI nativa corrispondente. -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>false</SelfContained>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Sdk" Version="18.12.1603" />
+    <PackageReference Include="Microsoft.VisualStudio.Extensibility.Build" Version="18.12.1606" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Soffritto.Core\Soffritto.Core.csproj" />
+    <ProjectReference Include="..\Soffritto.Presentation\Soffritto.Presentation.csproj" />
+  </ItemGroup>
+
+  <!-- Il RemoteUserControl risolve la sua view come risorsa incorporata omonima del tipo:
+       senza LogicalName esplicito la build passa e il controllo esplode all'apertura. -->
+  <ItemGroup>
+    <EmbeddedResource Include="UI\StatusControl.xaml" LogicalName="Soffritto.Vsix.UI.StatusControl.xaml" />
+  </ItemGroup>
+
+  <!-- Icona e anteprima del gestore estensioni: il Build SDK mette i Content nel pacchetto. -->
+  <ItemGroup>
+    <Content Include="Images\icon.png" />
+    <Content Include="Images\preview.png" />
+  </ItemGroup>
+
+</Project>

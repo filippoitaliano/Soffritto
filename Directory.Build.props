@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+
+    <!-- Una sola versione per tutta la soluzione: VSIX ed exe Desktop restano allineati (il
+         footer dell'exe e del pannello la mostrano). Il manifest della VSIX la prende da qui
+         (ExtensionAssemblyVersion): reinstallare senza cambiarla non aggiorna niente, perche'
+         l'installer trova la stessa versione gia' presente ed esce con successo lasciando in
+         Program Files i binari vecchi. Va alzata a ogni installazione che deve arrivare davvero
+         in Visual Studio. -->
+    <Version>2.0.193</Version>
+  </PropertyGroup>
+</Project>

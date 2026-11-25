@@ -1,0 +1,79 @@
+<!-- Tema chiaro di tutta l'exe (ThemeManager). Le chiavi sono le stesse nei due file di tema. -->
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <LinearGradientBrush x:Key="Theme.CardBackground" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Offset="0" Color="#FCFFFEFB" />
+    <GradientStop Offset="1" Color="#F8FFFCF5" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Theme.CardBackgroundAllOnDev" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Offset="0" Color="#FFFAF5" />
+    <GradientStop Offset="0.55" Color="#FFF7F4" />
+    <GradientStop Offset="1" Color="#FDF5F7" />
+  </LinearGradientBrush>
+  <Color x:Key="Theme.BusyLight">#FCFFFCF6</Color>
+  <Color x:Key="Theme.BusyWarm">#FCFDF8EF</Color>
+  <Color x:Key="Theme.Base0">#F7F5EE</Color>
+  <Color x:Key="Theme.Base1">#F3F1EA</Color>
+  <Color x:Key="Theme.Base2">#EDEFE8</Color>
+  <Color x:Key="Theme.SpotMint">#80DCEBE2</Color>
+  <Color x:Key="Theme.SpotMintClear">#00DCEBE2</Color>
+  <Color x:Key="Theme.SpotLight">#99FFFBEF</Color>
+  <Color x:Key="Theme.SpotLightClear">#00FFFBEF</Color>
+  <Color x:Key="Theme.SpotWarm">#66F2E0CD</Color>
+  <Color x:Key="Theme.SpotWarmClear">#00F2E0CD</Color>
+  <Color x:Key="Theme.ChromeGradient">#3A3128</Color>
+  <SolidColorBrush x:Key="Theme.Text" Color="#2E2820" />
+  <SolidColorBrush x:Key="Theme.TextStrong" Color="#3B3226" />
+  <SolidColorBrush x:Key="Theme.TextSoft" Color="#4A4033" />
+  <SolidColorBrush x:Key="Theme.LaneText" Color="#2A251E" />
+  <SolidColorBrush x:Key="Theme.LaneHeaderText" Color="#5A4C38" />
+  <SolidColorBrush x:Key="Theme.FieldText" Color="#1F2328" />
+  <SolidColorBrush x:Key="Theme.LabelText" Color="#6B5B45" />
+  <SolidColorBrush x:Key="Theme.TextMuted" Color="#8A7A62" />
+  <SolidColorBrush x:Key="Theme.IconMuted" Color="#A8946F" />
+  <SolidColorBrush x:Key="Theme.CardBorder" Color="#E6DAC0" />
+  <SolidColorBrush x:Key="Theme.CardBorderAllOnDev" Color="#F0DDD5" />
+  <SolidColorBrush x:Key="Theme.Separator" Color="#EFE6D2" />
+  <SolidColorBrush x:Key="Theme.SubtleBorder" Color="#EDE3CC" />
+  <SolidColorBrush x:Key="Theme.FieldBorder" Color="#E0D3B4" />
+  <SolidColorBrush x:Key="Theme.LaneBorder" Color="#E6DCC4" />
+  <SolidColorBrush x:Key="Theme.FieldBorderHover" Color="#CDB98C" />
+  <SolidColorBrush x:Key="Theme.Field" Color="#FFFEFA" />
+  <SolidColorBrush x:Key="Theme.Surface" Color="#FFFFFB" />
+  <SolidColorBrush x:Key="Theme.SurfaceSoft" Color="#FBF8EE" />
+  <SolidColorBrush x:Key="Theme.Panel" Color="#F7F5EE" />
+  <SolidColorBrush x:Key="Theme.PanelWarm" Color="#FBF7EE" />
+  <SolidColorBrush x:Key="Theme.Hover" Color="#F3ECDA" />
+  <SolidColorBrush x:Key="Theme.LaneHeader" Color="#F3ECDA" />
+  <SolidColorBrush x:Key="Theme.Control" Color="#F2E6CB" />
+  <SolidColorBrush x:Key="Theme.ControlHover" Color="#E6D5AE" />
+  <SolidColorBrush x:Key="Theme.FieldDisabled" Color="#F4EFE2" />
+  <SolidColorBrush x:Key="Theme.Note" Color="#FFF9F0" />
+  <SolidColorBrush x:Key="Theme.NoteWarm" Color="#FFF4E2" />
+  <SolidColorBrush x:Key="Theme.NoteFrame" Color="#E3C08F" />
+  <SolidColorBrush x:Key="Theme.NoteFrameHover" Color="#D3A464" />
+  <SolidColorBrush x:Key="Theme.WindowBackground" Color="#F5F3EC" />
+  <SolidColorBrush x:Key="Theme.TagBackground" Color="#1A0078D4" />
+  <SolidColorBrush x:Key="Theme.TagBorder" Color="#4D0078D4" />
+  <SolidColorBrush x:Key="Theme.TagText" Color="#0F6CBD" />
+  <SolidColorBrush x:Key="Theme.InfoBackground" Color="#120F6CBD" />
+  <SolidColorBrush x:Key="Theme.InfoText" Color="#0B4F8A" />
+  <SolidColorBrush x:Key="Theme.ErrorText" Color="#A4262C" />
+  <SolidColorBrush x:Key="Theme.WarningText" Color="#B35C00" />
+  <SolidColorBrush x:Key="Theme.SuccessText" Color="#2F6B2F" />
+  <SolidColorBrush x:Key="Theme.MatchText" Color="#5B2BD6" />
+  <SolidColorBrush x:Key="Theme.DockerErrorText" Color="#C0504D" />
+  <SolidColorBrush x:Key="Theme.DockerWarningText" Color="#B5651D" />
+  <SolidColorBrush x:Key="Theme.ChipHidden" Color="#DDE3EA" />
+  <SolidColorBrush x:Key="Theme.ChipHiddenBorder" Color="#C2CBD6" />
+  <SolidColorBrush x:Key="Theme.ChipSunset" Color="#1B9A8A" />
+  <SolidColorBrush x:Key="Theme.DockerTagText" Color="#6D28D9" />
+  <SolidColorBrush x:Key="Theme.HighlightTagText" Color="#B45309" />
+  <SolidColorBrush x:Key="Theme.ProtectedDatabaseTagText" Color="#B91C1C" />
+  <SolidColorBrush x:Key="Theme.MeterBar" Color="#264A4033" />
+  <SolidColorBrush x:Key="Theme.OpaqueTagBackground" Color="#E5F1FB" />
+  <SolidColorBrush x:Key="Theme.OpaqueTagBorder" Color="#B2D6F2" />
+  <SolidColorBrush x:Key="Theme.MeterTrack" Color="#0D4A4033" />
+  <SolidColorBrush x:Key="Theme.MeterSeparator" Color="#334A4033" />
+  <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#A65A4C38" />
+</ResourceDictionary>
