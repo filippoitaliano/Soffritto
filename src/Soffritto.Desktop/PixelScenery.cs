@@ -19,7 +19,7 @@ public sealed partial class PixelScenery : Canvas
     // screen) and redrawing all of it every frame is cheap.
     private const int PixelSize = 4;
 
-    // Ground rows above the footer: the Ctrl+G kitten, with its feet on the footer, walks on the grass.
+    // Ground rows at the bottom of the window: the Ctrl+G kitten walks on the grass.
     private const int GroundRows = 3;
     private const int FireflyHeight = 70;
     private const double SeaLevel = 0.74;
@@ -152,7 +152,7 @@ public sealed partial class PixelScenery : Canvas
     public bool IsActive => active;
 
     /// <summary>
-    /// Dark title bar and footer colour matching the active scene; null with the gradient.
+    /// Dark title bar colour matching the active scene; null with the gradient.
     /// </summary>
     public Color? ChromeColor { get; private set; }
 

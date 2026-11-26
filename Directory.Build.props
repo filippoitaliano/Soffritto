@@ -11,7 +11,7 @@
          the installer finds the same version already present and exits successfully, leaving
          the old binaries in Program Files. Bump it for every install that must actually reach
          Visual Studio. -->
-    <Version>2.0.196</Version>
+    <Version>2.0.197</Version>
     <!-- English is the only language: without this, publish output carries the WPF, WinForms
          and SqlClient message translations in thirteen languages. -->
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>

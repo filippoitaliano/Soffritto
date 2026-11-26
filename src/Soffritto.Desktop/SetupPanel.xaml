@@ -272,7 +272,7 @@
                     <CheckBox DockPanel.Dock="Right" IsChecked="{Binding ShowCat}" Style="{StaticResource Switch}" />
                     <StackPanel Margin="0,0,16,0">
                       <TextBlock Text="Kitten" Style="{StaticResource PreferenceTitle}" />
-                      <TextBlock Text="Strolls along the footer and announces new notifications · Ctrl+G" Style="{StaticResource PreferenceHint}" />
+                      <TextBlock Text="Strolls along the bottom of the window and announces new notifications · Ctrl+G" Style="{StaticResource PreferenceHint}" />
                     </StackPanel>
                   </DockPanel>
                   <DockPanel Style="{StaticResource PreferenceRow}">

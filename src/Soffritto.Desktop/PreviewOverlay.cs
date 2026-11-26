@@ -52,7 +52,7 @@ public sealed class PreviewOverlay : Grid
         Children.Add(frame);
     }
 
-    /// <summary>The background of the top bar: the same brush as the title bar and footer.</summary>
+    /// <summary>The background of the top bar: the same brush as the title bar.</summary>
     public Brush HeaderBackground { get => Background; set => Background = value; }
 
     public bool IsOpen => preview is not null;

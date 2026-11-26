@@ -21,9 +21,9 @@ public sealed class MainViewModel : ObservableObject
 
     public MainViewModel(IReadOnlyList<EnvironmentLayout> layouts)
     {
-        WindowTitle = Soffritto.Core.Configuration.ConfigurationFiles.IsDataFolderOverridden
-            ? $"{App.ProductName} · data: {Soffritto.Core.Configuration.ConfigurationFiles.DataFolder}"
-            : App.ProductName;
+        baseTitle = Soffritto.Core.Configuration.ConfigurationFiles.IsDataFolderOverridden
+            ? $"{App.ProductName} {AppVersion} · data: {Soffritto.Core.Configuration.ConfigurationFiles.DataFolder}"
+            : $"{App.ProductName} {AppVersion}";
 
         // Observable: Docker environments are added and removed without a restart.
         Environments = new ObservableCollection<EnvironmentViewModel>(layouts
@@ -80,19 +80,31 @@ public sealed class MainViewModel : ObservableObject
     /// <summary>The header's “+”, which the demo hides.</summary>
     public string NewDockerVisibility => "Visible";
 
-    public string WindowTitle { get; }
+    private readonly string baseTitle;
+
+    public string WindowTitle => baseTitle + UpdateNotice;
 
     /// <summary>With no environments (first launch, configuration to fix) the columns make way for the invitation to the setup.</summary>
     public string EmptyVisibility => Environments.Count == 0 ? "Visible" : "Collapsed";
 
-    /// <summary>The app version (the csproj Version) for the footer: "v1.0.0".</summary>
+    /// <summary>The app version (the csproj Version) for the window title: "v1.0.0".</summary>
     public string AppVersion { get; } =
         $"v{System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "?"}";
 
     private string updateNotice = string.Empty;
 
-    /// <summary>Next to the version in the footer: a downloaded update that installs on close.</summary>
-    public string UpdateNotice { get => updateNotice; set => SetProperty(ref updateNotice, value); }
+    /// <summary>Next to the version in the window title: a downloaded update that installs on close.</summary>
+    public string UpdateNotice
+    {
+        get => updateNotice;
+        set
+        {
+            if (SetProperty(ref updateNotice, value))
+            {
+                OnPropertyChanged(nameof(WindowTitle));
+            }
+        }
+    }
 
     public ObservableCollection<EnvironmentViewModel> Environments { get; }
 

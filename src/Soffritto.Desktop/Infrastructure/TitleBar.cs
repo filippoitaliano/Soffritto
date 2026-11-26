@@ -6,7 +6,7 @@ using System.Windows.Media;
 namespace Soffritto.Desktop.Infrastructure;
 
 /// <summary>
-/// Windows title bar in the footer colour, with a white title and the app's colour icon.
+/// Windows title bar in the dark colour matched to the backdrop, with a white title and the app's colour icon.
 /// Caption colours via DWM: Windows 11 or later; on earlier versions the call has no effect
 /// and the system bar stays.
 /// </summary>

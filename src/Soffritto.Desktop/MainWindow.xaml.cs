@@ -30,8 +30,7 @@ public partial class MainWindow : Window
         hasConfiguration = !openSetup;
         DataContext = viewModel;
         InitializeComponent();
-        Footer.Background = chrome;
-        // The title bar follows the footer during the fade too: the animated brush
+        // The title bar follows the backdrop during the fade too: the animated brush
         // raises Changed on every frame.
         chrome.Changed += (_, _) => TitleBar.SetCaption(this, chrome.Color);
         Overlay.HeaderBackground = chrome;

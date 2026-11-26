@@ -269,13 +269,13 @@
                            VerticalAlignment="Center"
                            Margin="8,0,0,0" />
               </StackPanel>
-              <!-- AppButton.Badge: the alert red, with a white border that sets it off from
-                   the pill, straddling the top-right corner. -->
+              <!-- AppButton.Badge: the same blue as the tray icon's dot, with a white border that
+                   sets it off from the pill, straddling the top-right corner. -->
               <Border x:Name="Badge"
                       MinWidth="18"
                       Height="18"
                       CornerRadius="9"
-                      Background="#E0533D"
+                      Background="#1D63ED"
                       BorderBrush="White"
                       BorderThickness="2"
                       Padding="4,0"

@@ -88,7 +88,7 @@ public sealed class DemoViewModel : ObservableObject
 
     public string DemoBanner => "DEMO · made-up data · actions do nothing · Ctrl+D to exit";
 
-    public string WindowTitle => $"{App.ProductName} · DEMO";
+    public string WindowTitle => $"{App.ProductName} {AppVersion} · DEMO";
 
     // The demo always has its environments: without this property the binding would fail and the
     // setup prompt would stay visible over the fake columns.

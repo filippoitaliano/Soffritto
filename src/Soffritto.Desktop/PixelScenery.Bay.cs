@@ -187,7 +187,7 @@ public sealed partial class PixelScenery
         }
     }
 
-    // Hotel sidewalk, a two-lane road with a dashed centre line and, above the footer, the pink
+    // Hotel sidewalk, a two-lane road with a dashed centre line and, at the bottom of the window, the pink
     // checkered promenade where the kitten walks.
     private void PaintStreet(Random r, int street, int promenade)
     {

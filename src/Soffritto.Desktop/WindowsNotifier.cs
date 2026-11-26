@@ -11,7 +11,7 @@ namespace Soffritto.Desktop;
 
 /// <summary>
 /// The Windows consumer of PR notifications: a tray icon balloon for every new notification, a
-/// flashing taskbar button until the window comes back to the foreground, and a red dot on the tray
+/// flashing taskbar button until the window comes back to the foreground, and a blue dot on the tray
 /// icon while something is still unread. It has its own <see cref="PullRequestNotifications.Listen"/>,
 /// independent of the kitten's. The tray icon is also the way to reopen the window hidden by the X
 /// and, from its menu, to really quit the app.
@@ -37,8 +37,10 @@ public sealed class WindowsNotifier : IDisposable
         this.notifications = notifications;
         listen = notifications.Listen();
 
-        // In Debug the exe already has its own carrot icon (app-debug.ico, see the csproj).
-        plainIcon = Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
+        // In Debug the exe already has its own icon (app-debug.ico, see the csproj). The frame
+        // is taken at the notification area's size: ExtractAssociatedIcon gives the 32 px one, which
+        // the shell then shrinks and blurs.
+        plainIcon = Drawing.Icon.ExtractIcon(Environment.ProcessPath!, 0, Forms.SystemInformation.SmallIconSize.Width);
         badgeIcon = plainIcon is null ? null : WithBadge(plainIcon);
 
         // Windows shows the notification only if the tray icon is visible.
@@ -183,20 +185,26 @@ public sealed class WindowsNotifier : IDisposable
         return text.Length > MaxTextLength ? text[..(MaxTextLength - 1)] + "…" : text;
     }
 
-    // The dot in the top right, with a white border so it stands out on a dark taskbar too: the
-    // notification area shrinks the icon to 16 px, so the dot must take up almost half of it.
+    // A small blue dot in the bottom right. Around it a transparent ring cut out of the icon, instead
+    // of a white border: it stands apart from the tile on a light taskbar and on a dark one alike.
     private static Drawing.Icon WithBadge(Drawing.Icon source)
     {
         using var bitmap = new Drawing.Bitmap(source.ToBitmap());
         using (var graphics = Drawing.Graphics.FromImage(bitmap))
         {
             graphics.SmoothingMode = Drawing.Drawing2D.SmoothingMode.AntiAlias;
-            var size = bitmap.Width * 0.5f;
-            var x = bitmap.Width - size - 1;
-            using var border = new Drawing.SolidBrush(Drawing.Color.White);
-            using var fill = new Drawing.SolidBrush(Drawing.Color.FromArgb(0xC4, 0x2B, 0x1C));
-            graphics.FillEllipse(border, x - 1.5f, 0, size + 3, size + 3);
-            graphics.FillEllipse(fill, x, 1.5f, size, size);
+            var size = bitmap.Width * 0.4f;
+            var gap = Math.Max(1f, bitmap.Width / 16f);
+            var x = bitmap.Width - size;
+            var y = bitmap.Height - size;
+
+            graphics.CompositingMode = Drawing.Drawing2D.CompositingMode.SourceCopy;
+            using var clear = new Drawing.SolidBrush(Drawing.Color.Transparent);
+            graphics.FillEllipse(clear, x - gap, y - gap, size + 2 * gap, size + 2 * gap);
+
+            graphics.CompositingMode = Drawing.Drawing2D.CompositingMode.SourceOver;
+            using var fill = new Drawing.SolidBrush(Drawing.Color.FromArgb(0x1D, 0x63, 0xED));
+            graphics.FillEllipse(fill, x, y, size, size);
         }
 
         var handle = bitmap.GetHicon();

@@ -796,14 +796,13 @@
     <Grid.RowDefinitions>
       <RowDefinition Height="Auto" />
       <RowDefinition Height="*" />
-      <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
     <!-- Window background under the header and the cards: the brand gradient, without the
          logo. A light lavender base darkening toward the bottom right, plus three soft spots:
          light blue at the top left, pale at the top center, lilac at the bottom right. It also
          covers the header row, so the gradient shows in the rounded corners. -->
-    <Grid Grid.Row="0" Grid.RowSpan="3">
+    <Grid Grid.Row="0" Grid.RowSpan="2">
       <Border>
         <Border.Background>
           <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
@@ -840,7 +839,7 @@
     </Grid>
 
     <!-- Ctrl+T easter egg: a pixel-art landscape over the gradient, under the header and the
-         cards, with the ground on the footer's edge like the kitten's feet. -->
+         cards, with the ground on the window's bottom edge like the kitten's feet. -->
     <local:PixelScenery x:Name="Scenery" Grid.Row="0" Grid.RowSpan="2" />
 
     <!-- Fixed header (app row and column headers): a single card, on the same plane as the
@@ -1199,7 +1198,7 @@
       </ItemsControl>
     </ScrollViewer>
 
-    <!-- Ctrl+G easter egg: above the content, with its feet on the footer's edge. -->
+    <!-- Ctrl+G easter egg: above the content, with its feet on the window's bottom edge. -->
     <local:PixelCat x:Name="Cat" Grid.Row="1" VerticalAlignment="Bottom" Panel.ZIndex="2" />
 
     <!-- Pull requests panel: a card floating on one side (left at startup, “Switch side” moves it:
@@ -1300,7 +1299,7 @@
          columns. A click on the veil does not close it: there is unsaved work inside. -->
     <Border x:Name="SetupBackdrop"
             Grid.Row="0"
-            Grid.RowSpan="3"
+            Grid.RowSpan="2"
             Background="#66352A1C"
             Visibility="Collapsed"
             Panel.ZIndex="5">
@@ -1309,13 +1308,13 @@
                         Margin="32,24" />
     </Border>
 
-    <!-- Story points meeting: covers the whole window, footer included, because it is shown on
+    <!-- Story points meeting: covers the whole window, header included, because it is shown on
          a TV. The veil stays as a frame a few pixels wide and does not close it on click: in a
          meeting a wrong click must not make the timer disappear. The window assigns the
          DataContext (real or demo). -->
     <Border x:Name="MeetingBackdrop"
             Grid.Row="0"
-            Grid.RowSpan="3"
+            Grid.RowSpan="2"
             Background="#66352A1C"
             Visibility="Collapsed"
             Panel.ZIndex="5">
@@ -1400,20 +1399,7 @@
       </Border>
     </Popup>
 
-    <!-- Enlarged environment preview: covers the header and the columns, the footer stays. -->
+    <!-- Enlarged environment preview: covers the header and the columns. -->
     <local:PreviewOverlay x:Name="Overlay" Grid.Row="0" Grid.RowSpan="2" Panel.ZIndex="3" />
-
-    <!-- Minimal footer, white text: the app version. The background, dark and matched to the
-         active backdrop (gradient or Ctrl+T scene), is set by MainWindow.xaml.cs together with
-         the title bar. -->
-    <Border x:Name="Footer" Grid.Row="2">
-      <TextBlock HorizontalAlignment="Center"
-                 Margin="0,4,0,6"
-                 FontSize="11"
-                 Foreground="White"
-                 Opacity="0.85">
-        <Run Text="{Binding AppVersion, Mode=OneWay}" /><Run Text="{Binding UpdateNotice, Mode=OneWay}" />
-      </TextBlock>
-    </Border>
   </Grid>
 </Window>

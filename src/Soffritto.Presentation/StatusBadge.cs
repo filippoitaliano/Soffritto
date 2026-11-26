@@ -26,8 +26,8 @@ public static class MigrationLabels
 
 // Pending migrations no longer have a list of their own: the label flags them, so
 // "missing" is red and everything else translucent grey (readable on light and dark).
-// It is not the badge red: that one is meant for white on a solid fill, while here the text sits
-// on the theme background and needs a tone that keeps its contrast on both.
+// It is not a red for white text on a solid fill: here the text sits on the theme background and
+// needs a tone that keeps its contrast on both.
 public static class MigrationColors
 {
     public const string Missing = "#D13438";

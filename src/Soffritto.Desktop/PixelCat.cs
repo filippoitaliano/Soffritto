@@ -9,7 +9,7 @@ using System.Windows.Threading;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Ctrl+G easter egg: a pixel-art kitten that strolls back and forth with its feet on the footer,
+/// Ctrl+G easter egg: a pixel-art kitten that strolls back and forth with its feet on the window's bottom edge,
 /// or stops to wag its tail, blink, doze off or send a heart. When <see cref="NewMessages"/> brings
 /// something new it stops and says it in a speech bubble; with <see cref="Wave"/> it waves a paw.
 /// </summary>
