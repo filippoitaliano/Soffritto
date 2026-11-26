@@ -103,12 +103,19 @@
          in StatusBadge.OkColor green and fades it out; the thicker border eats into the margin,
          so the content does not move. -->
     <DataTemplate x:Key="GroupTemplate">
+      <!-- The background comes from a style: CardBusy (an “Open in” running) replaces it with the
+           repository cards' moving stripes and, when it ends, clears its value to give it back. -->
       <Border x:Name="Card"
-              Background="{DynamicResource Theme.Surface}"
+              local:CardBusy.IsBusy="{Binding IsBusy}"
               BorderBrush="{DynamicResource Theme.CardBorder}"
               BorderThickness="1,1,1,3"
               CornerRadius="18"
               Margin="0,0,0,10">
+        <Border.Style>
+          <Style TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource Theme.Surface}" />
+          </Style>
+        </Border.Style>
         <StackPanel>
           <!-- The whole header expands and collapses the card; the buttons handle their own click. -->
           <DockPanel Margin="14,10,14,9" Background="Transparent" Cursor="Hand" ToolTip="{Binding TitleToolTip}">
@@ -167,13 +174,11 @@
                        Style="{StaticResource CardTitle}"
                        FontSize="14" />
           </DockPanel>
-          <TextBlock Text="{Binding ActionLine}"
-                     Visibility="{Binding ActionVisibility}"
-                     ToolTip="{Binding ActionLine}"
-                     FontSize="12"
-                     Opacity="0.75"
-                     TextWrapping="Wrap"
-                     Margin="12,0,12,7" />
+          <!-- What “Open in” is doing, then its outcome: done, partial or failed. -->
+          <local:FlashCard Kind="{Binding ActionKind}"
+                           Content="{Binding ActionLine}"
+                           Visibility="{Binding ActionVisibility}"
+                           Margin="12,0,12,10" />
           <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource RowTemplate}" Visibility="{Binding Expander.BodyVisibility}" />
         </StackPanel>
       </Border>
@@ -278,15 +283,10 @@
       <!-- The scrollbar sits over the content's right margin: 4 + 12 = the 16 on the left. -->
       <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,4,0">
         <StackPanel Margin="16,0,12,4">
-          <Border CornerRadius="12"
-                  Background="{DynamicResource Theme.NoteWarm}"
-                  BorderBrush="{DynamicResource Theme.NoteFrame}"
-                  BorderThickness="1"
-                  Padding="8,7"
-                  Margin="0,12,0,0"
-                  Visibility="{Binding ErrorVisibility}">
-            <TextBlock Text="{Binding ErrorLine}" TextWrapping="Wrap" FontSize="12" />
-          </Border>
+          <local:FlashCard Kind="Error"
+                           Content="{Binding ErrorLine}"
+                           Visibility="{Binding ErrorVisibility}"
+                           Margin="0,12,0,0" />
 
           <StackPanel Orientation="Horizontal" Margin="2,14,0,8">
             <TextBlock Text="My PRs" Style="{StaticResource SectionTitle}" />

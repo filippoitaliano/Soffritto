@@ -133,9 +133,10 @@ public sealed class PullRequestGroup : ObservableObject
 {
     private readonly IReadOnlyList<EnvironmentViewModel> environments;
     private readonly List<(string Repository, string Branch)> targets;
-    private readonly Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<string>> checkout;
-    private readonly Func<IReadOnlyList<(string Repository, string Branch)>, Task<string>>? createDocker;
+    private readonly Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<ActionOutcome>> checkout;
+    private readonly Func<IReadOnlyList<(string Repository, string Branch)>, Task<ActionOutcome>>? createDocker;
     private string actionLine = string.Empty;
+    private FlashKind actionKind = FlashKind.Info;
     private string matchText = string.Empty;
     private int? lastCheckout;
     private bool isNotBusy = true;
@@ -146,10 +147,10 @@ public sealed class PullRequestGroup : ObservableObject
         IReadOnlyList<PullRequestSummary> prs,
         Func<PullRequestSummary, PullRequestRow> toRow,
         IReadOnlyList<EnvironmentViewModel> environments,
-        Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<string>> checkout,
+        Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<ActionOutcome>> checkout,
         Func<Uri, ICommand> open,
         Func<string, RepositoryType?> typeOf,
-        Func<IReadOnlyList<(string Repository, string Branch)>, Task<string>>? createDocker = null)
+        Func<IReadOnlyList<(string Repository, string Branch)>, Task<ActionOutcome>>? createDocker = null)
     {
         this.environments = environments;
         Rows = prs.Select(toRow)
@@ -220,7 +221,7 @@ public sealed class PullRequestGroup : ObservableObject
                 $"Creates a Docker environment on the first free number, with worktrees on the branches of these PRs; backend and frontend without PRs on {GitConventions.DevelopmentBranch}")
             : null;
 
-    private ICommand Run(string subject, int? number, string start, Func<Task<string>> action) => new AsyncCommand(async () =>
+    private ICommand Run(string subject, int? number, string start, Func<Task<ActionOutcome>> action) => new AsyncCommand(async () =>
     {
         if (!IsNotBusy)
         {
@@ -229,14 +230,15 @@ public sealed class PullRequestGroup : ObservableObject
 
         IsNotBusy = false;
         lastCheckout = number;
-        ActionLine = $"{subject}: {start}";
+        ShowAction($"{subject}: {start}", FlashKind.Progress);
         try
         {
-            ActionLine = await action();
+            var outcome = await action();
+            ShowAction(outcome.Text, outcome.Kind);
         }
         catch (Exception ex)
         {
-            ActionLine = $"{subject}: {ex.Message}";
+            ShowAction($"{subject}: {ex.Message}", FlashKind.Error);
         }
         finally
         {
@@ -264,7 +266,7 @@ public sealed class PullRequestGroup : ObservableObject
 
         if (isNotBusy && lastCheckout is { } number && matching.Contains(number))
         {
-            ActionLine = string.Empty;
+            ShowAction(string.Empty, FlashKind.Info);
             lastCheckout = null;
         }
     }
@@ -305,9 +307,13 @@ public sealed class PullRequestGroup : ObservableObject
             if (SetProperty(ref isNotBusy, value))
             {
                 OnPropertyChanged(nameof(CheckoutEnabled));
+                OnPropertyChanged(nameof(IsBusy));
             }
         }
     }
+
+    /// <summary>An “Open in” is running: the card shows the busy stripes of the repository cards.</summary>
+    public bool IsBusy => !isNotBusy;
 
     /// <summary>Disabled during an “Open in” and when the branches cannot be assigned: the tooltip says why.</summary>
     public bool CheckoutEnabled => CanCheckout && isNotBusy;
@@ -326,6 +332,15 @@ public sealed class PullRequestGroup : ObservableObject
     }
 
     public string ActionVisibility => actionLine.Length > 0 ? "Visible" : "Collapsed";
+
+    /// <summary>How the FlashCard shows <see cref="ActionLine"/>: running, done, partial or failed.</summary>
+    public FlashKind ActionKind { get => actionKind; private set => SetProperty(ref actionKind, value); }
+
+    private void ShowAction(string text, FlashKind kind)
+    {
+        ActionKind = kind;
+        ActionLine = text;
+    }
 
     /// <summary>Green border lit for a few seconds: the card a click on a notification leads to.</summary>
     public bool IsHighlighted { get => isHighlighted; set => SetProperty(ref isHighlighted, value); }
@@ -372,10 +387,10 @@ public sealed class PullRequestsViewModel : ObservableObject
 
     // The same collection as the grid: Docker environments come and go while the app is running.
     private readonly ObservableCollection<EnvironmentViewModel> environments;
-    private readonly Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<string>> checkout;
+    private readonly Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<ActionOutcome>> checkout;
     private readonly Func<Task<MyPullRequests>> read;
     private readonly Func<Uri, ICommand> open;
-    private readonly Func<IReadOnlyList<(string Repository, string Branch)>, Task<string>>? createDocker;
+    private readonly Func<IReadOnlyList<(string Repository, string Branch)>, Task<ActionOutcome>>? createDocker;
     private readonly Func<string, RepositoryType?> typeOf;
 
     /// <param name="read">Where the PRs come from: Azure DevOps if omitted, made-up data in the demo.</param>
@@ -384,10 +399,10 @@ public sealed class PullRequestsViewModel : ObservableObject
     /// <param name="typeOf">A repository's layer from its name on the server: the active configuration if omitted, the made-up repositories in the demo.</param>
     public PullRequestsViewModel(
         IReadOnlyList<EnvironmentViewModel> environments,
-        Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<string>> checkout,
+        Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<ActionOutcome>> checkout,
         Func<Task<MyPullRequests>>? read = null,
         Func<Uri, ICommand>? open = null,
-        Func<IReadOnlyList<(string Repository, string Branch)>, Task<string>>? createDocker = null,
+        Func<IReadOnlyList<(string Repository, string Branch)>, Task<ActionOutcome>>? createDocker = null,
         Func<string, RepositoryType?>? typeOf = null)
     {
         this.createDocker = createDocker;

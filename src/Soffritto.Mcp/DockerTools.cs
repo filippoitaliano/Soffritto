@@ -295,36 +295,6 @@ public static class DockerTools
             return (error, error is null ? new { result = "env files rewritten", nextStep = "start_docker_service or start_docker_environment so the containers read them" } : null);
         }, cancellationToken);
 
-    [McpServerTool(Name = "enable_docker_tunnel", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Turns on the Docker environment's tunnel: the environment claims a free tunnel from the pool (a tunnel belongs to a single environment), each of its repositories that exposes a port gets a public URL with anonymous access, the tunnel host starts and the env variables that depend on the pool are rewritten. If the pool is full, responds with the error. The containers read the env files on the service's next start.")]
-    public static Task<string> EnableDockerTunnel(
-        [Description("Docker environment number.")] int number,
-        [Description(WaitDescription)] int waitSeconds = 90,
-        CancellationToken cancellationToken = default)
-        => OnSlot(number, "tunnel", waitSeconds, async (configuration, slot, operation, ct) =>
-        {
-            if (await EnvironmentTunnel.EnableAsync(configuration, number, operation.Log, ct).ConfigureAwait(false) is { } error)
-            {
-                return (error, null);
-            }
-
-            var urls = await DockerEnvironmentProvisioner.PoolUrlsAsync(number, ct).ConfigureAwait(false);
-            return (null, new { tunnel = TunnelPool.Read().Where(a => a.Environment == number).Select(a => a.TunnelDescription).Distinct(), url = urls, nextStep = "start_docker_service so the containers read the new env files" });
-        }, cancellationToken);
-
-    [McpServerTool(Name = "disable_docker_tunnel", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Turns off the Docker environment's tunnel: releases all its pool ports (and their anonymous access), closes the host, returns the tunnel to the pool and rewrites the env variables that depended on the pool. When turned on again, the environment may get a different tunnel, with different URLs.")]
-    public static Task<string> DisableDockerTunnel(
-        [Description("Docker environment number.")] int number,
-        [Description(WaitDescription)] int waitSeconds = 60,
-        CancellationToken cancellationToken = default)
-        => OnSlot(number, "tunnel off", waitSeconds, async (configuration, slot, operation, ct) =>
-        {
-            var had = EnvironmentTunnel.IsOn(number);
-            var error = await EnvironmentTunnel.DisableAsync(configuration, number, operation.Log, ct).ConfigureAwait(false);
-            return error is not null ? (error, null) : (null, new { result = had ? "tunnel turned off, ports released" : $"environment {number} did not have its tunnel on" });
-        }, cancellationToken);
-
     [McpServerTool(Name = "set_environment_note", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Writes the note of an environment (local or Docker), shown on its column in the app: for example the work it is dedicated to. Replaces the previous note; an empty text clears it.")]
     public static string SetEnvironmentNote(
@@ -432,7 +402,7 @@ public static class DockerTools
         nextStep = "docker_environment_status for the status of containers and migrations",
     };
 
-    private static string NotePath(int number) => Path.Combine(ConfigurationFiles.DataFolder, "Note", $"ambiente-{number}.txt");
+    private static string NotePath(int number) => EnvironmentNote.PathOf(number.ToString());
 
     private static string? ReadNote(int number)
         => File.Exists(NotePath(number)) && File.ReadAllText(NotePath(number)) is { Length: > 0 } text ? text : null;

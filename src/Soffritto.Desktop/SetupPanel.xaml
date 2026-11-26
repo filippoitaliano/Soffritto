@@ -217,16 +217,16 @@
       <!-- Fixed footer: errors, outcome, buttons -->
       <Border DockPanel.Dock="Bottom" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="0,1,0,0" Padding="22,10,22,14">
         <StackPanel>
-          <Border Visibility="{Binding ErrorsVisibility}" Background="#14C42B1C" CornerRadius="10" Padding="10,6" Margin="0,0,0,8" MaxHeight="120">
+          <local:FlashCard Kind="Error" Visibility="{Binding ErrorsVisibility}" FontSize="13" Margin="0,0,0,8" MaxHeight="120">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <TextBlock Text="{Binding ErrorsText}" Foreground="{DynamicResource Theme.ErrorText}" FontSize="13" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding ErrorsText}" TextWrapping="Wrap" />
             </ScrollViewer>
-          </Border>
-          <Border Visibility="{Binding WarningsVisibility}" Background="#14B35C00" CornerRadius="10" Padding="10,6" Margin="0,0,0,8" MaxHeight="120">
+          </local:FlashCard>
+          <local:FlashCard Kind="Warning" Visibility="{Binding WarningsVisibility}" FontSize="13" Margin="0,0,0,8" MaxHeight="120">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-              <TextBlock Text="{Binding WarningsText}" Foreground="{DynamicResource Theme.WarningText}" FontSize="13" TextWrapping="Wrap" />
+              <TextBlock Text="{Binding WarningsText}" TextWrapping="Wrap" />
             </ScrollViewer>
-          </Border>
+          </local:FlashCard>
           <Border Visibility="{Binding NoticeVisibility}" Background="{DynamicResource Theme.InfoBackground}" CornerRadius="10" Padding="10,6" Margin="0,0,0,8" MaxHeight="120">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
               <TextBlock Text="{Binding Notice}" Foreground="{DynamicResource Theme.InfoText}" FontSize="13" TextWrapping="Wrap" />
@@ -380,11 +380,11 @@
             </StackPanel>
             <TextBlock Text="One card per repository, in the order they appear in the environment columns. With Save the missing folders are cloned; existing ones are left untouched." Style="{StaticResource SectionHint}" />
             <!-- The development branch convention: the value comes from GitConventions. -->
-            <ContentControl Style="{StaticResource FormNote}">
+            <local:FlashCard Kind="Info" FontSize="12.5" Margin="0,0,0,14">
               <TextBlock TextWrapping="Wrap">
                 <Run Text="Every repository must have the branch" /> <Run Text="{x:Static core:GitConventions.DevelopmentBranch}" FontFamily="Cascadia Mono, Consolas" FontWeight="Bold" /> <Run Text="on origin: “Reset” brings the repositories back there, and new branches of Docker environments are created from" /> <Run Text="{x:Static core:GitConventions.RemoteDevelopmentBranch}" FontFamily="Cascadia Mono, Consolas" /><Run Text="." />
               </TextBlock>
-            </ContentControl>
+            </local:FlashCard>
             <ItemsControl ItemsSource="{Binding Repositories}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
@@ -579,9 +579,9 @@
                       <!-- Docker: empty fields take the type's defaults, which the field shows. -->
                       <Expander Style="{StaticResource Group}" Header="Docker" Tag="Docker environments only · worktrees, compose and containers">
                         <StackPanel>
-                          <ContentControl Style="{StaticResource FormNote}" Margin="0,0,14,14">
+                          <local:FlashCard Kind="Info" FontSize="12.5" Margin="0,0,14,14">
                             <TextBlock TextWrapping="Wrap" Text="Compose, Dockerfile, service and ports show the type's default value until you change them; paths are relative to the repository root. Only the environment's default backend and frontend run in the containers." />
-                          </ContentControl>
+                          </local:FlashCard>
                           <StackPanel Style="{StaticResource FormField}">
                             <local:FieldLabel Text="Source clone" LockText="{Binding DockerLockToolTip}"
                                               Info="The bare clone the Docker environments' worktrees are created from. If it is missing, Save creates it with git init --bare and fetch. Empty = the repository is not part of Docker environments." />
@@ -635,9 +635,9 @@
                       <!-- Env: constants from the model, secrets from their source, per-slot values. -->
                       <Expander Style="{StaticResource Group}" Header="Env" Tag="Docker environments only · the repository's environment variables">
                         <StackPanel>
-                          <ContentControl Style="{StaticResource FormNote}" Margin="0,0,14,14">
+                          <local:FlashCard Kind="Info" FontSize="12.5" Margin="0,0,14,14">
                             <TextBlock TextWrapping="Wrap" Text="A Docker environment receives three kinds of variables: constants, copied from the model environment; secrets, read from their file; per-environment values, computed below. The worktree receives them in the env file (on creation and with “Repair env”), the container at every start." />
-                          </ContentControl>
+                          </local:FlashCard>
                           <StackPanel Orientation="Horizontal" Margin="0,0,14,14">
                             <Button Content="Suggested values" Command="{Binding ProposeEnvCommand}" Style="{StaticResource TextButton}" Margin="0"
                                     ToolTip="Replace the whole Env group with the typical values for the repository type: a good starting point to fine-tune." />
@@ -813,9 +813,9 @@
               <Border Style="{StaticResource ConfigBadge}"><TextBlock Style="{StaticResource ConfigBadgeText}" /></Border>
             </StackPanel>
             <TextBlock Text="Each environment is a column of the app, with the repositories ticked here." Style="{StaticResource SectionHint}" />
-            <ContentControl Style="{StaticResource FormNote}">
+            <local:FlashCard Kind="Info" FontSize="12.5" Margin="0,0,0,14">
               <TextBlock TextWrapping="Wrap" Text="A local environment is made of clones on the PC, with services started in consoles: these are the non-Docker environments, and they are added and removed here. Docker environments are not in this list: they are created from the “+” next to the environment numbers in the header, and removed with “Destroy environment” in their column." />
-            </ContentControl>
+            </local:FlashCard>
             <Border Style="{StaticResource FormCard}">
               <StackPanel>
                 <Grid Margin="0,0,0,2">
@@ -877,9 +877,9 @@
               <TextBlock Text="Docker environments" Style="{StaticResource SectionTitle}" />
               <Border Style="{StaticResource ConfigBadge}"><TextBlock Style="{StaticResource ConfigBadgeText}" /></Border>
             </StackPanel>
-            <ContentControl Style="{StaticResource FormNote}">
+            <local:FlashCard Kind="Info" FontSize="12.5" Margin="0,0,0,14">
               <TextBlock TextWrapping="Wrap" Text="A Docker environment is disposable: it is created from the “+” next to the environment numbers in the header. Each repository is a worktree created from its source clone; api, web and database run in containers; variables and local files come from the model environment. Shared settings are here: the rest lives in the Docker, Env and Seed groups of each card in the Repositories tab." />
-            </ContentControl>
+            </local:FlashCard>
             <Border Style="{StaticResource FormCard}">
               <StackPanel>
                 <Grid>
@@ -992,9 +992,9 @@
               <Border Style="{StaticResource ConfigBadge}"><TextBlock Style="{StaticResource ConfigBadgeText}" /></Border>
             </StackPanel>
             <TextBlock Text="The dev tunnels used to share environments outside the PC." Style="{StaticResource SectionHint}" />
-            <ContentControl Style="{StaticResource FormNote}">
+            <local:FlashCard Kind="Info" FontSize="12.5" Margin="0,0,0,14">
               <TextBlock TextWrapping="Wrap" Text="The pool is created here, and the buttons act right away, without Save; ports are assigned from the environments. “Tunnel” in an environment's header claims a free tunnel and gives a port, with anonymous access, to each of its repositories with the “Dev tunnel” group turned on (Repositories tab). A tunnel serves a single environment and carries at most 9 ports." />
-            </ContentControl>
+            </local:FlashCard>
             <TextBlock Text="{Binding PoolText}" FontSize="13" FontWeight="Bold" Foreground="{DynamicResource Theme.TextStrong}" Margin="0,0,0,8" />
             <ItemsControl ItemsSource="{Binding PoolTunnels}">
               <ItemsControl.ItemTemplate>
@@ -1060,7 +1060,7 @@
               <TextBlock Text="External programs" Style="{StaticResource SectionTitle}" />
             </DockPanel>
             <TextBlock Text="The app uses them but does not install them by itself. “Install” opens a console with winget, where you choose and confirm; once installed, press “Check again” above." Style="{StaticResource SectionHint}" />
-            <TextBlock Text="{Binding WingetStatus}" FontSize="13" Foreground="{DynamicResource Theme.WarningText}" TextWrapping="Wrap" Margin="0,0,0,8" />
+            <local:FlashCard Kind="Warning" Content="{Binding WingetStatus}" FontSize="13" Margin="0,0,0,8" />
             <ItemsControl ItemsSource="{Binding Prerequisites}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>

@@ -103,7 +103,7 @@ public sealed class EnvironmentController
         {
             vm.Report("reset: stopping the services, checking the repositories and fetching…");
             var outcome = await CheckoutAsync([], alwaysStop: true).ConfigureAwait(false);
-            vm.Report(outcome);
+            vm.Report(outcome.Text);
         });
     }
 
@@ -209,7 +209,7 @@ public sealed class EnvironmentController
     /// are keyed by repository name on the server; generic repositories follow the same rules, so
     /// a dirty one or one without the branch blocks the environment like the others.
     /// </summary>
-    public async Task<string> CheckoutAsync(IReadOnlyList<(string Repository, string Branch)> targets, bool alwaysStop = false)
+    public async Task<ActionOutcome> CheckoutAsync(IReadOnlyList<(string Repository, string Branch)> targets, bool alwaysStop = false)
     {
         var problems = new List<string>();
         var stopped = "nothing stopped";
@@ -239,19 +239,22 @@ public sealed class EnvironmentController
 
         if (problems.Count > 0)
         {
-            return $"Environment {vm.Number}: {stopped}. Repositories left untouched: {string.Join("; ", problems)}";
+            return ActionOutcome.Failed($"Environment {vm.Number}: {stopped}. Repositories left untouched: {string.Join("; ", problems)}");
         }
 
         var done = new List<string>();
+        var partial = false;
         foreach (var (card, session, branch, _) in plan)
         {
             var (pulled, problem) = await session.SwitchAndPullAsync(branch, lifetime).ConfigureAwait(false);
+            partial |= problem is not null;
             done.Add(problem is not null
                 ? $"{card.Clone}: {problem}, see the card"
                 : $"{card.Clone} on {branch}{(pulled ? " (updated with pull)" : string.Empty)}");
         }
 
-        return $"Environment {vm.Number}: {stopped}; {string.Join(", ", done)}";
+        var text = $"Environment {vm.Number}: {stopped}; {string.Join(", ", done)}";
+        return partial ? ActionOutcome.Partial(text) : ActionOutcome.Done(text);
     }
 
     // Stopping a Docker environment's containers can fail or never finish: in that case no

@@ -37,7 +37,7 @@ public sealed class WindowsNotifier : IDisposable
         this.notifications = notifications;
         listen = notifications.Listen();
 
-        // In Debug the exe already has the lava-and-rock icon (app-debug.ico, see the csproj).
+        // In Debug the exe already has its own carrot icon (app-debug.ico, see the csproj).
         plainIcon = Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
         badgeIcon = plainIcon is null ? null : WithBadge(plainIcon);
 

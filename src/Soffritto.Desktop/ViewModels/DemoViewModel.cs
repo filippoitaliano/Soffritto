@@ -404,7 +404,7 @@ public sealed class DemoViewModel : ObservableObject
     }
 
     // “Open in” for the fake PRs: the branches change in the cards, git knows nothing about it.
-    private async Task<string> CheckoutAsync(int number, IReadOnlyList<(string Repository, string Branch)> targets)
+    private async Task<ActionOutcome> CheckoutAsync(int number, IReadOnlyList<(string Repository, string Branch)> targets)
     {
         var env = Environments.First(e => e.Number == number);
         SetActivity(env, "Open in: fetching and switching branches…");
@@ -431,7 +431,7 @@ public sealed class DemoViewModel : ObservableObject
         env.OperationLog?.Append($"demo · Open in: {targets.Count} branches");
         SetActivity(env, "demo · PR branches in place, git was not touched");
         heldUntil[env] = tick + 2;
-        return $"Environment {number}: {targets.Count} branches switched only in the demo";
+        return ActionOutcome.Done($"Environment {number}: {targets.Count} branches switched only in the demo");
     }
 
     // Season 2 planning: three stories of one feature, one of another and a bug.

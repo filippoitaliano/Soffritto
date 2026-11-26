@@ -833,23 +833,97 @@
       <Setter Property="Margin" Value="0,0,0,12" />
     </Style>
 
-    <!-- Light-blue note: a concept to read before filling in the fields that follow. -->
-    <Style x:Key="FormNote" TargetType="ContentControl">
-      <Setter Property="Focusable" Value="False" />
-      <Setter Property="Margin" Value="0,0,0,14" />
+    <!-- The app's single message style (FlashCard.cs): low-alpha tint so it stands out without
+         shouting, a round badge with the kind's symbol, the text on the right. Info notes in the
+         setup, errors and warnings in the cards and panels, the progress of an action. -->
+    <Style TargetType="local:FlashCard">
+      <Setter Property="FontSize" Value="12" />
       <Setter Property="Template">
         <Setter.Value>
-          <ControlTemplate TargetType="ContentControl">
-            <Border Background="{DynamicResource Theme.InfoBackground}" CornerRadius="12" Padding="12,9">
+          <ControlTemplate TargetType="local:FlashCard">
+            <Border x:Name="Frame"
+                    Background="{DynamicResource Theme.FlashInfoFill}"
+                    BorderBrush="{DynamicResource Theme.FlashInfoBorder}"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Padding="8,7,10,7">
               <DockPanel>
-                <TextBlock DockPanel.Dock="Left" Text="&#xE946;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontWeight="Normal" FontSize="15"
-                           Foreground="{DynamicResource Theme.InfoText}" VerticalAlignment="Top" Margin="0,1,10,0" />
-                <ContentPresenter TextElement.Foreground="{DynamicResource Theme.InfoText}" TextElement.FontSize="12.5" />
+                <!-- The symbols are drawn on the badge's own 16x16 grid, so they sit exactly in the
+                     centre: a font glyph would move with its baseline. Info and warning are filled
+                     shapes, the others rounded strokes. -->
+                <Grid x:Name="Badge"
+                      DockPanel.Dock="Left"
+                      Width="16" Height="16"
+                      Margin="0,0,8,0"
+                      VerticalAlignment="Top"
+                      RenderTransformOrigin="0.5,0.5">
+                  <Grid.RenderTransform>
+                    <RotateTransform x:Name="Spin" />
+                  </Grid.RenderTransform>
+                  <Ellipse x:Name="Dot" Fill="{DynamicResource Theme.FlashInfoBadge}" />
+                  <Path x:Name="Shape" Fill="White"
+                        Data="M8,3.4 A1.15,1.15 0 1 1 7.99,3.4 Z M7,6.9 H9 V12.2 H7 Z" />
+                  <Path x:Name="Stroke" Stroke="White" StrokeThickness="2"
+                        StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                </Grid>
+                <ContentPresenter VerticalAlignment="Center">
+                  <ContentPresenter.Resources>
+                    <Style TargetType="TextBlock">
+                      <Setter Property="TextWrapping" Value="Wrap" />
+                    </Style>
+                  </ContentPresenter.Resources>
+                </ContentPresenter>
               </DockPanel>
             </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="Kind" Value="Success">
+                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Theme.FlashSuccessFill}" />
+                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Theme.FlashSuccessBorder}" />
+                <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource Theme.FlashSuccessBadge}" />
+                <Setter TargetName="Shape" Property="Data" Value="{x:Null}" />
+                <Setter TargetName="Stroke" Property="Data" Value="M4.8,8.4 L7.1,10.6 L11.3,5.7" />
+              </Trigger>
+              <Trigger Property="Kind" Value="Warning">
+                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Theme.FlashWarningFill}" />
+                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Theme.FlashWarningBorder}" />
+                <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource Theme.FlashWarningBadge}" />
+                <Setter TargetName="Shape" Property="Data" Value="M7,3.6 H9 V9.4 H7 Z M8,10.6 A1.15,1.15 0 1 1 7.99,10.6 Z" />
+              </Trigger>
+              <Trigger Property="Kind" Value="Error">
+                <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Theme.FlashErrorFill}" />
+                <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Theme.FlashErrorBorder}" />
+                <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource Theme.FlashErrorBadge}" />
+                <Setter TargetName="Shape" Property="Data" Value="{x:Null}" />
+                <Setter TargetName="Stroke" Property="Data" Value="M5.4,5.4 L10.6,10.6 M10.6,5.4 L5.4,10.6" />
+              </Trigger>
+              <!-- Running: an open ring that turns, like a small spinner. -->
+              <Trigger Property="Kind" Value="Progress">
+                <Setter TargetName="Shape" Property="Data" Value="{x:Null}" />
+                <Setter TargetName="Stroke" Property="Data" Value="M8,3.9 A4.1,4.1 0 1 1 3.9,8" />
+                <Trigger.EnterActions>
+                  <BeginStoryboard x:Name="Spinning">
+                    <Storyboard>
+                      <DoubleAnimation Storyboard.TargetName="Spin" Storyboard.TargetProperty="Angle"
+                                       From="0" To="360" Duration="0:0:1.2" RepeatBehavior="Forever" />
+                    </Storyboard>
+                  </BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <RemoveStoryboard BeginStoryboardName="Spinning" />
+                </Trigger.ExitActions>
+              </Trigger>
+            </ControlTemplate.Triggers>
           </ControlTemplate>
         </Setter.Value>
       </Setter>
+      <Style.Triggers>
+        <Trigger Property="Content" Value="{x:Null}">
+          <Setter Property="Visibility" Value="Collapsed" />
+        </Trigger>
+        <Trigger Property="Content" Value="">
+          <Setter Property="Visibility" Value="Collapsed" />
+        </Trigger>
+      </Style.Triggers>
     </Style>
 
     <Style x:Key="FormField" TargetType="StackPanel">

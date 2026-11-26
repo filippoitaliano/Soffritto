@@ -62,8 +62,19 @@
   <SolidColorBrush x:Key="Theme.WarningText" Color="#B35C00" />
   <SolidColorBrush x:Key="Theme.SuccessText" Color="#2F6B2F" />
   <SolidColorBrush x:Key="Theme.MatchText" Color="#5B2BD6" />
-  <SolidColorBrush x:Key="Theme.DockerErrorText" Color="#C0504D" />
-  <SolidColorBrush x:Key="Theme.DockerWarningText" Color="#B5651D" />
+  <!-- FlashCard (App.xaml): background, border and badge for each kind of message. -->
+  <SolidColorBrush x:Key="Theme.FlashInfoFill" Color="#120F6CBD" />
+  <SolidColorBrush x:Key="Theme.FlashInfoBorder" Color="#330F6CBD" />
+  <SolidColorBrush x:Key="Theme.FlashInfoBadge" Color="#0F6CBD" />
+  <SolidColorBrush x:Key="Theme.FlashSuccessFill" Color="#146BB36B" />
+  <SolidColorBrush x:Key="Theme.FlashSuccessBorder" Color="#406BB36B" />
+  <SolidColorBrush x:Key="Theme.FlashSuccessBadge" Color="#3E8E3E" />
+  <SolidColorBrush x:Key="Theme.FlashWarningFill" Color="#14D9822B" />
+  <SolidColorBrush x:Key="Theme.FlashWarningBorder" Color="#40D9822B" />
+  <SolidColorBrush x:Key="Theme.FlashWarningBadge" Color="#D27A1E" />
+  <SolidColorBrush x:Key="Theme.FlashErrorFill" Color="#14C42B1C" />
+  <SolidColorBrush x:Key="Theme.FlashErrorBorder" Color="#40C42B1C" />
+  <SolidColorBrush x:Key="Theme.FlashErrorBadge" Color="#C42B1C" />
   <SolidColorBrush x:Key="Theme.ChipHidden" Color="#DDE3EA" />
   <SolidColorBrush x:Key="Theme.ChipHiddenBorder" Color="#C2CBD6" />
   <SolidColorBrush x:Key="Theme.ChipSunset" Color="#1B9A8A" />

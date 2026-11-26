@@ -30,7 +30,7 @@ public sealed class EnvironmentNote : IDisposable
     /// <param name="externalChanged">Called from a thread-pool thread when the file is changed by the other process.</param>
     public EnvironmentNote(string key, Action<string> externalChanged)
     {
-        path = Path.Combine(Folder, $"ambiente-{key}.txt");
+        path = PathOf(key);
         this.externalChanged = externalChanged;
         text = saved = ReadFile() ?? string.Empty;
         saveTimer = new Timer(_ => Flush());
@@ -53,6 +53,26 @@ public sealed class EnvironmentNote : IDisposable
         {
             // Folder cannot be created: the note stays editable, but does not sync with the other process.
             watcher = null;
+        }
+    }
+
+    /// <summary>The note file of an environment, by number or folder name (see the constructor).</summary>
+    public static string PathOf(string key) => Path.Combine(Folder, $"ambiente-{key}.txt");
+
+    /// <summary>
+    /// Deletes the note of an environment that no longer exists: a new environment with the same
+    /// number starts without it. Null if done or if there was no note, otherwise the error.
+    /// </summary>
+    public static string? Delete(string key)
+    {
+        try
+        {
+            File.Delete(PathOf(key));
+            return null;
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            return ex.Message;
         }
     }
 

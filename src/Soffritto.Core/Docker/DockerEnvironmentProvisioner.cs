@@ -312,7 +312,7 @@ public static class DockerEnvironmentProvisioner
     /// Destroys the environment if <see cref="CheckDestroyableAsync"/> finds no problems: down -v of
     /// its own project only, its compose images removed, worktrees removed without --force, slot
     /// folder deleted, pool ports released, entry removed last (then
-    /// <paramref name="onUnregistered"/>). Branches and notes stay. Error or null.
+    /// <paramref name="onUnregistered"/>). The branches stay; the app deletes the note. Error or null.
     /// </summary>
     public static async Task<string?> DestroyAsync(AppConfiguration c, int number, Action<int> onUnregistered, Action<string> log, CancellationToken ct = default)
     {

@@ -902,8 +902,8 @@ asks for confirmation with the summary and, in order, closes the watch, runs
 `docker compose down -v --remove-orphans` for the environment's project only, removes the images
 built by its compose (`<project>-<service>`, that is api and web), removes the worktrees without
 `--force`, deletes the slot folder with the env_files, releases the pool ports and removes the
-entry from `config.json`, which closes the column. The branches in the source clones and the
-environment note remain.
+entry from `config.json`, which closes the column, and finally deletes the environment note. The
+branches in the source clones remain.
 
 ### Database seed
 
@@ -1082,8 +1082,8 @@ disabled because of the risk of data corruption (`wsl --manage <distro> --set-sp
 - Every start rebuilds the images (`up --build`).
 - The frontend's accessory command (`extraCommand`), in a worktree without `node_modules`, runs
   `npm ci` first.
-- An environment's note is tied to its number: an environment recreated with the number of a
-  destroyed one finds its note again.
+- An environment's note is tied to its number and goes away with the environment: an environment
+  recreated with the number of a destroyed one starts without a note.
 - The CLI does not see Docker environments; the VSIX recognises them from the open solution, and
   the MCP server manages them with its `*_docker` tools (see “MCP server”).
 - Previous images, branches and seeds are not cleaned up on their own.
@@ -1104,7 +1104,8 @@ environment is aligned, `1` otherwise (the tunnel state does not count towards t
 `Soffritto.Mcp` is a stdio MCP server that works with any MCP client: it works on the numbered
 environments of the same `config.json` as the app. On local environments it is **read-only**: on
 the database only the `SELECT` on the history, on git at most a `fetch` on request, on processes
-only the WMI read. On Docker environments it performs the same actions as the app, with the same
+only the WMI read. The exceptions are the repository's extra command and the environment's tunnel
+(see “Tools for every environment”). On Docker environments it performs the same actions as the app, with the same
 Core functions. The server instructions explain the flow to any client, with no need for skills.
 
 Read tools:
@@ -1145,10 +1146,16 @@ Docker environment tools:
 - `docker_service_logs` — the last lines of `docker compose logs` for a service. Read-only.
 - `apply_docker_migrations` — `dotnet restore` and `dotnet ef database update` of the worktree's
   branch, for all contexts or for one, with the guard on the slot database.
-- `repair_docker_env`, `enable_docker_tunnel`, `disable_docker_tunnel` — like “Repair env” and the
-  “Tunnel” switch in the environment header in the app.
-- `set_environment_note` — writes the note of an environment, local or Docker; the app shows it
-  right away.
+- `repair_docker_env` — like “Repair env” in the app.
+
+Tools for every environment, local or Docker:
+
+- `enable_tunnel`, `disable_tunnel` — like the “Tunnel” switch in the environment header in the
+  app: claim a pool tunnel and give a pool port to every repository that exposes one, or release
+  them all; the env variables that depend on the pool are rewritten. The services read them when
+  they start again.
+- `run_extra_command` — the repository's extra command, like the accessory button on its card.
+- `set_environment_note` — writes the note of an environment; the app shows it right away.
 - `operation_status` — progress, log and outcome of an operation.
 
 Destroying a Docker environment is not among the tools: a person does it with “Destroy

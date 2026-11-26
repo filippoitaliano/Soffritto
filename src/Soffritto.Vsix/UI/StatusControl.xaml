@@ -1060,8 +1060,8 @@
 
   <!-- Splash: visible from opening until the first real read starts (solution
        resolved). All vector, no bitmaps: Remote UI does not load them reliably
-       and a XAML drawing follows the DPI. The logo is the app icon (app.ico) redrawn in
-       XAML: it must be kept in sync by hand. -->
+       and a XAML drawing follows the DPI. The logo is the app icon (app.ico, a
+       16x16 pixel carrot) redrawn in XAML: it must be kept in sync by hand. -->
   <Grid Grid.Row="1" Visibility="{Binding SplashVisibility}">
     <Ellipse Width="460" Height="460" Stroke="#1A808080" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
     <Ellipse Width="330" Height="330" Stroke="#22808080" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -1073,20 +1073,12 @@
           <DrawingImage>
             <DrawingImage.Drawing>
               <DrawingGroup>
-                <GeometryDrawing Brush="#101014">
-                  <GeometryDrawing.Geometry>
-                    <RectangleGeometry Rect="0,0,8,8" RadiusX="1.44" RadiusY="1.44" />
-                  </GeometryDrawing.Geometry>
-                </GeometryDrawing>
-                <DrawingGroup>
-                  <DrawingGroup.ClipGeometry>
-                    <RectangleGeometry Rect="0.5,0.5,7,7" RadiusX="0.94" RadiusY="0.94" />
-                  </DrawingGroup.ClipGeometry>
-                  <GeometryDrawing Brush="#8FD64E" Geometry="M0,0H2V1H0Z M3,0H6V1H3Z M7,0H8V1H7Z" />
-                  <GeometryDrawing Brush="#5DB03A" Geometry="M2,0H3V1H2Z M6,0H7V1H6Z M0,1H8V2H0Z M1,2H2V3H1Z M5,2H6V3H5Z" />
-                  <GeometryDrawing Brush="#865C3A" Geometry="M0,2H1V3H0Z M2,2H5V3H2Z M6,2H8V3H6Z M0,3H8V4H0Z" />
-                  <GeometryDrawing Brush="#A993E8" Geometry="M0,4H8V8H0Z" />
-                </DrawingGroup>
+                <GeometryDrawing Brush="#3B2450" Geometry="M11,0H12V1H11Z M14,0H15V1H14Z M10,1H11V2H10Z M12,1H14V2H12Z M15,1H16V2H15Z M9,2H11V3H9Z M15,2H16V3H15Z M7,3H9V4H7Z M15,3H16V4H15Z M6,4H7V5H6Z M14,4H15V5H14Z M6,5H7V6H6Z M13,5H14V6H13Z M5,6H6V7H5Z M13,6H14V7H13Z M4,7H5V8H4Z M12,7H13V8H12Z M4,8H5V9H4Z M12,8H13V9H12Z M3,9H4V10H3Z M10,9H12V10H10Z M2,10H3V11H2Z M9,10H10V11H9Z M2,11H3V12H2Z M7,11H9V12H7Z M1,12H2V13H1Z M6,12H7V13H6Z M1,13H2V14H1Z M4,13H6V14H4Z M2,14H4V15H2Z" />
+                <GeometryDrawing Brush="#D9621A" Geometry="M12,5H13V6H12Z M11,6H13V7H11Z M10,7H12V8H10Z M9,8H12V9H9Z M8,9H10V10H8Z M7,10H9V11H7Z M6,11H7V12H6Z M4,12H6V13H4Z M3,13H4V14H3Z" />
+                <GeometryDrawing Brush="#FF8A2B" Geometry="M10,4H12V5H10Z M9,5H12V6H9Z M8,6H11V7H8Z M7,7H10V8H7Z M6,8H9V9H6Z M5,9H8V10H5Z M5,10H7V11H5Z M4,11H6V12H4Z M3,12H4V13H3Z M2,13H3V14H2Z" />
+                <GeometryDrawing Brush="#FFB35E" Geometry="M9,3H11V4H9Z M7,4H10V5H7Z M7,5H9V6H7Z M6,6H8V7H6Z M5,7H7V8H5Z M5,8H6V9H5Z M4,9H5V10H4Z M3,10H5V11H3Z M3,11H4V12H3Z M2,12H3V13H2Z" />
+                <GeometryDrawing Brush="#3F9431" Geometry="M11,3H12V4H11Z M14,3H15V4H14Z M12,4H14V5H12Z" />
+                <GeometryDrawing Brush="#6FD05A" Geometry="M11,1H12V2H11Z M14,1H15V2H14Z M11,2H15V3H11Z M12,3H14V4H12Z" />
               </DrawingGroup>
             </DrawingImage.Drawing>
           </DrawingImage>

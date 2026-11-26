@@ -567,18 +567,18 @@ public sealed class DockerPanelViewModel : ObservableObject
     /// backend and frontend pool ports if the pool has a free tunnel. It first fetches the targets' source clones: a branch that origin does not
     /// have is rejected instead of being created from the development branch. Returns the outcome to show.
     /// </summary>
-    public async Task<string> CreateForBranchesAsync(IReadOnlyList<(string Repository, string Branch)> targets)
+    public async Task<ActionOutcome> CreateForBranchesAsync(IReadOnlyList<(string Repository, string Branch)> targets)
     {
         const string subject = "New Docker environment";
         if (IsWorking)
         {
-            return $"{subject}: a Docker operation is already in progress (creation, Align seed or tunnel pool)";
+            return ActionOutcome.Failed($"{subject}: a Docker operation is already in progress (creation, Align seed or tunnel pool)");
         }
 
         var configuration = ActiveConfiguration.Current;
         if (FirstFreeNumber(configuration) is not { } number)
         {
-            return $"{subject}: no free number up to {AppConfiguration.MaxEnvironmentNumber}";
+            return ActionOutcome.Failed($"{subject}: no free number up to {AppConfiguration.MaxEnvironmentNumber}");
         }
 
         var branches = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -594,7 +594,7 @@ public sealed class DockerPanelViewModel : ObservableObject
             {
                 if (!hasSourceClone)
                 {
-                    return $"{subject}: {repository.Id} has no source clone; saving the setup creates it";
+                    return ActionOutcome.Failed($"{subject}: {repository.Id} has no source clone; saving the setup creates it");
                 }
 
                 branches[repository.Id] = branch;
@@ -608,7 +608,7 @@ public sealed class DockerPanelViewModel : ObservableObject
 
         if (!configuration.Repositories.Any(r => branches.ContainsKey(r.Id) && r.Type == RepositoryType.Backend && r.DockerCompose.Length > 0))
         {
-            return $"{subject}: {BackendRequired}";
+            return ActionOutcome.Failed($"{subject}: {BackendRequired}");
         }
 
         var pool = configuration.Repositories
@@ -638,8 +638,8 @@ public sealed class DockerPanelViewModel : ObservableObject
 
         _ = AfterCreateAsync();
         return error is null
-            ? $"Environment {number} (Docker) created: {string.Join(", ", branches.Select(b => $"{b.Key} on {b.Value}"))}"
-            : $"Environment {number} (Docker) not created: {error}";
+            ? ActionOutcome.Done($"Environment {number} (Docker) created: {string.Join(", ", branches.Select(b => $"{b.Key} on {b.Value}"))}")
+            : ActionOutcome.Failed($"Environment {number} (Docker) not created: {error}");
     }
 
     // The creation outcome: a single line in the panel, the error in the environment card too.

@@ -157,10 +157,10 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>Moves environment <paramref name="number"/> to the given branches: see <see cref="EnvironmentController.CheckoutAsync"/>.</summary>
-    public Task<string> CheckoutAsync(int number, IReadOnlyList<(string Repository, string Branch)> targets)
+    public Task<ActionOutcome> CheckoutAsync(int number, IReadOnlyList<(string Repository, string Branch)> targets)
         => runtimes.TryGetValue(number, out var runtime)
             ? runtime.Controller.CheckoutAsync(targets)
-            : Task.FromResult($"Environment {number} no longer exists");
+            : Task.FromResult(ActionOutcome.Failed($"Environment {number} no longer exists"));
 
     /// <summary>
     /// A new column (a freshly created Docker environment), without a restart: controller, tools,
@@ -399,12 +399,13 @@ public sealed class MainViewModel : ObservableObject
             removed.AddRange(slot.Repositories.Select(r => new ConfirmationRow(r.Path, "worktree", "without --force")));
             removed.Add(new(slot.ComposeFolder, "slot", "with the env_files"));
             removed.Add(new("environment ports released", "pool"));
+            removed.Add(new("environment note", "note"));
             removed.Add(new("entry removed from config.json, column closed", "config"));
 
             var confirmed = await prompt.ConfirmAsync(
                 new Confirmation(
                     $"Destroy environment {number}",
-                    $"Docker environment {number} is removed entirely; the database is regenerated from the seed with a new environment. The branches in the source clones and the environment note are kept.",
+                    $"Docker environment {number} is removed entirely; the database is regenerated from the seed with a new environment. The branches in the source clones are kept.",
                     [
                         new("Programs to close, without saving", holders.Select(h => new ConfirmationRow($"{h.Name} on {h.Folder}", h.ProcessId.ToString(), "with children")).ToList()),
                         new("What gets removed", removed),
@@ -443,8 +444,13 @@ public sealed class MainViewModel : ObservableObject
             }
             else
             {
-                // The column is gone: the outcome stays in the setup's Docker log, the operations log is discarded.
-                Docker.AppendLog($"Environment {number} destroyed; the branches in the source clones are kept");
+                // The column is gone (its note already closed and saved): the note file goes too, so a
+                // new environment with the same number does not inherit it. The outcome stays in the
+                // setup's Docker log, the operations log is discarded.
+                var noteError = EnvironmentNote.Delete(number.ToString());
+                Docker.AppendLog(noteError is null
+                    ? $"Environment {number} destroyed with its note; the branches in the source clones are kept"
+                    : $"Environment {number} destroyed; the branches in the source clones are kept; note not deleted: {noteError}");
                 UiThread.Run(() => OperationLogs.Remove(number));
             }
         }
