@@ -8,27 +8,28 @@ using Soffritto.Presentation;
 namespace Soffritto.Desktop.ViewModels;
 
 /// <summary>
-/// La demo di Ctrl+D: il team di un gioco di carte per smartphone (server, backoffice web e app)
-/// con tre ambienti locali e uno Docker, PR e storie da stimare. Gli ambienti hanno la stessa
-/// forma di <see cref="MainViewModel"/>, cosi' la finestra li mostra con gli stessi template.
-/// Repository, URL e nomi sono inventati e non vengono dalla configurazione; nessun comando tocca
-/// git, database, Docker, tunnel, processi, file delle note o il servizio DevOps: rispondono solo
-/// nella riga di attivita', e la demo funziona anche su una macchina che non raggiunge niente.
+/// The Ctrl+D demo: the team behind a smartphone card game (server, web backoffice and app) with
+/// three local environments and one Docker environment, PRs and stories to estimate. The
+/// environments have the same shape as <see cref="MainViewModel"/>, so the window shows them with
+/// the same templates. Repositories, URLs and names are made up and do not come from the
+/// configuration; no command touches git, databases, Docker, tunnels, processes, note files or the
+/// DevOps service: they only answer in the activity line, and the demo works even on a machine that
+/// can reach nothing.
 /// </summary>
 public sealed class DemoViewModel : ObservableObject
 {
-    // Una radice che non esiste: nessuna card trova un clone vero.
+    // A root that does not exist: no card finds a real clone.
     private const string DemoRoot = @"X:\Demo";
-    private const string Me = "demo-io";
-    private const string Server = "mazzo-server";
-    private const string Backoffice = "mazzo-backoffice";
-    private const string AppRepo = "mazzo-app";
+    private const string Me = "demo-me";
+    private const string Server = "deck-server";
+    private const string Backoffice = "deck-backoffice";
+    private const string AppRepo = "deck-app";
 
     private readonly DispatcherTimer timer = new() { Interval = TimeSpan.FromSeconds(2.5) };
     private readonly List<(EnvironmentViewModel Environment, string[] Script)> scripts = [];
     private readonly Dictionary<RepoCardViewModel, List<string>> branches = [];
 
-    // La risposta a un clic resta in vista per qualche giro prima che il copione riprenda.
+    // The answer to a click stays visible for a few ticks before the script resumes.
     private readonly Dictionary<EnvironmentViewModel, int> heldUntil = [];
     private bool isLoading;
     private int tick;
@@ -68,7 +69,7 @@ public sealed class DemoViewModel : ObservableObject
             },
             _ => new AsyncCommand(() => Task.CompletedTask),
             _ => null,
-            ["GR", "MT", "SB", "IO"],
+            ["GR", "MT", "SB", "ME"],
             isLight: false,
             (_, _) => { });
 
@@ -76,7 +77,7 @@ public sealed class DemoViewModel : ObservableObject
         {
             foreach (var environment in Environments)
             {
-                SetActivity(environment, "demo · riletto senza leggere niente");
+                SetActivity(environment, "demo · refreshed without reading anything");
                 heldUntil[environment] = tick + 2;
             }
 
@@ -85,15 +86,15 @@ public sealed class DemoViewModel : ObservableObject
         timer.Tick += (_, _) => Advance();
     }
 
-    public string DemoBanner => "DEMO · dati inventati · le azioni non eseguono niente · Ctrl+D per uscire";
+    public string DemoBanner => "DEMO · made-up data · actions do nothing · Ctrl+D to exit";
 
     public string WindowTitle => $"{App.ProductName} · DEMO";
 
-    // La demo ha sempre i suoi ambienti: senza questa proprieta' il binding fallirebbe e
-    // l'invito al setup resterebbe visibile sopra le colonne finte.
+    // The demo always has its environments: without this property the binding would fail and the
+    // setup prompt would stay visible over the fake columns.
     public string EmptyVisibility => "Collapsed";
 
-    // Il «+» lavora sui cloni sorgente veri: in demo non c'e'.
+    // The “+” works on real source clones: the demo does not have it.
     public string NewDockerVisibility => "Collapsed";
 
     public string AppVersion { get; }
@@ -144,14 +145,14 @@ public sealed class DemoViewModel : ObservableObject
             }
         }
 
-        // Il dev server del backoffice nell'ambiente del bug si riavvia a ogni salvataggio.
+        // The backoffice dev server in the bug environment restarts on every save.
         Fe(Environments[1]).Tool!.SetState(tick % 4 < 2 ? ServiceState.WindowOnly : ServiceState.Running, "dev server");
 
         tick++;
     }
 
-    // Come negli ambienti veri: pallino azzurro pulsante durante un'azione (la riga finisce coi
-    // puntini), verde su "pronto", grigio sull'esito di un'azione finita. La barra in alto segue.
+    // As in real environments: a pulsing light-blue dot during an action (the line ends with an
+    // ellipsis), green on "ready", grey on the outcome of a finished action. The top bar follows.
     private void SetActivity(EnvironmentViewModel env, string line)
     {
         env.ActivityLine = line;
@@ -172,23 +173,23 @@ public sealed class DemoViewModel : ObservableObject
         IsLoading = Environments.Any(e => e.IsLoading);
     }
 
-    // Tutto in ordine: la storia del torneo si prova dal telefono, attraverso il tunnel.
+    // All good: the tournament story is tested from the phone, through the tunnel.
     private EnvironmentViewModel Tournament()
     {
         var env = Create(
             1,
             EnvironmentKind.Local,
-            "US 312 Torneo del weekend: si prova dall'app sul telefono, tunnel acceso.",
+            "US 312 Weekend tournament: testing from the app on the phone, tunnel on.",
             StatusText.IdleActivity,
             "git fetch…",
             StatusText.IdleActivity,
-            "migrazioni allineate",
+            "migrations up to date",
             StatusText.IdleActivity);
 
-        Git(Be(env), "feature/312-torneo-weekend", "2 file modificati", "dev", "main");
-        Git(Fe(env), "dev", "working tree pulito", "main");
-        Git(Ap(env), "feature/312-torneo-weekend", "working tree pulito · 1 commit da pushare", "dev", "main");
-        Db(Be(env), "mazzo_dev1", "localhost");
+        Git(Be(env), "feature/312-weekend-tournament", "2 files modified", "dev", "main");
+        Git(Fe(env), "dev", "working tree clean", "main");
+        Git(Ap(env), "feature/312-weekend-tournament", "working tree clean · 1 commit to push", "dev", "main");
+        Db(Be(env), "deck_dev1", "localhost");
 
         Running(Be(env).Tool!, "Kestrel");
         Running(Fe(env).Tool!, "dev server");
@@ -200,23 +201,23 @@ public sealed class DemoViewModel : ObservableObject
         return env;
     }
 
-    // Il bug in lavorazione: due migrazioni nuove da applicare e codice da pushare.
+    // The bug being worked on: two new migrations to apply and code to push.
     private EnvironmentViewModel DoubleDraw()
     {
         var env = Create(
             2,
             EnvironmentKind.Local,
-            "Bug 327: dopo la riconnessione la carta pescata compare due volte nella mano.",
-            "database update 1/2: LimiteLeggendarie…",
-            "database update 2/2: StoricoPescate…",
+            "Bug 327: after reconnecting, the drawn card shows up twice in the hand.",
+            "database update 1/2: LegendaryLimit…",
+            "database update 2/2: DrawHistory…",
             StatusText.IdleActivity,
             "dotnet build…",
             StatusText.IdleActivity);
 
-        Git(Be(env), "bugfix/327-pescata-doppia", "4 file modificati · 2 commit da pushare", "dev", "main");
-        Git(Fe(env), "dev", "3 da pullare · working tree pulito", "main");
-        Git(Ap(env), "bugfix/327-pescata-doppia", "1 file modificato", "dev");
-        Db(Be(env), "mazzo_dev2", "localhost");
+        Git(Be(env), "bugfix/327-double-draw", "4 files modified · 2 commits to push", "dev", "main");
+        Git(Fe(env), "dev", "3 to pull · working tree clean", "main");
+        Git(Ap(env), "bugfix/327-double-draw", "1 file modified", "dev");
+        Db(Be(env), "deck_dev2", "localhost");
 
         Running(Be(env).Tool!, "Kestrel");
         Running(Fe(env).Tool!, "dev server");
@@ -227,25 +228,25 @@ public sealed class DemoViewModel : ObservableObject
         return env;
     }
 
-    // La review delle PR prima del rilascio: branch indietro, una migrazione fuori ordine e il
-    // tunnel che non si trova.
+    // Reviewing PRs before the release: a branch behind, a migration out of order and a tunnel
+    // that cannot be found.
     private EnvironmentViewModel Review()
     {
         var env = Create(
             3,
             EnvironmentKind.Local,
-            "Review PR 418 e 421 prima della 1.9: il database e' condiviso, niente update a mano.",
+            "Review PRs 418 and 421 before 1.9: the database is shared, no manual updates.",
             "git fetch…",
-            "dev tunnel non disponibile",
+            "dev tunnel not available",
             StatusText.IdleActivity);
 
-        Git(Be(env), "feature/305-carte-leggendarie", "23 da pullare · working tree pulito", "dev", "main");
-        Be(env).UpstreamWarning = "nessun upstream configurato";
-        Git(Fe(env), "feature/330-editor-carte", "working tree pulito", "dev", "main");
-        Git(Ap(env), "dev", "working tree pulito", "main");
-        Db(Be(env), "mazzo_review", "sql-dev-condiviso");
+        Git(Be(env), "feature/305-legendary-cards", "23 to pull · working tree clean", "dev", "main");
+        Be(env).UpstreamWarning = "no upstream configured";
+        Git(Fe(env), "feature/330-card-editor", "working tree clean", "dev", "main");
+        Git(Ap(env), "dev", "working tree clean", "main");
+        Db(Be(env), "deck_review", "sql-dev-shared");
 
-        Fe(env).ErrorLine = "npm ERR! ERESOLVE: vite@6 richiede una versione di node piu' recente";
+        Fe(env).ErrorLine = "npm ERR! ERESOLVE: vite@6 requires a newer version of node";
         Fe(env).ErrorVisibility = "Visible";
 
         Running(Be(env).Tool!, "Kestrel");
@@ -255,18 +256,18 @@ public sealed class DemoViewModel : ObservableObject
         env.SetTunnelOn(true);
         Be(env).TunnelShared = true;
         var tunnel = Be(env).Tunnel!.State;
-        tunnel.Line = "dev tunnel non disponibile";
-        tunnel.Detail = "Nessun tunnel corrisponde a mazzo-server-3. Tunnel dell'account:";
+        tunnel.Line = "dev tunnel not available";
+        tunnel.Detail = "No tunnel matches deck-server-3. Tunnels on the account:";
         tunnel.DetailVisibility = "Visible";
-        tunnel.List.Add(new TunnelSummaryRowViewModel("quiet-river-4k2p · ambiente 1", "host connesso · 2 porte", StatusBadge.OkColor));
-        tunnel.List.Add(new TunnelSummaryRowViewModel("bold-hill-7m3x · (senza descrizione)", "host non connesso · 0 porte", StatusBadge.ErrorColor));
+        tunnel.List.Add(new TunnelSummaryRowViewModel("quiet-river-4k2p · environment 1", "host connected · 2 ports", StatusBadge.OkColor));
+        tunnel.List.Add(new TunnelSummaryRowViewModel("bold-hill-7m3x · (no description)", "host not connected · 0 ports", StatusBadge.ErrorColor));
         tunnel.ListVisibility = "Visible";
         tunnel.Stamp = Stamp();
-        Be(env).Tunnel!.Host.SetState(ServiceState.Stopped, "host del tunnel");
-        Be(env).Tunnel!.Host.SetActions(canStart: false, canStop: false, "Nessun tunnel da ospitare");
+        Be(env).Tunnel!.Host.SetState(ServiceState.Stopped, "tunnel host");
+        Be(env).Tunnel!.Host.SetActions(canStart: false, canStop: false, "No tunnel to host");
 
-        Be(env).Migrations!.Unknown.Add(new MigrationRowViewModel("20261118091500_ProvaSaldiShop", MigrationLabels.Unknown));
-        Be(env).Migrations!.UnknownHeader = "1 migrazione sul database che il codice non conosce";
+        Be(env).Migrations!.Unknown.Add(new MigrationRowViewModel("20261118091500_ShopSaleTest", MigrationLabels.Unknown));
+        Be(env).Migrations!.UnknownHeader = "1 migration on the database that the code does not know";
         Be(env).Migrations!.UnknownVisibility = "Visible";
 
         Context(env, "GameDbContext", (MigrationLabels.Applied, 41), (MigrationLabels.OutOfOrder, 1), (MigrationLabels.Missing, 2));
@@ -274,21 +275,21 @@ public sealed class DemoViewModel : ObservableObject
         return env;
     }
 
-    // Il collaudo della release in un ambiente Docker usa e getta: database dal seed e container.
+    // Release acceptance testing in a throwaway Docker environment: database from the seed and containers.
     private EnvironmentViewModel Release()
     {
         var env = Create(
             4,
             EnvironmentKind.Docker,
-            "Collaudo release/1.9 su database dal seed: si butta via dopo il rilascio.",
+            "Acceptance testing release/1.9 on a database from the seed: thrown away after the release.",
             StatusText.IdleActivity,
             "docker ps…",
             StatusText.IdleActivity);
 
-        Git(Be(env), "release/1.9", "working tree pulito", "dev", "main");
-        Git(Fe(env), "release/1.9", "working tree pulito", "dev", "main");
-        Git(Ap(env), "release/1.9", "working tree pulito", "dev", "main");
-        Db(Be(env), "mazzo", "db");
+        Git(Be(env), "release/1.9", "working tree clean", "dev", "main");
+        Git(Fe(env), "release/1.9", "working tree clean", "dev", "main");
+        Git(Ap(env), "release/1.9", "working tree clean", "dev", "main");
+        Db(Be(env), "deck", "db");
 
         Running(Be(env).Tool!, "api");
         Running(Fe(env).Tool!, "web");
@@ -302,20 +303,20 @@ public sealed class DemoViewModel : ObservableObject
                 new DockerReadiness.Service("api", DockerReadiness.ServiceState.Ready, string.Empty),
                 new DockerReadiness.Service("web", DockerReadiness.ServiceState.Ready, string.Empty),
             ],
-            "pronto",
+            "ready",
             null));
-        env.Docker.DestroyCommand = Say(env, "demo · «Distruggi ambiente» non tocca container, worktree e porte");
-        env.Docker.RepairEnvCommand = Say(env, "demo · env non riscritti");
-        env.OperationLog!.Append("worktree creati da release/1.9 per mazzo-server, mazzo-backoffice e mazzo-app");
-        env.OperationLog.Append("database ripristinato dal seed e migrato: 46 migrazioni");
-        env.OperationLog.Append("container db, api e web accesi");
+        env.Docker.DestroyCommand = Say(env, "demo · “Destroy environment” does not touch containers, worktrees or ports");
+        env.Docker.RepairEnvCommand = Say(env, "demo · env files not rewritten");
+        env.OperationLog!.Append("worktrees created from release/1.9 for deck-server, deck-backoffice and deck-app");
+        env.OperationLog.Append("database restored from the seed and migrated: 46 migrations");
+        env.OperationLog.Append("db, api and web containers started");
 
         Context(env, "GameDbContext", (MigrationLabels.Applied, 46), (MigrationLabels.Missing, 0));
         Context(env, "IdentityDbContext", (MigrationLabels.Applied, 9), (MigrationLabels.Missing, 0));
         return env;
     }
 
-    // La nota resta in memoria: si puo' scrivere, ma alla demo successiva riparte da qui.
+    // The note stays in memory: it can be edited, but the next demo starts again from here.
     private EnvironmentViewModel Create(int number, EnvironmentKind kind, string note, params string[] script)
     {
         var definition = new EnvironmentDefinition { Number = number, Kind = kind, Repositories = ["backend", "frontend", "app"] };
@@ -323,7 +324,7 @@ public sealed class DemoViewModel : ObservableObject
             new EnvironmentLayout(
                 number,
                 [
-                    DemoLocation(definition, new BackendConfiguration { Solution = "MazzoStellare.sln", DevTunnel = new DevTunnelConfiguration() }, Server),
+                    DemoLocation(definition, new BackendConfiguration { Solution = "StarDeck.sln", DevTunnel = new DevTunnelConfiguration() }, Server),
                     DemoLocation(definition, new FrontendConfiguration { DevTunnel = new DevTunnelConfiguration(), ExtraCommand = "npm run storybook" }, Backoffice),
                     DemoLocation(definition, new AppRepoConfiguration(), AppRepo),
                 ],
@@ -332,16 +333,16 @@ public sealed class DemoViewModel : ObservableObject
             () => { },
             demoNote: note);
 
-        env.RefreshCommand = Say(env, $"demo · ambiente {number} riletto senza leggere niente");
+        env.RefreshCommand = Say(env, $"demo · environment {number} refreshed without reading anything");
         env.ResetCommand = new AsyncCommand(async () =>
         {
             await CheckoutAsync(number, []);
-            SetActivity(env, "demo · reset simulato: tutto su dev, niente fermato davvero");
+            SetActivity(env, "demo · simulated reset: everything on dev, nothing actually stopped");
         });
         env.TunnelCommand = new AsyncCommand(() =>
         {
             env.SetTunnelOn(!env.TunnelOn);
-            SetActivity(env, env.TunnelOn ? "demo · tunnel reclamato per finta" : "demo · porte del tunnel rilasciate per finta");
+            SetActivity(env, env.TunnelOn ? "demo · tunnel claimed for pretend" : "demo · tunnel ports released for pretend");
             heldUntil[env] = tick + 2;
             return Task.CompletedTask;
         });
@@ -349,25 +350,25 @@ public sealed class DemoViewModel : ObservableObject
         foreach (var card in env.Repos)
         {
             card.Preview = null;
-            card.FetchCommand = Say(env, "demo · git fetch non eseguito");
-            card.PullCommand = Say(env, "demo · git pull non eseguito");
-            card.PruneCommand = Say(env, "demo · nessun branch cancellato");
+            card.FetchCommand = Say(env, "demo · git fetch not run");
+            card.PullCommand = Say(env, "demo · git pull not run");
+            card.PruneCommand = Say(env, "demo · no branches deleted");
             card.RepoStamp = Stamp();
-            card.Tool!.OpenCommand = Say(env, "demo · l'editor resta chiuso");
-            card.Tool.StartCommand = Say(env, "demo · avvio simulato, nessun processo partito");
-            card.Tool.StopCommand = Say(env, "demo · arresto simulato, nessun processo fermato");
+            card.Tool!.OpenCommand = Say(env, "demo · the editor stays closed");
+            card.Tool.StartCommand = Say(env, "demo · simulated start, no process launched");
+            card.Tool.StopCommand = Say(env, "demo · simulated stop, no process stopped");
         }
 
         Fe(env).Tool!.ExtraText = "Storybook";
-        Fe(env).Tool!.ExtraToolTip = "npm run storybook in una console (in demo non parte)";
-        Fe(env).Tool!.ExtraCommand = Say(env, "demo · storybook non avviato");
-        Be(env).Tunnel!.Host.StartCommand = Say(env, "demo · host del tunnel non avviato");
-        Be(env).Tunnel!.Host.StopCommand = Say(env, "demo · host del tunnel non fermato");
-        Fe(env).Tunnel!.Host.StartCommand = Say(env, "demo · host del tunnel non avviato");
-        Fe(env).Tunnel!.Host.StopCommand = Say(env, "demo · host del tunnel non fermato");
-        env.Tools.Stack.StartCommand = Say(env, "demo · avvio dell'ambiente simulato");
-        env.Tools.Stack.StopCommand = Say(env, "demo · arresto dell'ambiente simulato");
-        env.Tools.Stack.SetActions(canStart: true, canStop: false, "Avvia backend, frontend e tunnel (in demo non parte niente)");
+        Fe(env).Tool!.ExtraToolTip = "npm run storybook in a console (does not run in the demo)";
+        Fe(env).Tool!.ExtraCommand = Say(env, "demo · storybook not started");
+        Be(env).Tunnel!.Host.StartCommand = Say(env, "demo · tunnel host not started");
+        Be(env).Tunnel!.Host.StopCommand = Say(env, "demo · tunnel host not stopped");
+        Fe(env).Tunnel!.Host.StartCommand = Say(env, "demo · tunnel host not started");
+        Fe(env).Tunnel!.Host.StopCommand = Say(env, "demo · tunnel host not stopped");
+        env.Tools.Stack.StartCommand = Say(env, "demo · simulated environment start");
+        env.Tools.Stack.StopCommand = Say(env, "demo · simulated environment stop");
+        env.Tools.Stack.SetActions(canStart: true, canStop: false, "Start backend, frontend and tunnel (nothing runs in the demo)");
 
         scripts.Add((env, script));
         return env;
@@ -377,7 +378,7 @@ public sealed class DemoViewModel : ObservableObject
     {
         settings.Id = AppConfiguration.TypeName(settings.Type);
         settings.Folder = $"{repository}-{AppConfiguration.NumberPlaceholder}";
-        settings.CloneUrl = $"https://git.example/mazzo-stellare/{repository}.git";
+        settings.CloneUrl = $"https://git.example/star-deck/{repository}.git";
         var path = $@"{DemoRoot}\{repository}-{definition.Number}";
         return new RepoLocation(new EnvironmentRepository(settings, definition, path, IsPrimary: true));
     }
@@ -395,18 +396,18 @@ public sealed class DemoViewModel : ObservableObject
         branches[card] = names;
 
         card.RepoDetail = detail;
-        card.PullToolTip = "In demo il pull non parte";
+        card.PullToolTip = "Pull does not run in the demo";
         card.BranchPicker.SetBranches(branch, names);
 
-        // La scelta "riesce" subito: il branch scelto diventa il corrente, senza git switch.
+        // The choice "succeeds" right away: the chosen branch becomes the current one, without git switch.
         card.BranchPicker.BranchSelected = chosen => card.BranchPicker.SetBranches(chosen, names);
     }
 
-    // «Apri in» delle PR finte: i branch cambiano nelle card, git non ne sa niente.
+    // “Open in” for the fake PRs: the branches change in the cards, git knows nothing about it.
     private async Task<string> CheckoutAsync(int number, IReadOnlyList<(string Repository, string Branch)> targets)
     {
         var env = Environments.First(e => e.Number == number);
-        SetActivity(env, "Apri in: fetch e switch dei branch…");
+        SetActivity(env, "Open in: fetching and switching branches…");
         heldUntil[env] = int.MaxValue;
         await Task.Delay(TimeSpan.FromSeconds(1.2));
 
@@ -423,69 +424,69 @@ public sealed class DemoViewModel : ObservableObject
             }
 
             card.BranchPicker.SetBranches(branch, names);
-            card.RepoDetail = "working tree pulito";
+            card.RepoDetail = "working tree clean";
         }
 
         env.RefreshAllOnDev();
-        env.OperationLog?.Append($"demo · Apri in: {targets.Count} branch");
-        SetActivity(env, "demo · branch delle PR in posizione, git non e' stato toccato");
+        env.OperationLog?.Append($"demo · Open in: {targets.Count} branches");
+        SetActivity(env, "demo · PR branches in place, git was not touched");
         heldUntil[env] = tick + 2;
-        return $"Ambiente {number}: {targets.Count} branch cambiati solo nella demo";
+        return $"Environment {number}: {targets.Count} branches switched only in the demo";
     }
 
-    // La pianificazione della stagione 2: tre storie di una funzionalita', una di un'altra e un bug.
+    // Season 2 planning: three stories of one feature, one of another and a bug.
     private static async Task<StoriesToEstimate> ReadStoriesAsync()
     {
         await Task.Delay(TimeSpan.FromMilliseconds(500));
 
         return new StoriesToEstimate(
         [
-            new StoryToEstimate(341, "Pass stagionale con 30 livelli di ricompense", "Il giocatore sale di livello giocando partite classificate." + Environment.NewLine + "Ogni livello sblocca una ricompensa: monete, dorsi o una carta della stagione.", 340, "Stagione 2: il Mazzo del Drago"),
-            new StoryToEstimate(342, "Missioni giornaliere", "Tre missioni al giorno (vinci 2 partite, gioca 10 carte di fuoco, ...)." + Environment.NewLine + "Si rinnovano a mezzanotte nel fuso del giocatore.", 340, "Stagione 2: il Mazzo del Drago"),
-            new StoryToEstimate(343, "Notifica push a fine stagione", "Tre giorni prima della fine arriva una notifica con i livelli ancora da sbloccare.", 340, "Stagione 2: il Mazzo del Drago"),
-            new StoryToEstimate(351, "Partita privata con codice d'invito", "Chi crea la partita riceve un codice di 6 caratteri da mandare all'amico.", 350, "Modalita' amici"),
-            new StoryToEstimate(360, "Il timer del turno continua dopo l'abbandono dell'avversario", "1. Avviare una partita classificata." + Environment.NewLine + "2. L'avversario chiude l'app durante il suo turno." + Environment.NewLine + "3. Il timer continua e la vittoria arriva solo dopo 90 secondi.", null, string.Empty, IsBug: true),
+            new StoryToEstimate(341, "Season pass with 30 reward tiers", "Players level up by playing ranked matches." + Environment.NewLine + "Each tier unlocks a reward: coins, card backs or a season card.", 340, "Season 2: the Dragon Deck"),
+            new StoryToEstimate(342, "Daily quests", "Three quests a day (win 2 matches, play 10 fire cards, ...)." + Environment.NewLine + "They reset at midnight in the player's time zone.", 340, "Season 2: the Dragon Deck"),
+            new StoryToEstimate(343, "Push notification at season end", "Three days before the end, a notification lists the tiers still to unlock.", 340, "Season 2: the Dragon Deck"),
+            new StoryToEstimate(351, "Private match with invite code", "Whoever creates the match gets a 6-character code to send to a friend.", 350, "Friends mode"),
+            new StoryToEstimate(360, "Turn timer keeps running after the opponent quits", "1. Start a ranked match." + Environment.NewLine + "2. The opponent closes the app during their turn." + Environment.NewLine + "3. The timer keeps running and the win only comes after 90 seconds.", null, string.Empty, IsBug: true),
         ]);
     }
 
-    // Le mie PR in vari stati (bozza con modifiche chieste e commenti a cui rispondere, pubblicata in
-    // attesa, approvata) e quelle dei colleghi da revisionare, una senza work item.
+    // My PRs in various states (draft with changes requested and comments to answer, published and
+    // waiting, approved) and colleagues' PRs to review, one without a work item.
     private static async Task<MyPullRequests> ReadPullRequestsAsync()
     {
         await Task.Delay(TimeSpan.FromMilliseconds(700));
 
-        var tournament = new PullRequestWorkItem(312, "User Story", "Torneo del weekend");
-        var doubleDraw = new PullRequestWorkItem(327, "Bug", "Pescata doppia dopo la riconnessione");
-        var legendary = new PullRequestWorkItem(305, "User Story", "Carte leggendarie");
-        var editor = new PullRequestWorkItem(330, "User Story", "Editor delle carte nel backoffice");
+        var tournament = new PullRequestWorkItem(312, "User Story", "Weekend tournament");
+        var doubleDraw = new PullRequestWorkItem(327, "Bug", "Double draw after reconnecting");
+        var legendary = new PullRequestWorkItem(305, "User Story", "Legendary cards");
+        var editor = new PullRequestWorkItem(330, "User Story", "Card editor in the backoffice");
 
         var giulia = new PullRequestVote("demo-giulia", "Giulia Rinaldi", -5, IsRequired: true, IsGroup: false);
         var marco = new PullRequestVote("demo-marco", "Marco Tosi", 10, IsRequired: false, IsGroup: false);
         var sara = new PullRequestVote("demo-sara", "Sara Bellini", 0, IsRequired: true, IsGroup: false);
-        var me = new PullRequestVote(Me, "Io", 0, IsRequired: true, IsGroup: false);
+        var me = new PullRequestVote(Me, "Me", 0, IsRequired: true, IsGroup: false);
 
         var created = new List<PullRequestSummary>
         {
-            Pr(412, "Torneo del weekend: classifica e premi", Server, "Io", "feature/312-torneo-weekend", 3, [giulia, marco], tournament, draft: true) with
+            Pr(412, "Weekend tournament: leaderboard and prizes", Server, "Me", "feature/312-weekend-tournament", 3, [giulia, marco], tournament, draft: true) with
             {
                 ActiveThreads = [new PullRequestThread("demo-giulia", [Me, "demo-giulia"]), new PullRequestThread("demo-giulia", ["demo-giulia"])],
             },
-            Pr(415, "Torneo del weekend: iscrizione dall'app", AppRepo, "Io", "feature/312-torneo-weekend", 2, [marco], tournament),
-            Pr(419, "Pescata doppia: idempotenza sulla riconnessione", Server, "Io", "bugfix/327-pescata-doppia", 1, [sara], doubleDraw),
+            Pr(415, "Weekend tournament: sign-up from the app", AppRepo, "Me", "feature/312-weekend-tournament", 2, [marco], tournament),
+            Pr(419, "Double draw: idempotency on reconnect", Server, "Me", "bugfix/327-double-draw", 1, [sara], doubleDraw),
         };
 
         var toReview = new List<PullRequestSummary>
         {
-            Pr(418, "Carte leggendarie: limite di una per mazzo", Server, "Giulia Rinaldi", "feature/305-carte-leggendarie", 4, [me, marco], legendary),
-            Pr(421, "Editor delle carte: anteprima della rarita'", Backoffice, "Marco Tosi", "feature/330-editor-carte", 2, [me, sara], editor),
-            Pr(423, "Shop: testo dei termini aggiornato", AppRepo, "Sara Bellini", "fix/testo-termini-shop", 1, [me with { Vote = 10 }], null),
+            Pr(418, "Legendary cards: limit of one per deck", Server, "Giulia Rinaldi", "feature/305-legendary-cards", 4, [me, marco], legendary),
+            Pr(421, "Card editor: rarity preview", Backoffice, "Marco Tosi", "feature/330-card-editor", 2, [me, sara], editor),
+            Pr(423, "Shop: updated terms text", AppRepo, "Sara Bellini", "fix/shop-terms-text", 1, [me with { Vote = 10 }], null),
         };
 
         return new MyPullRequests(created, toReview, Me);
     }
 
     private static PullRequestSummary Pr(int id, string title, string repository, string author, string branch, int days, PullRequestVote[] reviewers, PullRequestWorkItem? workItem, bool draft = false)
-        => new(id, title, repository, repository, author, branch, draft, DateTime.UtcNow.AddDays(-days).AddHours(-1), new Uri($"https://git.example/mazzo-stellare/pullrequest/{id}"), reviewers)
+        => new(id, title, repository, repository, author, branch, draft, DateTime.UtcNow.AddDays(-days).AddHours(-1), new Uri($"https://git.example/star-deck/pullrequest/{id}"), reviewers)
         {
             WorkItem = workItem,
         };
@@ -505,10 +506,10 @@ public sealed class DemoViewModel : ObservableObject
     private static void Stopped(ToolGroupViewModel tool, string name)
     {
         tool.SetState(ServiceState.Stopped, name);
-        tool.SetActions(canStart: true, canStop: false, "Avvia (in demo non parte)");
+        tool.SetActions(canStart: true, canStop: false, "Start (does not run in the demo)");
     }
 
-    // Un tunnel del pool per l'ambiente: una porta per ogni repository che ne espone una.
+    // One pool tunnel for the environment: one port for each repository that exposes one.
     private static void Tunnel(EnvironmentViewModel env, string tunnelId, bool connected, params (RepoCardViewModel Card, int Port, bool? Reachable)[] ports)
     {
         env.SetTunnelOn(true);
@@ -528,7 +529,7 @@ public sealed class DemoViewModel : ObservableObject
         foreach (var (port, reachable) in ports)
         {
             var url = $"https://{tunnelId}-{port}.euw.devtunnels.ms";
-            var row = new TunnelPortRowViewModel(port, url, reachable) { CopyToolTip = "In demo non si copia niente", OpenToolTip = "In demo non si apre niente" };
+            var row = new TunnelPortRowViewModel(port, url, reachable) { CopyToolTip = "Nothing is copied in the demo", OpenToolTip = "Nothing opens in the demo" };
             row.CopyCommand = new AsyncCommand(async () =>
             {
                 row.Kind = StatusText.Copied;
@@ -541,18 +542,18 @@ public sealed class DemoViewModel : ObservableObject
 
         tunnel.PortsVisibility = "Visible";
 
-        host.SetState(connected ? ServiceState.Running : ServiceState.Stopped, "host del tunnel");
-        host.SetActions(canStart: !connected, canStop: connected, "Avvia l'host del tunnel (in demo non parte)");
+        host.SetState(connected ? ServiceState.Running : ServiceState.Stopped, "tunnel host");
+        host.SetActions(canStart: !connected, canStop: connected, "Start the tunnel host (does not run in the demo)");
     }
 
-    // Le migrazioni si elencano dalla piu' nuova, numerate con la posizione nel context come
-    // fa ViewBuilder; i gruppi vanno dal piu' vecchio al piu' nuovo.
+    // Migrations are listed newest first, numbered by their position in the context as
+    // ViewBuilder does; the groups go from oldest to newest.
     private void Context(EnvironmentViewModel env, string name, params (string State, int Count)[] groups)
     {
         var names = new[]
         {
-            "AggiungeTabellaTornei", "ClassificaTorneo", "PremiTorneo", "IndiceSuMazzo",
-            "RaritaCarte", "LimiteLeggendarie", "StoricoPescate", "IndiceSuPescataTurno",
+            "AddTournamentsTable", "TournamentLeaderboard", "TournamentPrizes", "DeckIndex",
+            "CardRarity", "LegendaryLimit", "DrawHistory", "TurnDrawIndex",
         };
 
         var states = groups.SelectMany(g => Enumerable.Repeat(g.State, g.Count)).ToList();
@@ -568,7 +569,7 @@ public sealed class DemoViewModel : ObservableObject
         {
             MissingCount = pending,
             OutOfOrderCount = outOfOrder,
-            Note = outOfOrder > 0 ? "Una migrazione di un altro branch e' applicata prima di quelle che mancano." : string.Empty,
+            Note = outOfOrder > 0 ? "A migration from another branch is applied before the missing ones." : string.Empty,
             Stamp = Stamp(),
         };
 
@@ -579,9 +580,9 @@ public sealed class DemoViewModel : ObservableObject
             rows.Add(new RecentMigrationRowViewModel(position, names[position % names.Length], state)
             {
                 RunGlyph = state == MigrationLabels.Missing ? "\uE768" : "\uE7A7",
-                RunToolTip = "In demo l'update non parte",
+                RunToolTip = "Update does not run in the demo",
                 CanRun = position != applied,
-                RunCommand = Say(env, $"demo · update fino alla migrazione {position} non eseguito"),
+                RunCommand = Say(env, $"demo · update up to migration {position} not run"),
             });
         }
 

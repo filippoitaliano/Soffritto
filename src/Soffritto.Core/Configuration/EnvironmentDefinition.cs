@@ -4,44 +4,44 @@ namespace Soffritto.Core.Configuration;
 
 public enum EnvironmentKind
 {
-    /// <summary>Cloni in cartelle locali, servizi avviati in console: gli ambienti di oggi.</summary>
+    /// <summary>Clones in local folders, services started in consoles: the original kind of environment.</summary>
     Local,
 
-    /// <summary>Worktree dai cloni sorgente; api, web e database nei container del compose del backend.</summary>
+    /// <summary>Worktrees from the source clones; api, web and database in the containers of the backend's compose file.</summary>
     Docker,
 }
 
-/// <summary>Un ambiente N: quali repository del catalogo include, di che tipo e' e dove stanno i suoi cloni.</summary>
+/// <summary>An environment N: which catalog repositories it includes, what kind it is and where its clones live.</summary>
 public sealed class EnvironmentDefinition
 {
     public int Number { get; set; }
 
     public EnvironmentKind Kind { get; set; } = EnvironmentKind.Local;
 
-    /// <summary>Gli id dei repository inclusi; l'ordine nella colonna resta quello del catalogo.</summary>
+    /// <summary>The ids of the included repositories; the order in the column stays the catalog's.</summary>
     public List<string> Repositories { get; set; } = [];
 
-    /// <summary>La cartella dei cloni di questo ambiente; null = la radice comune, o la cartella dei worktree per un ambiente Docker.</summary>
+    /// <summary>The folder of this environment's clones; null = the common root, or the worktree folder for a Docker environment.</summary>
     public string? Root { get; set; }
 
     /// <summary>
-    /// Solo per un ambiente locale: il database del backend e' protetto (usato anche da
-    /// altri), quindi schema e migrazioni non si toccano. Lettura, avvio e tutto il resto restano come sempre.
+    /// Local environments only: the backend's database is protected (also used by
+    /// others), so schema and migrations are left alone. Reading, starting and everything else work as usual.
     /// </summary>
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public bool ProtectedDatabase { get; set; }
 
-    /// <summary>Il motivo per cui le scritture di schema sono rifiutate, o null se l'ambiente le permette.</summary>
+    /// <summary>Why schema writes are refused, or null if the environment allows them.</summary>
     [JsonIgnore]
     public string? SchemaLockReason
         => ProtectedDatabase && Kind == EnvironmentKind.Local ? ProtectedDatabaseReason(Number) : null;
 
     public static string ProtectedDatabaseReason(int number)
-        => $"l'ambiente {number} ha il database protetto: non si applicano migrazioni e non si altera lo schema; per un lavoro con migrazioni usa un altro ambiente";
+        => $"environment {number} has a protected database: no migrations are applied and the schema is not altered; for work involving migrations use another environment";
 }
 
-/// <summary>Un repository del catalogo dentro un ambiente, con la sua cartella e i nomi che ne derivano.</summary>
-/// <param name="IsPrimary">Il primo del suo tipo nell'ambiente (generici esclusi): tiene i nomi storici.</param>
+/// <summary>A catalog repository inside an environment, with its folder and the names derived from it.</summary>
+/// <param name="IsPrimary">The first of its type in the environment (generic ones excluded): it keeps the historical names.</param>
 public sealed record EnvironmentRepository(
     RepositoryConfiguration Repository,
     EnvironmentDefinition Environment,
@@ -55,12 +55,12 @@ public sealed record EnvironmentRepository(
     public string Id => Repository.Id;
 
     /// <summary>
-    /// La chiave dei marcatori console (AMBIENTI kestrel-Key): il numero per il predefinito, come
-    /// oggi, "N-id" per gli altri. Un id comincia con una lettera, quindi non si confonde mai con
-    /// una chiave storica.
+    /// The key of the console markers (AMBIENTI kestrel-Key): the number for the primary one, as
+    /// before, "N-id" for the others. An id starts with a letter, so it is never mistaken for
+    /// a historical key.
     /// </summary>
     public string Key => IsPrimary ? Number.ToString() : $"{Number}-{Repository.Id}";
 
-    /// <summary>Il repository si puo' condividere con una porta del pool di tunnel.</summary>
+    /// <summary>The repository can be shared through a tunnel pool port.</summary>
     public bool HasTunnel => Repository.DevTunnel is not null;
 }

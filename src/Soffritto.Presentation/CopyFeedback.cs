@@ -3,8 +3,8 @@ namespace Soffritto.Presentation;
 public static class CopyFeedback
 {
     /// <summary>
-    /// Feedback transitorio della copia al posto dell'etichetta della riga, poi si ripristina
-    /// <paramref name="restore"/> se nel frattempo un refresh non ha gia' sostituito il valore.
+    /// Transient copy feedback in place of the row's label, then <paramref name="restore"/> is put
+    /// back unless a refresh has already replaced the value in the meantime.
     /// </summary>
     public static async Task ShowAsync(
         bool copied,

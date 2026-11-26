@@ -4,15 +4,15 @@ using System.Diagnostics;
 namespace Soffritto.Core.Docker;
 
 /// <summary>
-/// Il disco virtuale di Docker Desktop su WSL 2 (docker_data.vhdx): cresce con immagini e cache e
-/// non si restringe da solo quando le si toglie. Compattarlo vuole Docker Desktop e WSL fermi e i
-/// permessi di amministratore (Optimize-VHD, o diskpart dove Hyper-V manca).
+/// Docker Desktop's virtual disk on WSL 2 (docker_data.vhdx): it grows with images and cache and
+/// does not shrink on its own when they are removed. Compacting it requires Docker Desktop and WSL to be stopped and
+/// administrator rights (Optimize-VHD, or diskpart where Hyper-V is missing).
 /// </summary>
 public static class DockerDisk
 {
     private const int UserCancelled = 1223;
 
-    /// <summary>Il file del disco nella posizione predefinita di Docker Desktop; null se non c'e'.</summary>
+    /// <summary>The disk file in Docker Desktop's default location; null if it is not there.</summary>
     public static string? VirtualDiskPath
     {
         get
@@ -22,10 +22,10 @@ public static class DockerDisk
         }
     }
 
-    /// <summary>La dimensione del file sul disco del PC, in byte; null se il file non c'e'.</summary>
+    /// <summary>The file's size on the PC's disk, in bytes; null if the file is not there.</summary>
     public static long? FileSize => VirtualDiskPath is { } path ? new FileInfo(path).Length : null;
 
-    /// <summary>Le distribuzioni WSL accese oltre a quelle di Docker Desktop: wsl --shutdown fermerebbe anche loro.</summary>
+    /// <summary>The running WSL distributions other than Docker Desktop's: wsl --shutdown would stop them too.</summary>
     public static async Task<IReadOnlyList<string>> OtherRunningDistributionsAsync(CancellationToken ct = default)
     {
         var list = await ProcessRunner.RunAsync(
@@ -43,22 +43,22 @@ public static class DockerDisk
     }
 
     /// <summary>
-    /// Ferma Docker Desktop e WSL, compatta il disco con i permessi di amministratore (chiede
-    /// l'UAC) e riaccende Docker Desktop. <paramref name="restartDocker"/> riceve il percorso di
-    /// Docker Desktop.exe e lo riapre fuori dal processo chiamante. Errore o null.
+    /// Stops Docker Desktop and WSL, compacts the disk with administrator rights (prompts
+    /// UAC) and starts Docker Desktop again. <paramref name="restartDocker"/> receives the path of
+    /// Docker Desktop.exe and reopens it outside the calling process. Error or null.
     /// </summary>
     public static async Task<string?> CompactAsync(Action<string> log, Action<string> restartDocker, CancellationToken ct = default)
     {
         if (VirtualDiskPath is not { } disk)
         {
-            return "disco di Docker Desktop non trovato (docker_data.vhdx)";
+            return "Docker Desktop disk not found (docker_data.vhdx)";
         }
 
         var before = new FileInfo(disk).Length;
         var desktop = DesktopExecutable();
-        log($"disco di Docker: {Gigabytes(before)}");
+        log($"Docker disk: {Gigabytes(before)}");
 
-        log("chiudo Docker Desktop");
+        log("closing Docker Desktop");
         var cli = Path.Combine(Path.GetDirectoryName(desktop)!, "DockerCli.exe");
         if (File.Exists(cli))
         {
@@ -67,30 +67,30 @@ public static class DockerDisk
 
         await StopProcessesAsync(["Docker Desktop", "com.docker.backend", "com.docker.build"], ct).ConfigureAwait(false);
 
-        log("fermo WSL (wsl --shutdown)");
+        log("stopping WSL (wsl --shutdown)");
         var shutdown = await ProcessRunner.RunAsync("wsl.exe", "--shutdown", Path.GetTempPath(), 120, cancellationToken: ct).ConfigureAwait(false);
         if (!shutdown.Success)
         {
             restartDocker(desktop);
-            return $"wsl --shutdown non riuscito: {shutdown.Tail(2)}";
+            return $"wsl --shutdown failed: {shutdown.Tail(2)}";
         }
 
-        log("compatto il disco: conferma la richiesta di amministratore");
+        log("compacting the disk: confirm the administrator prompt");
         var error = await CompactElevatedAsync(disk, ct).ConfigureAwait(false);
 
         var after = new FileInfo(disk).Length;
         log(error is null
-            ? $"disco di Docker: da {Gigabytes(before)} a {Gigabytes(after)}, recuperati {Gigabytes(before - after)}"
-            : $"compattazione non riuscita: {error}");
+            ? $"Docker disk: from {Gigabytes(before)} to {Gigabytes(after)}, {Gigabytes(before - after)} reclaimed"
+            : $"compaction failed: {error}");
 
-        log("riaccendo Docker Desktop");
+        log("starting Docker Desktop again");
         restartDocker(desktop);
         return error;
     }
 
     public static string Gigabytes(long bytes) => $"{bytes / 1024d / 1024 / 1024:0.0} GB";
 
-    // Optimize-VHD c'e' con il modulo Hyper-V; senza, diskpart fa la stessa compattazione.
+    // Optimize-VHD comes with the Hyper-V module; without it, diskpart does the same compaction.
     private static async Task<string?> CompactElevatedAsync(string disk, CancellationToken ct)
     {
         var folder = Path.Combine(Path.GetTempPath(), "Soffritto");
@@ -118,17 +118,17 @@ public static class DockerDisk
             });
             if (process is null)
             {
-                return "powershell da amministratore non avviato";
+                return "administrator PowerShell did not start";
             }
 
             await process.WaitForExitAsync(ct).ConfigureAwait(false);
         }
         catch (Win32Exception ex) when (ex.NativeErrorCode == UserCancelled)
         {
-            return "richiesta di amministratore annullata";
+            return "administrator prompt cancelled";
         }
 
-        var outcome = File.Exists(result) ? File.ReadAllText(result).Trim() : "nessun esito dalla compattazione";
+        var outcome = File.Exists(result) ? File.ReadAllText(result).Trim() : "no result from the compaction";
         return outcome == "ok" ? null : outcome;
     }
 

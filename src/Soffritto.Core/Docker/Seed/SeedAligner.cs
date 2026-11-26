@@ -5,9 +5,9 @@ using Soffritto.Core.Env;
 namespace Soffritto.Core.Docker.Seed;
 
 /// <summary>
-/// «Allinea seed»: ripristina il seed configurato in un container temporaneo, applica le migrazioni
-/// di origin/dev dal worktree del seed, lo compatta e lo salva come file nuovo accanto al
-/// configurato, con la data nel nome; seed.path passa al file nuovo, il precedente resta.
+/// "Align seed": restores the configured seed into a temporary container, applies the origin/dev
+/// migrations from the seed worktree, shrinks it and saves it as a new file next to the
+/// configured one, with the date in its name; seed.path moves to the new file, the previous one stays.
 /// </summary>
 public static partial class SeedAligner
 {
@@ -15,8 +15,8 @@ public static partial class SeedAligner
     private static partial Regex DateSuffix();
 
     /// <summary>
-    /// &lt;cartella del seed&gt;\&lt;nome base&gt;-&lt;yyyyMMdd-HHmmss&gt;.bak, con il nome base senza
-    /// estensione e senza un suffisso di data gia' presente.
+    /// &lt;seed folder&gt;\&lt;base name&gt;-&lt;yyyyMMdd-HHmmss&gt;.bak, with the base name stripped of its
+    /// extension and of any existing date suffix.
     /// </summary>
     public static string TargetPathOf(string seedPath, DateTime now)
     {
@@ -25,19 +25,19 @@ public static partial class SeedAligner
     }
 
     /// <summary>
-    /// Allinea il seed a origin/dev e chiama <paramref name="onNewSeedPath"/> con il file nuovo dopo
-    /// averlo scritto in seed.path. Una migrazione fallita lascia il seed com'e'. Errore o null.
+    /// Aligns the seed to origin/dev and calls <paramref name="onNewSeedPath"/> with the new file after
+    /// writing it to seed.path. A failed migration leaves the seed as it is. Error or null.
     /// </summary>
     public static async Task<string?> AlignAsync(AppConfiguration c, Action<string> onNewSeedPath, Action<string> log, CancellationToken ct = default)
     {
         if (c.PrimarySeed() is not { Seed: { } seed } backend)
         {
-            return "nessun backend ha un seed configurato";
+            return "no backend has a seed configured";
         }
 
         if (backend.SourceClone is not { Length: > 0 } bare || !SourceCloneRepository.IsBare(bare))
         {
-            return $"{backend.Id} non ha un clone sorgente: «Allinea seed» applica le migrazioni di {GitConventions.RemoteDevelopmentBranch}";
+            return $"{backend.Id} has no source clone: \"Align seed\" applies the migrations of {GitConventions.RemoteDevelopmentBranch}";
         }
 
         var (seedLock, lockError) = SeedLock.Acquire();
@@ -62,8 +62,8 @@ public static partial class SeedAligner
                 return worktreeError;
             }
 
-            // Il worktree del seed punta al container temporaneo: la stessa connessione va a
-            // --connection e a ConnectionStrings__<nome> del processo dotnet ef.
+            // The seed worktree points to the temporary container: the same connection goes to
+            // --connection and to ConnectionStrings__<name> of the dotnet ef process.
             var target = entry.Repository.Env is { Target.Length: > 0 } env ? Path.Combine(entry.Path, env.Target) : null;
             var resolution = EnvResolver.Resolve(c, entry, slot, poolUrls: null, targetIsNew: target is null || !File.Exists(target));
             foreach (var line in await EnvResolver.WriteLocalAsync(c, entry, resolution, ct).ConfigureAwait(false))
@@ -96,11 +96,11 @@ public static partial class SeedAligner
             var probe = AppConfiguration.ToProbeOptions(backend);
             foreach (var startup in probe.Contexts.Select(x => x.RelativeStartupProjectPath).Distinct(StringComparer.OrdinalIgnoreCase))
             {
-                // Su un worktree appena creato o spostato dotnet ef fallisce senza project.assets.json (NETSDK1004).
+                // On a freshly created or moved worktree dotnet ef fails without project.assets.json (NETSDK1004).
                 var restore = await ProcessRunner.RunAsync("dotnet", $"restore \"{Path.Combine(entry.Path, startup)}\"", entry.Path, 600, cancellationToken: ct).ConfigureAwait(false);
                 if (!restore.Success)
                 {
-                    return $"dotnet restore di {startup}: {restore.BuildError(3)}";
+                    return $"dotnet restore of {startup}: {restore.BuildError(3)}";
                 }
             }
 
@@ -111,18 +111,18 @@ public static partial class SeedAligner
                     return guard;
                 }
 
-                log($"migrazioni di {context.Name} da {GitConventions.RemoteDevelopmentBranch}");
+                log($"{context.Name} migrations from {GitConventions.RemoteDevelopmentBranch}");
                 var update = await MigrationApplier.UpdateDatabaseAsync(entry.Path, context, null, log, ct, slot.HostConnectionString, backend.ConnectionStringName).ConfigureAwait(false);
                 if (!update.Success)
                 {
-                    return $"migrazioni di {context.Name} non applicate, il seed resta com'e': {await MigrationApplier.FailureReasonAsync(entry.Path, context, update, ct).ConfigureAwait(false)}";
+                    return $"{context.Name} migrations not applied, the seed stays as it is: {await MigrationApplier.FailureReasonAsync(entry.Path, context, update, ct).ConfigureAwait(false)}";
                 }
             }
 
             var history = await provider.ReadAppliedMigrationsAsync(slot.HostConnectionString, ct).ConfigureAwait(false);
             if (history.Error is not null)
             {
-                return $"history del seed allineato: {history.Error}";
+                return $"history of the aligned seed: {history.Error}";
             }
 
             var (dev, devError) = await SeedMigrations.DevMigrationsAsync(backend, ct).ConfigureAwait(false);
@@ -153,7 +153,7 @@ public static partial class SeedAligner
                 {
                     if (configuration.Repositories.FirstOrDefault(r => string.Equals(r.Id, backendId, StringComparison.OrdinalIgnoreCase)) is not BackendConfiguration { Seed: { } saved })
                     {
-                        return $"{backendId} non ha piu' un seed in config.json";
+                        return $"{backendId} no longer has a seed in config.json";
                     }
 
                     saved.Path = newSeed;
@@ -162,10 +162,10 @@ public static partial class SeedAligner
                 ConfigurationFileFallback.Refuse);
             if (pathError is not null)
             {
-                return $"seed nuovo scritto in {newSeed}, ma seed.path non aggiornato: {pathError}";
+                return $"new seed written to {newSeed}, but seed.path was not updated: {pathError}";
             }
 
-            log($"seed.path ora e' {newSeed}; il precedente {seed.Path} resta");
+            log($"seed.path is now {newSeed}; the previous {seed.Path} is kept");
             onNewSeedPath(newSeed);
             return null;
         }
@@ -180,28 +180,28 @@ public static partial class SeedAligner
         }
     }
 
-    // Il worktree del seed, staccato su origin/dev: si crea se manca, si ferma se ha modifiche.
+    // The seed worktree, detached on origin/dev: created if missing, stopped if it has changes.
     private static async Task<string?> PrepareWorktreeAsync(string bare, string worktree, Action<string> log, CancellationToken ct)
     {
         const string dev = GitConventions.RemoteDevelopmentBranch;
         if (!GitDirectory.Exists(worktree))
         {
             var add = await SourceCloneRepository.AddDetachedWorktreeAsync(bare, worktree, dev, log, ct).ConfigureAwait(false);
-            return add.Success ? null : $"worktree del seed non creato: {add.GitError()}";
+            return add.Success ? null : $"seed worktree not created: {add.GitError()}";
         }
 
         var status = await GitStatusReader.ReadAsync(worktree, fetch: false, ct).ConfigureAwait(false);
         if (status.Error is not null)
         {
-            return $"worktree del seed {worktree}: {status.Error}";
+            return $"seed worktree {worktree}: {status.Error}";
         }
 
         if (status.DirtyFiles > 0 || GitStatusReader.ReadOperationInProgress(worktree) is not null)
         {
-            return $"il worktree del seed {worktree} ha modifiche o un'operazione git a meta': sistemalo prima di allineare";
+            return $"the seed worktree {worktree} has changes or an unfinished git operation: fix it before aligning";
         }
 
         var checkout = await SourceCloneRepository.CheckoutDetachedAsync(worktree, dev, log, ct).ConfigureAwait(false);
-        return checkout.Success ? null : $"worktree del seed non portato su {dev}: {checkout.GitError()}";
+        return checkout.Success ? null : $"seed worktree not moved to {dev}: {checkout.GitError()}";
     }
 }

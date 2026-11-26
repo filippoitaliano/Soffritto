@@ -6,14 +6,14 @@ namespace Soffritto.Core;
 public sealed record KestrelPort(int Number, string Protocol);
 
 /// <summary>
-/// I tunnel del pool dell'account: elenco, creazione dei tunnel del pool che mancano (persistenti,
-/// "Owner only", senza porte) e porte che un repository espone quando gli si assegna una porta.
+/// The account's pool tunnels: listing, creating the missing pool tunnels (persistent,
+/// "Owner only", without ports) and the ports a repository exposes when it is assigned a pool port.
 /// </summary>
 public static class DevTunnelProvisioner
 {
     /// <summary>
-    /// Le porte da esporre per un repository: quelle scritte a mano se ci sono, altrimenti gli
-    /// endpoint https di Kestrel (backend) o la porta del dev server (frontend); vuoto per gli altri.
+    /// The ports to expose for a repository: the hand-written ones if any, otherwise the
+    /// Kestrel https endpoints (backend) or the dev server port (frontend); empty for the others.
     /// </summary>
     public static IReadOnlyList<KestrelPort> PortsFor(RepositoryConfiguration repository, string path)
     {
@@ -31,9 +31,9 @@ public static class DevTunnelProvisioner
     }
 
     /// <summary>
-    /// Le porte da esporre per un repository di un ambiente: in un ambiente Docker la porta host
-    /// che lo slot pubblica per il suo container (http), vuoto se non e' in un container; negli
-    /// ambienti locali come <see cref="PortsFor(RepositoryConfiguration, string)"/>.
+    /// The ports to expose for a repository of an environment: in a Docker environment the host port
+    /// the slot publishes for its container (http), empty if it is not in a container; in
+    /// local environments as <see cref="PortsFor(RepositoryConfiguration, string)"/>.
     /// </summary>
     public static IReadOnlyList<KestrelPort> PortsFor(EnvironmentRepository entry, AppConfiguration configuration)
     {
@@ -47,16 +47,16 @@ public static class DevTunnelProvisioner
             : [];
     }
 
-    /// <summary>La porta del dev server del frontend: http, come la serve webpack su localhost.</summary>
+    /// <summary>The frontend's dev server port: http, as webpack serves it on localhost.</summary>
     public static KestrelPort FrontendPort(int devServerPort) => new(devServerPort, "http");
 
-    /// <summary>Le Description dei tunnel dell'account; null con l'errore se la CLI manca o non risponde.</summary>
+    /// <summary>The Descriptions of the account's tunnels; null with the error if the CLI is missing or does not respond.</summary>
     public static async Task<(IReadOnlySet<string>? Descriptions, string? Error)> ListDescriptionsAsync(CancellationToken cancellationToken = default)
     {
         var exe = DevTunnelReader.ResolveExecutable();
         if (exe is null)
         {
-            return (null, "devtunnel.exe non trovato (ne' nel PATH ne' tra i pacchetti WinGet).");
+            return (null, "devtunnel.exe not found (neither in PATH nor among the WinGet packages).");
         }
 
         var list = await DevTunnelReader.DevTunnelAsync(exe, "list --json", Path.GetTempPath(), cancellationToken).ConfigureAwait(false);
@@ -68,19 +68,19 @@ public static class DevTunnelProvisioner
         using var doc = DevTunnelReader.ParseJson(list.StandardOutput);
         if (doc is null || !doc.RootElement.TryGetProperty("tunnels", out var tunnels))
         {
-            return (null, "Output di 'devtunnel list --json' non riconosciuto.");
+            return (null, "Unrecognized output from 'devtunnel list --json'.");
         }
 
         return (tunnels.EnumerateArray().Select(t => DevTunnelReader.GetString(t, "description")).ToHashSet(), null);
     }
 
-    /// <summary>Id e Description dei tunnel dell'account; null con l'errore se la CLI manca o non risponde.</summary>
+    /// <summary>Id and Description of the account's tunnels; null with the error if the CLI is missing or does not respond.</summary>
     public static async Task<(IReadOnlyList<(string Id, string Description)>? Tunnels, string? Error)> ListTunnelsAsync(CancellationToken cancellationToken = default)
     {
         var exe = DevTunnelReader.ResolveExecutable();
         if (exe is null)
         {
-            return (null, "devtunnel.exe non trovato (ne' nel PATH ne' tra i pacchetti WinGet).");
+            return (null, "devtunnel.exe not found (neither in PATH nor among the WinGet packages).");
         }
 
         var list = await DevTunnelReader.DevTunnelAsync(exe, "list --json", Path.GetTempPath(), cancellationToken).ConfigureAwait(false);
@@ -92,7 +92,7 @@ public static class DevTunnelProvisioner
         using var doc = DevTunnelReader.ParseJson(list.StandardOutput);
         if (doc is null || !doc.RootElement.TryGetProperty("tunnels", out var tunnels) || tunnels.ValueKind != JsonValueKind.Array)
         {
-            return (null, "Output di 'devtunnel list --json' non riconosciuto.");
+            return (null, "Unrecognized output from 'devtunnel list --json'.");
         }
 
         return (tunnels.EnumerateArray()
@@ -100,7 +100,7 @@ public static class DevTunnelProvisioner
             .ToList(), null);
     }
 
-    /// <summary>Le Description del pool che mancano tra quelle dell'account, nell'ordine del pool.</summary>
+    /// <summary>The pool Descriptions missing from the account's ones, in pool order.</summary>
     public static IReadOnlyList<string> MissingPoolDescriptions(AppConfiguration configuration, IReadOnlyCollection<string> descriptions)
         => configuration.TunnelPool.Tunnels
             .Select(t => t.Description)
@@ -109,15 +109,15 @@ public static class DevTunnelProvisioner
             .ToList();
 
     /// <summary>
-    /// Crea un tunnel del pool: persistente, "Owner only" (l'accesso anonimo si da' per porta
-    /// all'assegnazione) e senza porte. Restituisce l'id del tunnel o l'errore.
+    /// Creates a pool tunnel: persistent, "Owner only" (anonymous access is granted per port
+    /// on assignment) and without ports. Returns the tunnel id or the error.
     /// </summary>
     public static async Task<(string? TunnelId, string? Error)> CreatePoolTunnelAsync(string description, string label, CancellationToken cancellationToken = default)
     {
         var exe = DevTunnelReader.ResolveExecutable();
         if (exe is null)
         {
-            return (null, "devtunnel.exe non trovato.");
+            return (null, "devtunnel.exe not found.");
         }
 
         var create = await DevTunnelReader.DevTunnelAsync(
@@ -137,31 +137,31 @@ public static class DevTunnelProvisioner
             : string.Empty;
 
         return tunnelId.Length == 0
-            ? (null, "Tunnel creato, ma l'output di 'devtunnel create --json' non ne riporta l'id: controlla con devtunnel list.")
+            ? (null, "Tunnel created, but the output of 'devtunnel create --json' does not report its id: check with devtunnel list.")
             : (tunnelId, null);
     }
 
-    /// <summary>La scadenza massima che il servizio accetta: oltre i 30 giorni rifiuta («Value must be between 1 hour to 30 days»).</summary>
+    /// <summary>The maximum expiration the service accepts: beyond 30 days it refuses ("Value must be between 1 hour to 30 days").</summary>
     public const string MaxExpiration = "30d";
 
-    /// <summary>Riporta la scadenza del tunnel a <see cref="MaxExpiration"/> da adesso. Errore o null.</summary>
+    /// <summary>Resets the tunnel's expiration to <see cref="MaxExpiration"/> from now. Error or null.</summary>
     public static async Task<string?> RenewAsync(string tunnelId, CancellationToken cancellationToken = default)
     {
         if (DevTunnelReader.ResolveExecutable() is not { } exe)
         {
-            return "devtunnel.exe non trovato.";
+            return "devtunnel.exe not found.";
         }
 
         var update = await DevTunnelReader.DevTunnelAsync(exe, $"update {tunnelId} --expiration {MaxExpiration}", Path.GetTempPath(), cancellationToken).ConfigureAwait(false);
         return update.Success ? null : $"devtunnel update: {update.Tail(2)}";
     }
 
-    /// <summary>Cancella il tunnel dall'account, con le sue porte e i suoi URL. Errore o null.</summary>
+    /// <summary>Deletes the tunnel from the account, with its ports and URLs. Error or null.</summary>
     public static async Task<string?> DeleteTunnelAsync(string tunnelId, CancellationToken cancellationToken = default)
     {
         if (DevTunnelReader.ResolveExecutable() is not { } exe)
         {
-            return "devtunnel.exe non trovato.";
+            return "devtunnel.exe not found.";
         }
 
         var delete = await DevTunnelReader.DevTunnelAsync(exe, $"delete {tunnelId} --force", Path.GetTempPath(), cancellationToken).ConfigureAwait(false);
@@ -169,11 +169,11 @@ public static class DevTunnelProvisioner
     }
 
     /// <summary>
-    /// Gli endpoint https di Kestrel (Kestrel:Endpoints:*:Url) dal primo appsettings configurato che
-    /// li dichiara: gli stessi file da cui si legge la connection string.
+    /// The Kestrel https endpoints (Kestrel:Endpoints:*:Url) from the first configured appsettings that
+    /// declares them: the same files the connection string is read from.
     /// </summary>
     /// <remarks>
-    /// Gli endpoint http restano fuori: frontend e app puntano sempre alla porta https del tunnel.
+    /// http endpoints are left out: frontend and app always point to the tunnel's https port.
     /// </remarks>
     public static IReadOnlyList<KestrelPort> KestrelPorts(string backendPath, BackendConfiguration settings)
     {

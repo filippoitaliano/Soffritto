@@ -11,20 +11,20 @@ using Soffritto.Presentation;
 namespace Soffritto.Desktop.ViewModels;
 
 /// <summary>
-/// Le azioni Docker globali: la creazione di un ambiente (il riquadro del «+» nella testata), il
-/// seed con le migrazioni di dev che gli mancano, «Allinea seed», lo spazio di Docker e il log
-/// (scheda «Docker» del setup), il pool dei tunnel (scheda «Tunnel» del setup).
+/// The global Docker actions: creating an environment (the “+” panel in the header), the seed
+/// and the dev migrations it lacks, “Align seed”, Docker disk space and the log (the setup's
+/// “Docker” tab), the tunnel pool (the setup's “Tunnels” tab).
 /// </summary>
 public sealed class DockerPanelViewModel : ObservableObject
 {
     private const int MaxLogLines = 300;
-    private const string BackendRequired = "serve il backend con il compose: api, web e database partono dal compose del repository backend";
+    private const string BackendRequired = "a backend with a compose file is required: api, web and database start from the backend repository's compose";
     private static readonly TimeSpan MissingInterval = TimeSpan.FromMinutes(30);
 
     private readonly CancellationToken lifetime;
     private readonly List<string> logLines = [];
     private bool isWorking;
-    private string seedText = "seed: non letto";
+    private string seedText = "seed: not read";
     private string missingText = string.Empty;
     private string missingBadge = string.Empty;
     private string poolText = string.Empty;
@@ -34,11 +34,11 @@ public sealed class DockerPanelViewModel : ObservableObject
     private readonly IUserPrompt prompt = new DialogPrompt();
     private string createNumber = string.Empty;
     private bool assignPool = true;
-    private string diskText = "spazio di Docker: non letto";
+    private string diskText = "Docker disk space: not read";
     private string poolNotice = string.Empty;
 
-    /// <param name="addColumn">Aggiunge la colonna dell'ambiente appena registrato, sul thread della UI.</param>
-    /// <param name="refreshColumn">Rilegge la colonna di un ambiente a creazione finita, sul thread della UI.</param>
+    /// <param name="addColumn">Adds the column of the environment just registered, on the UI thread.</param>
+    /// <param name="refreshColumn">Reads an environment's column again once creation is done, on the UI thread.</param>
     public DockerPanelViewModel(CancellationToken lifetime, Action<EnvironmentDefinition> addColumn, Action<int>? refreshColumn = null)
     {
         this.lifetime = lifetime;
@@ -54,18 +54,18 @@ public sealed class DockerPanelViewModel : ObservableObject
         FillPoolCommand = new AsyncCommand(FillPoolAsync);
     }
 
-    /// <summary>Crea un tunnel del pool in piu', con la label degli altri, e lo aggiunge a config.json.</summary>
+    /// <summary>Creates one more pool tunnel, with the same label as the others, and adds it to config.json.</summary>
     public ICommand AddTunnelCommand { get; }
 
-    /// <summary>Crea tunnel del pool finche' l'account devtunnel ne concede.</summary>
+    /// <summary>Creates pool tunnels as long as the devtunnel account allows.</summary>
     public ICommand FillPoolCommand { get; }
 
-    /// <summary>L'esito dell'ultima azione sul pool, sotto i bottoni della scheda «Tunnel» del setup.</summary>
+    /// <summary>The outcome of the last pool action, below the buttons of the setup's “Tunnels” tab.</summary>
     public string PoolNotice { get => poolNotice; private set => SetProperty(ref poolNotice, value); }
 
     /// <summary>
-    /// Chiamata sul thread della UI quando un tunnel entra o esce dal pool: il setup aperto
-    /// riallinea il suo draft alla configurazione attiva.
+    /// Called on the UI thread when a tunnel joins or leaves the pool: an open setup
+    /// realigns its draft with the active configuration.
     /// </summary>
     public Action? PoolTunnelsChanged { get; set; }
 
@@ -75,8 +75,8 @@ public sealed class DockerPanelViewModel : ObservableObject
         UiThread.Run(() => PoolNotice = line);
     }
 
-    // Un tunnel in piu': creato sull'account e scritto in config.json da TunnelPool.AddTunnelAsync,
-    // poi nella configurazione in memoria. La Description del tunnel creato, o null con l'errore.
+    // One more tunnel: created on the account and written to config.json by TunnelPool.AddTunnelAsync,
+    // then into the in-memory configuration. Returns the created tunnel's Description, or null with the error.
     private async Task<(string? Description, string? Error)> AddOneAsync()
     {
         var (tunnel, error) = await Task.Run(() => TunnelPool.AddTunnelAsync(ActiveConfiguration.Current, AppendLog, lifetime), lifetime).ConfigureAwait(false);
@@ -100,10 +100,10 @@ public sealed class DockerPanelViewModel : ObservableObject
     private Task AddTunnelAsync() => PoolActionAsync(async () =>
     {
         var (description, error) = await AddOneAsync().ConfigureAwait(false);
-        PoolLog(description is null ? $"tunnel del pool non creato: {error}" : $"tunnel {description} creato");
+        PoolLog(description is null ? $"pool tunnel not created: {error}" : $"tunnel {description} created");
     });
 
-    // Il rifiuto di devtunnel create chiude il riempimento: e' la quota dell'account, non un errore.
+    // A refusal from devtunnel create ends the filling: it is the account quota, not an error.
     private Task FillPoolAsync() => PoolActionAsync(async () =>
     {
         const int safetyCap = 100;
@@ -114,13 +114,13 @@ public sealed class DockerPanelViewModel : ObservableObject
             if (description is null)
             {
                 PoolLog(created.Count == 0
-                    ? $"nessun tunnel creato: l'account non ne concede altri ({error})"
-                    : $"creati {string.Join(", ", created)}; l'account non ne concede altri ({error})");
+                    ? $"no tunnel created: the account allows no more ({error})"
+                    : $"created {string.Join(", ", created)}; the account allows no more ({error})");
                 return;
             }
 
             created.Add(description);
-            PoolLog($"tunnel {description} creato, provo il prossimo…");
+            PoolLog($"tunnel {description} created, trying the next one…");
         }
     });
 
@@ -133,7 +133,7 @@ public sealed class DockerPanelViewModel : ObservableObject
         }, lifetime).ConfigureAwait(false);
         if (error is not null)
         {
-            PoolLog($"tunnel {state.Description} non eliminato: {error}");
+            PoolLog($"tunnel {state.Description} not deleted: {error}");
             return;
         }
 
@@ -142,14 +142,14 @@ public sealed class DockerPanelViewModel : ObservableObject
             ActiveConfiguration.Current.TunnelPool.Tunnels.RemoveAll(t => t.Description == state.Description);
             PoolTunnelsChanged?.Invoke();
         });
-        PoolLog($"tunnel {state.Description} eliminato");
+        PoolLog($"tunnel {state.Description} deleted");
     }, confirm: new Confirmation(
-        "Elimina il tunnel del pool",
-        "Il tunnel viene cancellato dall'account devtunnel e tolto dal pool. I suoi URL non tornano: un tunnel nuovo ne ha di diversi.",
+        "Delete the pool tunnel",
+        "The tunnel is deleted from the devtunnel account and removed from the pool. Its URLs do not come back: a new tunnel gets different ones.",
         [new("Tunnel", [new(state.Description)])],
-        "Elimina"));
+        "Delete"));
 
-    // Una sola azione alla volta sul pool, con l'eventuale conferma prima e la rilettura dopo.
+    // One pool action at a time, with the optional confirmation before and a re-read after.
     private async Task PoolActionAsync(Func<Task> action, Confirmation? confirm = null)
     {
         if (IsWorking)
@@ -169,7 +169,7 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            PoolLog($"azione sul pool non riuscita: {ex.Message}");
+            PoolLog($"pool action failed: {ex.Message}");
         }
         finally
         {
@@ -187,21 +187,21 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            AppendLog($"scadenza dei tunnel del pool non rinnovata: {ex.Message}");
+            AppendLog($"pool tunnel expiration not renewed: {ex.Message}");
         }
         catch (OperationCanceledException)
         {
         }
     }
 
-    /// <summary>Lo spazio di Docker: il file del disco virtuale e l'uso interno per tipo.</summary>
+    /// <summary>Docker disk space: the virtual disk file and the internal usage by type.</summary>
     public string DiskText { get => diskText; private set => SetProperty(ref diskText, value); }
 
     public ICommand CleanCommand { get; }
 
     public ICommand CompactCommand { get; }
 
-    /// <summary>Il numero del nuovo ambiente, come testo della casella; proposto il primo libero sopra i locali.</summary>
+    /// <summary>The new environment's number, as the text box content; the first free one above the local environments is suggested.</summary>
     public string CreateNumber
     {
         get => createNumber;
@@ -214,20 +214,20 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
     }
 
-    /// <summary>Una riga per repository del catalogo: casella e branch, abilitata solo con il clone sorgente.</summary>
+    /// <summary>One row per catalog repository: checkbox and branch, enabled only with a source clone.</summary>
     public ObservableCollection<CreateRepositoryRowViewModel> CreateRows { get; } = [];
 
-    /// <summary>«Assegna porte del pool»: una porta per il backend e il frontend nei container.</summary>
+    /// <summary>“Assign pool ports”: one port for the backend and the frontend in the containers.</summary>
     public bool AssignPool { get => assignPool; set => SetProperty(ref assignPool, value); }
 
-    /// <summary>Perche' «Crea» e' spento; vuoto quando si puo' creare.</summary>
+    /// <summary>Why “Create” is disabled; empty when creation is possible.</summary>
     public string CreateBlockReason => BlockReason() ?? string.Empty;
 
     public bool CanCreate => BlockReason() is null && IsIdle;
 
     public ICommand CreateCommand { get; }
 
-    /// <summary>Vero durante «Allinea seed» e la creazione di un ambiente: i comandi del pannello restano fermi.</summary>
+    /// <summary>True during “Align seed” and environment creation: the panel's commands stay disabled.</summary>
     public bool IsWorking
     {
         get => isWorking;
@@ -247,7 +247,7 @@ public sealed class DockerPanelViewModel : ObservableObject
 
     public string MissingText { get => missingText; private set => SetProperty(ref missingText, value); }
 
-    /// <summary>Il numero di migrazioni di dev che mancano al seed, per il badge del bottone «Setup»; vuoto con zero.</summary>
+    /// <summary>The number of dev migrations the seed lacks, for the “Setup” button badge; empty when zero.</summary>
     public string MissingBadge { get => missingBadge; private set => SetProperty(ref missingBadge, value); }
 
     public string Log => string.Join(Environment.NewLine, logLines);
@@ -258,26 +258,26 @@ public sealed class DockerPanelViewModel : ObservableObject
 
     public ICommand AlignCommand { get; }
 
-    /// <summary>Rilegge seed (con fetch) e spazio di Docker: il bottone della scheda «Docker» del setup.</summary>
+    /// <summary>Reads the seed (with fetch) and Docker disk space again: the button of the setup's “Docker” tab.</summary>
     public ICommand RefreshCommand { get; }
 
-    /// <summary>Rilegge numero proposto e branch del riquadro di creazione.</summary>
+    /// <summary>Reads the suggested number and branches of the creation panel again.</summary>
     public ICommand RefreshCreateCommand { get; }
 
     /// <summary>
-    /// Chiamata sul thread della UI quando «Allinea seed» scrive un seed nuovo, con l'id del backend
-    /// e il percorso: il setup aperto lo mostra nella sua bozza.
+    /// Called on the UI thread when “Align seed” writes a new seed, with the backend id
+    /// and the path: an open setup shows it in its draft.
     /// </summary>
     public Action<string, string>? SeedPathChanged { get; set; }
 
-    /// <summary>Il badge all'avvio e ogni 30 minuti, senza fetch: la fetch la fa l'apertura della scheda «Docker» del setup.</summary>
+    /// <summary>The badge at startup and every 30 minutes, without fetch: fetching happens when the setup's “Docker” tab opens.</summary>
     public void Start()
     {
         _ = RefreshMissingPeriodicallyAsync();
         _ = RenewPoolAsync();
     }
 
-    /// <summary>All'apertura del riquadro di creazione: numero proposto e branch dei cloni sorgente.</summary>
+    /// <summary>When the creation panel opens: suggested number and source clone branches.</summary>
     public async Task OpenCreateAsync()
     {
         if (!IsWorking)
@@ -286,14 +286,14 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
     }
 
-    /// <summary>All'apertura della scheda «Docker» del setup: fetch del clone sorgente, migrazioni mancanti e spazio di Docker.</summary>
+    /// <summary>When the setup's “Docker” tab opens: source clone fetch, missing migrations and Docker disk space.</summary>
     public async Task RefreshMaintenanceAsync()
     {
         await RefreshSeedAsync(fetch: true).ConfigureAwait(false);
         await RefreshDiskAsync().ConfigureAwait(false);
     }
 
-    // Dopo una creazione: branch e numero cambiano, e lo spazio di Docker anche.
+    // After a creation: branches and number change, and so does Docker disk space.
     private async Task AfterCreateAsync()
     {
         await OpenCreateAsync().ConfigureAwait(false);
@@ -304,11 +304,11 @@ public sealed class DockerPanelViewModel : ObservableObject
     {
         try
         {
-            var file = DockerDisk.FileSize is { } size ? $"disco di Docker: {DockerDisk.Gigabytes(size)} sul PC" : "disco di Docker Desktop non trovato";
+            var file = DockerDisk.FileSize is { } size ? $"Docker disk: {DockerDisk.Gigabytes(size)} on the PC" : "Docker Desktop disk not found";
             var (usage, error) = await DockerMaintenance.UsageAsync(lifetime).ConfigureAwait(false);
             var inside = error is not null
-                ? $"uso interno non letto: {error}"
-                : $"dentro: {string.Join(" · ", usage.Select(u => $"{TypeName(u.Type)} {u.Size} (recuperabili {u.Reclaimable})"))}";
+                ? $"internal usage not read: {error}"
+                : $"inside: {string.Join(" · ", usage.Select(u => $"{TypeName(u.Type)} {u.Size} ({u.Reclaimable} reclaimable)"))}";
             UiThread.Run(() => DiskText = $"{file}{Environment.NewLine}{inside}");
         }
         catch (OperationCanceledException)
@@ -318,10 +318,10 @@ public sealed class DockerPanelViewModel : ObservableObject
 
     private static string TypeName(string type) => type switch
     {
-        "Images" => "immagini",
-        "Containers" => "container",
-        "Local Volumes" => "volumi",
-        "Build Cache" => "cache di build",
+        "Images" => "images",
+        "Containers" => "containers",
+        "Local Volumes" => "volumes",
+        "Build Cache" => "build cache",
         _ => type,
     };
 
@@ -333,15 +333,15 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
 
         UiThread.Run(() => IsWorking = true);
-        AppendLog("Pulizia di Docker: avvio");
+        AppendLog("Docker cleanup: starting");
         try
         {
             var error = await Task.Run(() => DockerCleanup.RunAsync(AppendLog, lifetime), lifetime).ConfigureAwait(false);
-            AppendLog(error is null ? "Pulizia di Docker: fatta" : $"Pulizia di Docker saltata: {error}");
+            AppendLog(error is null ? "Docker cleanup: done" : $"Docker cleanup skipped: {error}");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            AppendLog($"Pulizia di Docker non riuscita: {ex.Message}");
+            AppendLog($"Docker cleanup failed: {ex.Message}");
         }
         finally
         {
@@ -360,7 +360,7 @@ public sealed class DockerPanelViewModel : ObservableObject
 
         if (DockerCleanup.BusyReason() is { } busy)
         {
-            AppendLog($"Compattazione rimandata: {busy}");
+            AppendLog($"Compaction postponed: {busy}");
             return;
         }
 
@@ -369,17 +369,17 @@ public sealed class DockerPanelViewModel : ObservableObject
         var containers = running.Success ? running.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length : 0;
         var confirmed = await prompt.ConfirmAsync(
             new Confirmation(
-                "Compatta il disco di Docker",
-                "Restituisce al PC lo spazio gia' liberato dentro Docker: prima conviene «Pulisci ora». Si fermano tutti i container accesi, anche quelli non degli ambienti, e si riaccendono con Avvia.",
+                "Compact the Docker disk",
+                "Gives back to the PC the space already freed inside Docker: run “Clean up now” first. Every running container stops, including those outside the environments, and comes back with Start.",
                 [
-                    new("Passi", [
-                        new("Chiude Docker Desktop", "1", $"{containers} container accesi"),
-                        new("Ferma WSL (wsl --shutdown)", "2", others.Count > 0 ? $"si fermano anche {string.Join(", ", others)}" : string.Empty),
-                        new("Compatta docker_data.vhdx", "3", "permessi di amministratore"),
-                        new("Riaccende Docker Desktop", "4"),
+                    new("Steps", [
+                        new("Closes Docker Desktop", "1", $"{containers} running containers"),
+                        new("Stops WSL (wsl --shutdown)", "2", others.Count > 0 ? $"also stops {string.Join(", ", others)}" : string.Empty),
+                        new("Compacts docker_data.vhdx", "3", "administrator rights"),
+                        new("Restarts Docker Desktop", "4"),
                     ]),
                 ],
-                "Compatta"),
+                "Compact"),
             lifetime).ConfigureAwait(false);
         if (!confirmed)
         {
@@ -387,7 +387,7 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
 
         UiThread.Run(() => IsWorking = true);
-        AppendLog("Compattazione del disco di Docker: avvio");
+        AppendLog("Docker disk compaction: starting");
         try
         {
             var error = await Task.Run(
@@ -396,11 +396,11 @@ public sealed class DockerPanelViewModel : ObservableObject
                     desktop => DetachedLauncher.Start($"\"{desktop}\"", Path.GetDirectoryName(desktop)!, newConsole: false),
                     lifetime),
                 lifetime).ConfigureAwait(false);
-            AppendLog(error is null ? "Compattazione: fatta; Docker Desktop si sta riaccendendo" : $"Compattazione non riuscita: {error}");
+            AppendLog(error is null ? "Compaction: done; Docker Desktop is restarting" : $"Compaction failed: {error}");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            AppendLog($"Compattazione non riuscita: {ex.Message}");
+            AppendLog($"Compaction failed: {ex.Message}");
         }
         finally
         {
@@ -420,12 +420,12 @@ public sealed class DockerPanelViewModel : ObservableObject
     {
         if (!int.TryParse(createNumber, out var number) || number is < 1 or > AppConfiguration.MaxEnvironmentNumber)
         {
-            return $"numero dell'ambiente da 1 a {AppConfiguration.MaxEnvironmentNumber}";
+            return $"environment number from 1 to {AppConfiguration.MaxEnvironmentNumber}";
         }
 
         if (ActiveConfiguration.Current.Environment(number) is not null)
         {
-            return $"l'ambiente {number} esiste gia'";
+            return $"environment {number} already exists";
         }
 
         var included = CreateRows.Where(r => r.Include).ToList();
@@ -435,12 +435,12 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
 
         return included.FirstOrDefault(r => r.BranchName.Length == 0) is { } empty
-            ? $"manca il branch di {empty.Id}"
+            ? $"branch missing for {empty.Id}"
             : null;
     }
 
-    // Le righe del modulo «Nuovo ambiente Docker»: i branch remoti del clone sorgente, con quelli
-    // gia' portati da un worktree marcati, perche' git non porta un branch in due worktree.
+    // The rows of the “New Docker environment” form: the source clone's remote branches, with those
+    // already checked out in a worktree marked, because git does not check out a branch in two worktrees.
     private async Task RefreshCreateRowsAsync()
     {
         try
@@ -489,11 +489,11 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            AppendLog($"branch dei cloni sorgente non letti: {ex.Message}");
+            AppendLog($"source clone branches not read: {ex.Message}");
         }
     }
 
-    // Il primo numero libero sopra gli ambienti locali; null se non ce ne sono.
+    // The first free number above the local environments; null if there is none.
     private static int? FirstFreeNumber(AppConfiguration configuration)
     {
         var used = configuration.Environments.Select(e => e.Number).ToHashSet();
@@ -511,7 +511,7 @@ public sealed class DockerPanelViewModel : ObservableObject
                 Path.TrimEndingDirectorySeparator(worktree),
                 StringComparison.OrdinalIgnoreCase)))
             {
-                return $"in ambiente {environment.Number}";
+                return $"in environment {environment.Number}";
             }
         }
 
@@ -529,10 +529,10 @@ public sealed class DockerPanelViewModel : ObservableObject
         var missing = included.Where(r => !r.BranchExists).Select(r => new ConfirmationRow(r.BranchName, r.Id)).ToList();
         if (missing.Count > 0 && !await prompt.ConfirmAsync(
                 new Confirmation(
-                    $"Crea l'ambiente {number} con branch nuovi",
-                    $"Questi branch non esistono su origin: nascono da {GitConventions.RemoteDevelopmentBranch} quando si crea l'ambiente.",
-                    [new("Branch nuovi", missing)],
-                    "Crea l'ambiente"),
+                    $"Create environment {number} with new branches",
+                    $"These branches do not exist on origin: they are created from {GitConventions.RemoteDevelopmentBranch} when the environment is created.",
+                    [new("New branches", missing)],
+                    "Create environment"),
                 lifetime).ConfigureAwait(true))
         {
             return;
@@ -545,7 +545,7 @@ public sealed class DockerPanelViewModel : ObservableObject
             RestartPoolHost);
 
         IsWorking = true;
-        AppendLog($"Nuovo ambiente Docker {number}: avvio, il dettaglio va in «Operazioni» nella sua card");
+        AppendLog($"New Docker environment {number}: starting, details go to “Operations” in its card");
         var operations = OperationLogs.Reset(number);
         try
         {
@@ -561,24 +561,24 @@ public sealed class DockerPanelViewModel : ObservableObject
     }
 
     /// <summary>
-    /// «Apri in → Nuovo ambiente Docker» del pannello PR: crea un ambiente sul primo numero libero
-    /// con i repository di <paramref name="targets"/> (per nome sul server) sui loro branch, piu'
-    /// backend e frontend senza target su <see cref="GitConventions.DevelopmentBranch"/>, con le
-    /// porte del pool di backend e frontend se il pool ha un tunnel libero. Prima fa la fetch dei cloni sorgente dei target: un branch che origin non
-    /// ha rifiuta, invece di nascere dal branch di sviluppo. Restituisce l'esito da mostrare.
+    /// “Open in → New Docker environment” from the PR panel: creates an environment on the first free number
+    /// with the <paramref name="targets"/> repositories (by name on the server) on their branches, plus
+    /// backend and frontend without a target on <see cref="GitConventions.DevelopmentBranch"/>, with
+    /// backend and frontend pool ports if the pool has a free tunnel. It first fetches the targets' source clones: a branch that origin does not
+    /// have is rejected instead of being created from the development branch. Returns the outcome to show.
     /// </summary>
     public async Task<string> CreateForBranchesAsync(IReadOnlyList<(string Repository, string Branch)> targets)
     {
-        const string subject = "Nuovo ambiente Docker";
+        const string subject = "New Docker environment";
         if (IsWorking)
         {
-            return $"{subject}: c'e' gia' un'operazione Docker in corso (creazione, Allinea seed o pool dei tunnel)";
+            return $"{subject}: a Docker operation is already in progress (creation, Align seed or tunnel pool)";
         }
 
         var configuration = ActiveConfiguration.Current;
         if (FirstFreeNumber(configuration) is not { } number)
         {
-            return $"{subject}: nessun numero libero fino a {AppConfiguration.MaxEnvironmentNumber}";
+            return $"{subject}: no free number up to {AppConfiguration.MaxEnvironmentNumber}";
         }
 
         var branches = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -594,7 +594,7 @@ public sealed class DockerPanelViewModel : ObservableObject
             {
                 if (!hasSourceClone)
                 {
-                    return $"{subject}: {repository.Id} non ha il clone sorgente, che si crea salvando il setup";
+                    return $"{subject}: {repository.Id} has no source clone; saving the setup creates it";
                 }
 
                 branches[repository.Id] = branch;
@@ -617,7 +617,7 @@ public sealed class DockerPanelViewModel : ObservableObject
             .ToList();
 
         IsWorking = true;
-        AppendLog($"Nuovo ambiente Docker {number} dalle PR: avvio, il dettaglio va in «Operazioni» nella sua card");
+        AppendLog($"New Docker environment {number} from PRs: starting, details go to “Operations” in its card");
         var operations = OperationLogs.Reset(number);
         string? error;
         try
@@ -638,22 +638,22 @@ public sealed class DockerPanelViewModel : ObservableObject
 
         _ = AfterCreateAsync();
         return error is null
-            ? $"Ambiente {number} (Docker) creato: {string.Join(", ", branches.Select(b => $"{b.Key} su {b.Value}"))}"
-            : $"Ambiente {number} (Docker) non creato: {error}";
+            ? $"Environment {number} (Docker) created: {string.Join(", ", branches.Select(b => $"{b.Key} on {b.Value}"))}"
+            : $"Environment {number} (Docker) not created: {error}";
     }
 
-    // L'esito della creazione: nel pannello una riga sola, nella card dell'ambiente anche l'errore.
-    // Se la creazione si ferma prima della colonna, l'errore resta comunque nel pannello.
+    // The creation outcome: a single line in the panel, the error in the environment card too.
+    // If creation stops before the column exists, the error still stays in the panel.
     private void ReportCreation(int number, LogSectionViewModel operations, string? error)
     {
         if (error is null)
         {
-            AppendLog($"Ambiente {number} creato");
+            AppendLog($"Environment {number} created");
             return;
         }
 
-        operations.Append($"ambiente {number} non creato: {error}");
-        AppendLog($"Ambiente {number} non creato: {error}");
+        operations.Append($"environment {number} not created: {error}");
+        AppendLog($"Environment {number} not created: {error}");
     }
 
     private async Task<string?> FetchBranchesAsync(IReadOnlyList<RepositoryConfiguration> repositories, IReadOnlyDictionary<string, string> branches, Action<string> log)
@@ -661,28 +661,28 @@ public sealed class DockerPanelViewModel : ObservableObject
         foreach (var repository in repositories)
         {
             var sourceClone = repository.SourceClone!;
-            log($"fetch del clone sorgente di {repository.Id}");
+            log($"fetching the source clone of {repository.Id}");
             if (await SourceCloneRepository.FetchAsync(sourceClone, log, lifetime).ConfigureAwait(false) is { } fetchError)
             {
-                return $"fetch del clone sorgente di {repository.Id} non riuscito: {fetchError}";
+                return $"fetch of the source clone of {repository.Id} failed: {fetchError}";
             }
 
             var remote = await SourceCloneRepository.RemoteBranchesAsync(sourceClone, lifetime).ConfigureAwait(false);
             if (remote is null)
             {
-                return $"branch di {sourceClone} non leggibili";
+                return $"branches of {sourceClone} cannot be read";
             }
 
             if (!remote.Contains(branches[repository.Id], StringComparer.Ordinal))
             {
-                return $"il branch {branches[repository.Id]} di {repository.Id} non esiste su origin";
+                return $"branch {branches[repository.Id]} of {repository.Id} does not exist on origin";
             }
         }
 
         return null;
     }
 
-    // La creazione vera e propria, dopo i controlli di chi chiama: errore o null.
+    // The actual creation, after the caller's checks: error or null.
     private async Task<string?> ProvisionAsync(DockerCreateRequest request, Action<string> log)
     {
         var number = request.Number;
@@ -694,8 +694,8 @@ public sealed class DockerPanelViewModel : ObservableObject
                     request,
                     definition => UiThread.Run(() =>
                     {
-                        // La voce e' gia' in config.json: la configurazione in memoria e la griglia la seguono
-                        // subito, se la rilettura di config.json non l'ha gia' portata.
+                        // The entry is already in config.json: the in-memory configuration and the grid follow it
+                        // right away, unless re-reading config.json has already brought it in.
                         if (ActiveConfiguration.Current.Environment(definition.Number) is null)
                         {
                             ActiveConfiguration.Current.Environments.Add(definition);
@@ -731,7 +731,7 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
     }
 
-    // Con una porta nuova l'host acceso di quel tunnel non la serve finche' non riparte (P02).
+    // With a new port, that tunnel's running host does not serve it until it restarts (P02).
     private static bool RestartPoolHost(int index) => PoolHosts.Ensure(ActiveConfiguration.Current, index);
 
     public void AppendLog(string line) => UiThread.Run(() =>
@@ -767,14 +767,14 @@ public sealed class DockerPanelViewModel : ObservableObject
         {
             var configuration = ActiveConfiguration.Current;
             var seed = configuration.PrimarySeed()?.Seed;
-            var seedLine = seed is null || seed.Path.Length == 0 ? "seed: non configurato nella card del backend" : $"seed: {seed.Path}";
+            var seedLine = seed is null || seed.Path.Length == 0 ? "seed: not configured in the backend card" : $"seed: {seed.Path}";
             var (missing, error) = await SeedMigrations.MissingOnDevAsync(configuration, fetch, lifetime).ConfigureAwait(false);
             var total = missing?.Values.Sum(m => m.Count) ?? 0;
             var detail = missing is null
-                ? error ?? "migrazioni mancanti non lette"
+                ? error ?? "missing migrations not read"
                 : total == 0
-                    ? $"0 migrazioni mancanti rispetto a {GitConventions.RemoteDevelopmentBranch}"
-                    : $"{total} migrazioni mancanti rispetto a {GitConventions.RemoteDevelopmentBranch}: {string.Join(", ", missing.Where(m => m.Value.Count > 0).Select(m => $"{m.Key} {m.Value.Count}"))}";
+                    ? $"0 migrations missing compared to {GitConventions.RemoteDevelopmentBranch}"
+                    : $"{total} migrations missing compared to {GitConventions.RemoteDevelopmentBranch}: {string.Join(", ", missing.Where(m => m.Value.Count > 0).Select(m => $"{m.Key} {m.Value.Count}"))}";
             UiThread.Run(() =>
             {
                 SeedText = seedLine;
@@ -787,7 +787,7 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            UiThread.Run(() => MissingText = $"migrazioni mancanti non lette: {ex.Message}");
+            UiThread.Run(() => MissingText = $"missing migrations not read: {ex.Message}");
         }
     }
 
@@ -799,17 +799,17 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
 
         UiThread.Run(() => IsWorking = true);
-        AppendLog("Allinea seed: avvio");
+        AppendLog("Align seed: starting");
         try
         {
             var error = await Task.Run(
                 () => SeedAligner.AlignAsync(ActiveConfiguration.Current, OnNewSeedPath, AppendLog, lifetime),
                 lifetime).ConfigureAwait(false);
-            AppendLog(error is null ? "Allinea seed: fatto" : $"Allinea seed non riuscito: {error}");
+            AppendLog(error is null ? "Align seed: done" : $"Align seed failed: {error}");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            AppendLog($"Allinea seed non riuscito: {ex.Message}");
+            AppendLog($"Align seed failed: {ex.Message}");
         }
         finally
         {
@@ -819,8 +819,8 @@ public sealed class DockerPanelViewModel : ObservableObject
         await RefreshSeedAsync(fetch: true).ConfigureAwait(false);
     }
 
-    // L'aligner ha gia' scritto seed.path in config.json: la configurazione in memoria lo segue,
-    // cosi' gli ambienti creati dopo ripristinano il seed nuovo senza riavvio.
+    // The aligner has already written seed.path to config.json: the in-memory configuration follows it,
+    // so environments created afterwards restore the new seed without a restart.
     private void OnNewSeedPath(string path) => UiThread.Run(() =>
     {
         if (ActiveConfiguration.Current.PrimarySeed() is { Seed: { } seed } backend)
@@ -830,17 +830,17 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
     });
 
-    /// <summary>Rilegge tunnel del pool, porte e assegnazioni (devtunnel show) e lo stato degli host.</summary>
+    /// <summary>Reads the pool tunnels, ports and assignments (devtunnel show) and the host status again.</summary>
     public async Task RefreshPoolAsync()
     {
         try
         {
-            // devtunnel list e show impiegano qualche secondo: senza un elenco gia' letto la scheda lo dice.
+            // devtunnel list and show take a few seconds: without a list already read, the tab says so.
             UiThread.Run(() =>
             {
                 if (PoolTunnels.Count == 0)
                 {
-                    PoolText = "Lettura del pool da devtunnel…";
+                    PoolText = "Reading the pool from devtunnel…";
                 }
             });
 
@@ -850,7 +850,7 @@ public sealed class DockerPanelViewModel : ObservableObject
                 UiThread.Run(() =>
                 {
                     PoolTunnels.Clear();
-                    PoolText = "Nessun tunnel nel pool: creali con i bottoni qui sotto.";
+                    PoolText = "No tunnels in the pool: create them with the buttons below.";
                 });
                 return;
             }
@@ -860,8 +860,8 @@ public sealed class DockerPanelViewModel : ObservableObject
             var rows = new List<PoolTunnelRowViewModel>();
             foreach (var state in states)
             {
-                // Le porte di un ambiente che c'e' si rilasciano spegnendo il suo tunnel: qui restano
-                // solo quelle di un ambiente che non c'e' piu'.
+                // The ports of an existing environment are released by turning off its tunnel: only those
+                // of an environment that no longer exists remain here.
                 var orphans = state.Assignments
                     .Where(a => configuration.Environment(a.Environment) is null)
                     .Select(a => new PoolAssignmentRowViewModel(a, new AsyncCommand(() => ReleaseAsync(a))))
@@ -887,8 +887,8 @@ public sealed class DockerPanelViewModel : ObservableObject
 
                 var owners = states.SelectMany(s => s.Assignments).Select(a => a.Environment).Distinct().Order().ToList();
                 PoolText = owners.Count == 0
-                    ? $"{rows.Count} tunnel, tutti liberi"
-                    : $"{states.Count(s => s.Assignments.Count > 0)} tunnel su {rows.Count} in uso: {(owners.Count == 1 ? "ambiente" : "ambienti")} {string.Join(", ", owners)}";
+                    ? $"{rows.Count} tunnels, all free"
+                    : $"{states.Count(s => s.Assignments.Count > 0)} of {rows.Count} tunnels in use: {(owners.Count == 1 ? "environment" : "environments")} {string.Join(", ", owners)}";
             });
         }
         catch (OperationCanceledException)
@@ -896,7 +896,7 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
         catch (Exception ex)
         {
-            UiThread.Run(() => PoolText = $"pool non letto: {ex.Message}");
+            UiThread.Run(() => PoolText = $"pool not read: {ex.Message}");
         }
     }
 
@@ -910,13 +910,13 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
 
         var configuration = ActiveConfiguration.Current;
-        AppendLog($"Rilascio della porta {assignment.Port} di {assignment.Repository} dell'ambiente {assignment.Environment}");
+        AppendLog($"Releasing port {assignment.Port} of {assignment.Repository} in environment {assignment.Environment}");
         try
         {
             var error = await TunnelPool.ReleaseAsync(configuration, assignment.Environment, AppendLog, lifetime, assignment.Repository).ConfigureAwait(false);
             if (error is not null)
             {
-                AppendLog($"rilascio non riuscito: {error}");
+                AppendLog($"release failed: {error}");
             }
             else
             {
@@ -925,7 +925,7 @@ public sealed class DockerPanelViewModel : ObservableObject
                     AppendLog(stopped);
                 }
 
-                // Un ambiente che non c'e' piu' non ha env da riscrivere.
+                // An environment that no longer exists has no env files to rewrite.
                 if (configuration.Environment(assignment.Environment) is not null)
                 {
                     await Soffritto.Core.Env.EnvPoolSync
@@ -936,16 +936,16 @@ public sealed class DockerPanelViewModel : ObservableObject
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            AppendLog($"rilascio non riuscito: {ex.Message}");
+            AppendLog($"release failed: {ex.Message}");
         }
 
         await RefreshPoolAsync().ConfigureAwait(false);
     }
 }
 
-/// <summary>Un tunnel del pool nel pannello: di quale ambiente e', lo stato dell'host e le porte rimaste orfane.</summary>
-/// <param name="inPool">Falso per le assegnazioni su una Description tolta dal pool.</param>
-/// <param name="orphans">Le porte assegnate a un ambiente che non c'e' piu'.</param>
+/// <summary>A pool tunnel in the panel: which environment it belongs to, the host status and any orphaned ports.</summary>
+/// <param name="inPool">False for assignments on a Description removed from the pool.</param>
+/// <param name="orphans">The ports assigned to an environment that no longer exists.</param>
 public sealed class PoolTunnelRowViewModel(
     PoolTunnelState state,
     bool inPool,
@@ -958,48 +958,48 @@ public sealed class PoolTunnelRowViewModel(
         var owners = state.Assignments.Select(a => a.Environment).Distinct().Order().ToList();
         return owners.Count switch
         {
-            0 => "libero",
-            1 => $"ambiente {owners[0]}",
-            _ => $"ambienti {string.Join(", ", owners)}",
+            0 => "free",
+            1 => $"environment {owners[0]}",
+            _ => $"environments {string.Join(", ", owners)}",
         };
     }
 
-    /// <summary>Solo un tunnel senza porte assegnate si elimina: prima si spegne il tunnel dell'ambiente.</summary>
+    /// <summary>Only a tunnel with no assigned ports can be deleted: turn off the environment's tunnel first.</summary>
     public bool CanDelete { get; } = state.Assignments.Count == 0;
 
     public string DeleteToolTip { get; } = state.Assignments.Count == 0
-        ? $"Cancella il tunnel {state.Description} dall'account devtunnel e lo toglie dal pool"
-        : $"{state.Description} e' in uso: spegni prima «Tunnel» nell'intestazione dell'ambiente";
+        ? $"Deletes tunnel {state.Description} from the devtunnel account and removes it from the pool"
+        : $"{state.Description} is in use: first turn off “Tunnel” in the environment header";
 
     public ICommand DeleteCommand { get; } = deleteCommand;
 
-    public string Title { get; } = $"{state.Description} · {OwnerOf(state)}{(inPool ? string.Empty : " · fuori dal pool")}";
+    public string Title { get; } = $"{state.Description} · {OwnerOf(state)}{(inPool ? string.Empty : " · outside the pool")}";
 
-    /// <summary>Solo cio' che non torna: errore di lettura o differenze tra devtunnel e tunnel-pool.json.</summary>
+    /// <summary>Only what does not add up: a read error or differences between devtunnel and tunnel-pool.json.</summary>
     public string Detail { get; } = state.Error ?? string.Join("; ", state.Differences);
 
     public string DetailVisibility => Detail.Length > 0 ? "Visible" : "Collapsed";
 
     public string HostColor { get; } = ConsoleServices.ColorOf(hostState);
 
-    public string HostText { get; } = $"{state.TunnelId ?? "tunnel non trovato"} · {state.Ports.Count} porte su {TunnelPool.MaxPortsPerTunnel} · host: {ConsoleServices.Describe(hostState)}";
+    public string HostText { get; } = $"{state.TunnelId ?? "tunnel not found"} · {state.Ports.Count} of {TunnelPool.MaxPortsPerTunnel} ports · host: {ConsoleServices.Describe(hostState)}";
 
     public IReadOnlyList<PoolAssignmentRowViewModel> Assignments { get; } = orphans;
 }
 
-/// <summary>Una porta del pool rimasta a un ambiente che non c'e' piu': si rilascia da qui.</summary>
+/// <summary>A pool port still held by an environment that no longer exists: release it from here.</summary>
 public sealed class PoolAssignmentRowViewModel(PoolAssignment assignment, ICommand releaseCommand)
 {
-    public string Text { get; } = $"porta {assignment.Port} · ambiente {assignment.Environment} (non c'e' piu') · {assignment.Repository}";
+    public string Text { get; } = $"port {assignment.Port} · environment {assignment.Environment} (no longer exists) · {assignment.Repository}";
 
     public string Url { get; } = string.Empty;
 
-    public string ReleaseToolTip { get; } = $"Rilascia la porta {assignment.Port} di {assignment.Repository} dell'ambiente {assignment.Environment}";
+    public string ReleaseToolTip { get; } = $"Releases port {assignment.Port} of {assignment.Repository} in environment {assignment.Environment}";
 
     public ICommand ReleaseCommand { get; } = releaseCommand;
 }
 
-/// <summary>Un repository nel modulo «Nuovo ambiente Docker»: incluso o no, e su quale branch.</summary>
+/// <summary>A repository in the “New Docker environment” form: included or not, and on which branch.</summary>
 public sealed class CreateRepositoryRowViewModel : ObservableObject
 {
     private const string HeldSuffix = " (in ";
@@ -1021,8 +1021,8 @@ public sealed class CreateRepositoryRowViewModel : ObservableObject
         include = hasSourceClone && repository.Type is RepositoryType.Backend or RepositoryType.Frontend;
         branch = hasSourceClone ? GitConventions.DevelopmentBranch : string.Empty;
         ToolTip = hasSourceClone
-            ? $"{Id}: worktree dal clone sorgente {repository.SourceClone}"
-            : $"{Id}: senza clone sorgente nel setup non entra in un ambiente Docker";
+            ? $"{Id}: worktree from the source clone {repository.SourceClone}"
+            : $"{Id}: without a source clone in the setup it cannot join a Docker environment";
     }
 
     public string Id { get; }
@@ -1035,7 +1035,7 @@ public sealed class CreateRepositoryRowViewModel : ObservableObject
 
     public string ToolTip { get; }
 
-    /// <summary>I branch remoti; quelli gia' in un worktree hanno il suffisso «(in ambiente M)».</summary>
+    /// <summary>The remote branches; those already in a worktree carry the suffix “(in environment M)”.</summary>
     public IReadOnlyList<string> Branches { get; }
 
     public bool Include
@@ -1050,7 +1050,7 @@ public sealed class CreateRepositoryRowViewModel : ObservableObject
         }
     }
 
-    /// <summary>Il testo della tendina, anche scritto a mano (un branch nuovo nasce da origin/dev).</summary>
+    /// <summary>The drop-down text, possibly typed by hand (a new branch is created from origin/dev).</summary>
     public string Branch
     {
         get => branch;

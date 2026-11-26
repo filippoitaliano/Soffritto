@@ -4,21 +4,21 @@ using System.Runtime.InteropServices;
 namespace Soffritto.Desktop.Infrastructure;
 
 /// <summary>
-/// ProcessRunner uccide i processi figli solo quando la loro attesa viene cancellata: se l'exe
-/// muore in altro modo (crash, kill, logoff) git, devtunnel o dotnet ef resterebbero orfani.
-/// Con il processo dentro un job kill-on-close e' il sistema, chiudendo l'ultimo handle del job
-/// alla morte dell'exe, a terminare tutto l'albero.
+/// ProcessRunner kills child processes only when waiting on them is cancelled: if the exe dies
+/// some other way (crash, kill, logoff) git, devtunnel or dotnet ef would be left orphaned.
+/// With the process inside a kill-on-close job, the system terminates the whole tree by closing
+/// the job's last handle when the exe dies.
 /// </summary>
 internal static class ChildProcessJob
 {
     private const int JobObjectExtendedLimitInformation = 9;
     private const uint JobObjectLimitKillOnJobClose = 0x2000;
 
-    // Permette a DetachedLauncher di avviare fuori dal job cio' che deve sopravvivere all'exe
-    // (Visual Studio, VS Code, le console di Kestrel, dev server e app).
+    // Lets DetachedLauncher start outside the job whatever must outlive the exe
+    // (Visual Studio, VS Code, the Kestrel, dev server and app consoles).
     private const uint JobObjectLimitBreakawayOk = 0x0800;
 
-    // Tenuto per tutta la vita del processo: chiuderlo terminerebbe i figli.
+    // Kept for the whole life of the process: closing it would terminate the children.
     private static IntPtr job;
 
     public static bool IsAttached => job != IntPtr.Zero;

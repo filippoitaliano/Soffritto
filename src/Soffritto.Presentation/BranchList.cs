@@ -1,11 +1,11 @@
 namespace Soffritto.Presentation;
 
-/// <summary>Algoritmo delle voci della tendina dei branch, indipendente dal tipo di lista dell'host.</summary>
+/// <summary>Algorithm for the items of the branch drop-down, independent of the host's list type.</summary>
 public static class BranchList
 {
     /// <summary>
-    /// Il corrente sta sempre in testa, anche se non passa il filtro; poi i nomi che contengono
-    /// il filtro senza distinguere le maiuscole. Corrente null (git non disponibile): nessuna voce.
+    /// The current branch always comes first, even if it does not match the filter; then the names that
+    /// contain the filter, case-insensitively. Null current branch (git unavailable): no items.
     /// </summary>
     public static IReadOnlyList<string> Desired(string? current, IReadOnlyList<string> all, string filter)
     {
@@ -21,8 +21,8 @@ public static class BranchList
         return desired;
     }
 
-    // La lista viene riallineata voce per voce invece di svuotata e riempita: con la ComboBox
-    // editabile, togliere la voce selezionata azzera anche il testo che l'utente sta scrivendo.
+    // The list is realigned item by item instead of being cleared and refilled: with an editable
+    // ComboBox, removing the selected item also wipes the text the user is typing.
     public static void Sync(IList<string> target, IReadOnlyList<string> desired)
     {
         for (var i = 0; i < desired.Count; i++)

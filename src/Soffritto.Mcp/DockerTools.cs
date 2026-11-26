@@ -9,23 +9,23 @@ using Soffritto.Presentation;
 namespace Soffritto.Mcp;
 
 /// <summary>
-/// Gli strumenti di scrittura degli ambienti Docker: le stesse azioni dell'exe (il «+» della
-/// testata e le colonne), sulle stesse API di Core. Le operazioni lunghe girano in background (<see cref="Operations"/>).
+/// The write tools for Docker environments: the same actions as the app (the “+” in the
+/// header and the columns), on the same Core APIs. Long operations run in the background (<see cref="Operations"/>).
 /// </summary>
 [McpServerToolType]
 public static class DockerTools
 {
-    private const string WaitDescription = "Secondi da aspettare la fine prima di rispondere (0-110): se l'operazione dura di piu' la risposta contiene l'id da seguire con stato_operazione.";
+    private const string WaitDescription = "Seconds to wait for completion before responding (0-110): if the operation takes longer, the response contains the id to follow with operation_status.";
 
-    [McpServerTool(Name = "stato_ambiente_docker", ReadOnly = true, Idempotent = true, OpenWorld = false)]
-    [Description("Stato di un ambiente Docker N: per ogni repository il worktree (cartella su cui lavorare), il branch e lo stato git; per ogni servizio del compose (database, api, web) il container e se risponde; indirizzi locali e URL del pool; console del Compose Watch del web; migrazioni EF del database dello slot rispetto al branch del worktree; nota dell'ambiente; operazione in corso. Solo lettura; impiega qualche secondo.")]
-    public static async Task<string> StatoAmbienteDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
+    [McpServerTool(Name = "docker_environment_status", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [Description("Status of Docker environment N: for each repository the worktree (the folder to work in), the branch and the git status; for each compose service (database, api, web) the container and whether it responds; local addresses and pool URLs; the web's Compose Watch console; EF migrations of the slot database against the worktree's branch; the environment note; the running operation. Read-only; takes a few seconds.")]
+    public static async Task<string> DockerEnvironmentStatus(
+        [Description("Docker environment number.")] int number,
         CancellationToken cancellationToken = default)
     {
-        if (Resolve(numero, out var configuration, out var slot) is { } error)
+        if (Resolve(number, out var configuration, out var slot) is { } error)
         {
-            return EnvironmentTools.Serialize(new { errore = error });
+            return EnvironmentTools.Serialize(new { error });
         }
 
         var docker = await DockerStatusReader.ReadAsync(cancellationToken).ConfigureAwait(false);
@@ -40,10 +40,10 @@ public static class DockerTools
                 && (isDatabase ? databaseReady : await DockerReadinessProbe.HttpAsync(port, cancellationToken).ConfigureAwait(false));
             services.Add(new
             {
-                servizio = service,
-                stato = container is null ? "assente" : answers ? "pronto" : container.RunState == ContainerRunState.Stopped ? "fermo" : "in avvio",
+                service,
+                status = container is null ? "missing" : answers ? "ready" : container.RunState == ContainerRunState.Stopped ? "stopped" : "starting",
                 container = container?.Status,
-                indirizzo = isDatabase ? $"127.0.0.1,{port}" : $"http://localhost:{port}/",
+                address = isDatabase ? $"127.0.0.1,{port}" : $"http://localhost:{port}/",
             });
         }
 
@@ -54,9 +54,9 @@ public static class DockerTools
             repositories.Add(new
             {
                 id = entry.Id,
-                tipo = AppConfiguration.TypeName(entry.Type),
+                type = AppConfiguration.TypeName(entry.Type),
                 worktree = entry.Path,
-                esiste = Directory.Exists(entry.Path),
+                exists = Directory.Exists(entry.Path),
                 git = git is null ? null : EnvironmentTools.GitSection(git),
             });
         }
@@ -69,68 +69,68 @@ public static class DockerTools
                 backendEntry.Path,
                 options,
                 cancellationToken,
-                databaseReady ? null : "database dello slot spento o in avvio").ConfigureAwait(false);
+                databaseReady ? null : "slot database stopped or starting").ConfigureAwait(false);
             database = EnvironmentTools.DatabaseSection(backendEntry.Path, options, report);
         }
 
-        var poolUrls = await DockerEnvironmentProvisioner.PoolUrlsAsync(numero, cancellationToken).ConfigureAwait(false);
+        var poolUrls = await DockerEnvironmentProvisioner.PoolUrlsAsync(number, cancellationToken).ConfigureAwait(false);
         return EnvironmentTools.Serialize(new
         {
-            ambiente = numero,
-            progettoCompose = slot.Project,
-            cartellaSlot = slot.ComposeFolder,
+            environment = number,
+            composeProject = slot.Project,
+            slotFolder = slot.ComposeFolder,
             docker = docker.Error,
-            servizi = services,
-            watchDelWeb = slot.HasContainerizedFrontend
+            services,
+            webWatch = slot.HasContainerizedFrontend
                 ? ConsoleServices.Describe(DockerWatchConsole.StateOf(ProcessTable.Read([]), slot))
                 : null,
-            urlDelPool = poolUrls.Count > 0 ? poolUrls : null,
+            poolUrls = poolUrls.Count > 0 ? poolUrls : null,
             repository = repositories,
             database,
-            nota = ReadNote(numero),
-            operazioneInCorso = Operations.RunningOn(numero)?.Snapshot(10),
+            note = ReadNote(number),
+            runningOperation = Operations.RunningOn(number)?.Snapshot(10),
         });
     }
 
-    [McpServerTool(Name = "crea_ambiente_docker", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
-    [Description("Crea un ambiente Docker: per ogni repository un worktree sul branch indicato (un branch che non esiste su origin nasce dal branch di sviluppo principale, senza upstream), env scritti, database dello slot ripristinato dal seed e migrato al branch, container di database, api e web accesi, Compose Watch del web aperto. Si lavora nei worktree: il codice salvato arriva al container del web dal watch, l'api si ricostruisce con avvia_servizio_docker. Dura qualche minuto: risponde con l'operazione da seguire.")]
-    public static Task<string> CreaAmbienteDocker(
-        [Description("Repository da includere e branch di ognuno, per id del catalogo (vedi elenca_ambienti), es. { \"backend\": \"feature/123-ordini\", \"frontend\": \"feature/123-ordini\" }. Serve il backend con il compose.")] Dictionary<string, string> branch,
-        [Description("Numero dell'ambiente; vuoto = il numero libero piu' basso.")] int? numero = null,
-        [Description("Accende il tunnel dell'ambiente: backend e frontend ricevono una porta di un tunnel del pool, per raggiungerli da fuori. Con il pool pieno la creazione si ferma con l'errore.")] bool portePool = false,
-        [Description("Testo della nota dell'ambiente, visibile sulla colonna dell'exe (es. il lavoro a cui e' dedicato).")] string? nota = null,
-        [Description(WaitDescription)] int attesaSecondi = 20,
+    [McpServerTool(Name = "create_docker_environment", ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
+    [Description("Creates a Docker environment: for each repository a worktree on the given branch (a branch that does not exist on origin is created from the main development branch, without upstream), env files written, slot database restored from the seed and migrated to the branch, database, api and web containers started, the web's Compose Watch opened. Work happens in the worktrees: saved code reaches the web container through the watch, the api is rebuilt with start_docker_service. Takes a few minutes: responds with the operation to follow.")]
+    public static Task<string> CreateDockerEnvironment(
+        [Description("Repositories to include and the branch of each, by catalog id (see list_environments), e.g. { \"backend\": \"feature/123-orders\", \"frontend\": \"feature/123-orders\" }. The backend with the compose file is required.")] Dictionary<string, string> branch,
+        [Description("Environment number; empty = the lowest free number.")] int? number = null,
+        [Description("Turns on the environment's tunnel: backend and frontend get a port on a pool tunnel, so they can be reached from outside. If the pool is full, creation stops with the error.")] bool enableTunnel = false,
+        [Description("Text of the environment note, shown on the environment's column in the app (e.g. the work it is dedicated to).")] string? note = null,
+        [Description(WaitDescription)] int waitSeconds = 20,
         CancellationToken cancellationToken = default)
         => Run(async () =>
         {
             if (EnvironmentTools.LoadConfiguration(out var error) is not { } configuration)
             {
-                return new { errore = error };
+                return new { error };
             }
 
-            var number = numero ?? Enumerable.Range(1, AppConfiguration.MaxEnvironmentNumber).FirstOrDefault(n => configuration.Environment(n) is null);
-            if (number == 0)
+            var environmentNumber = number ?? Enumerable.Range(1, AppConfiguration.MaxEnvironmentNumber).FirstOrDefault(n => configuration.Environment(n) is null);
+            if (environmentNumber == 0)
             {
-                return new { errore = "nessun numero libero per un ambiente nuovo" };
+                return new { error = "no free number for a new environment" };
             }
 
             var branches = branch.ToDictionary(p => p.Key, p => p.Value.Trim(), StringComparer.OrdinalIgnoreCase);
             var included = configuration.Repositories.Where(r => branches.ContainsKey(r.Id)).ToList();
-            var pool = portePool
+            var pool = enableTunnel
                 ? included.Where(r => r.Type is RepositoryType.Backend or RepositoryType.Frontend).Select(r => r.Id).ToList()
                 : null;
-            var request = new DockerCreateRequest(number, branches, pool, index => PoolHosts.Ensure(configuration, index));
+            var request = new DockerCreateRequest(environmentNumber, branches, pool, index => PoolHosts.Ensure(configuration, index));
 
-            return await Operations.RunAsync("crea", number, attesaSecondi, async (operation, ct) =>
+            return await Operations.RunAsync("create", environmentNumber, waitSeconds, async (operation, ct) =>
             {
                 var createError = await DockerEnvironmentProvisioner.CreateAsync(
                     configuration,
                     request,
                     _ =>
                     {
-                        if (!string.IsNullOrWhiteSpace(nota))
+                        if (!string.IsNullOrWhiteSpace(note))
                         {
-                            WriteNote(number, nota);
+                            WriteNote(environmentNumber, note);
                         }
                     },
                     operation.Log,
@@ -140,10 +140,10 @@ public static class DockerTools
                     return (createError, null);
                 }
 
-                // CreateAsync registra la voce in config.json, non nella configurazione passata.
-                if (EnvironmentTools.LoadConfiguration(out var reloadError) is not { } reloaded || reloaded.Environment(number) is not { } created)
+                // CreateAsync records the entry in config.json, not in the configuration passed in.
+                if (EnvironmentTools.LoadConfiguration(out var reloadError) is not { } reloaded || reloaded.Environment(environmentNumber) is not { } created)
                 {
-                    return ($"ambiente {number} creato, ma config.json non si rilegge: {reloadError}", null);
+                    return ($"environment {environmentNumber} created, but config.json cannot be reloaded: {reloadError}", null);
                 }
 
                 var slot = DockerSlot.Of(reloaded, created);
@@ -156,15 +156,15 @@ public static class DockerTools
             }, cancellationToken).ConfigureAwait(false);
         });
 
-    [McpServerTool(Name = "avvia_ambiente_docker", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Accende i container dell'ambiente Docker (docker compose up -d --build, con gli env_file riscritti), apre il Compose Watch del web e, se l'ambiente ha il tunnel, riaccende il suo host caduto o chiuso. Ricostruisce le immagini se il codice e' cambiato.")]
-    public static Task<string> AvviaAmbienteDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
-        [Description(WaitDescription)] int attesaSecondi = 20,
+    [McpServerTool(Name = "start_docker_environment", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Starts the Docker environment's containers (docker compose up -d --build, with the env_file files rewritten), opens the web's Compose Watch and, if the environment has its tunnel on, restarts the tunnel host if it dropped or was closed. Rebuilds the images if the code has changed.")]
+    public static Task<string> StartDockerEnvironment(
+        [Description("Docker environment number.")] int number,
+        [Description(WaitDescription)] int waitSeconds = 20,
         CancellationToken cancellationToken = default)
-        => OnSlot(numero, "avvia", attesaSecondi, async (configuration, slot, operation, ct) =>
+        => OnSlot(number, "start", waitSeconds, async (configuration, slot, operation, ct) =>
         {
-            if (await DockerEnvironmentProvisioner.StartAsync(configuration, numero, operation.Log, ct).ConfigureAwait(false) is { } error)
+            if (await DockerEnvironmentProvisioner.StartAsync(configuration, number, operation.Log, ct).ConfigureAwait(false) is { } error)
             {
                 return (error, null);
             }
@@ -174,219 +174,219 @@ public static class DockerTools
                 operation.Log(DockerWatchConsole.Start(ProcessTable.Read([]), slot));
             }
 
-            EnvironmentTunnel.RestoreHosts(numero, operation.Log);
+            EnvironmentTunnel.RestoreHosts(number, operation.Log);
 
             return (null, Summary(slot));
         }, cancellationToken);
 
-    [McpServerTool(Name = "ferma_ambiente_docker", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Chiude il Compose Watch del web e ferma i container dell'ambiente Docker (docker compose stop). Worktree, database e immagini restano.")]
-    public static Task<string> FermaAmbienteDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
-        [Description(WaitDescription)] int attesaSecondi = 30,
+    [McpServerTool(Name = "stop_docker_environment", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Closes the web's Compose Watch and stops the Docker environment's containers (docker compose stop). Worktrees, database and images are kept.")]
+    public static Task<string> StopDockerEnvironment(
+        [Description("Docker environment number.")] int number,
+        [Description(WaitDescription)] int waitSeconds = 30,
         CancellationToken cancellationToken = default)
-        => OnSlot(numero, "ferma", attesaSecondi, async (configuration, slot, operation, ct) =>
+        => OnSlot(number, "stop", waitSeconds, async (configuration, slot, operation, ct) =>
         {
             if (slot.HasContainerizedFrontend)
             {
                 operation.Log(DockerWatchConsole.Stop(ProcessTable.Read([]), slot));
             }
 
-            var (outcome, allStopped) = await DockerEnvironmentProvisioner.StopAsync(configuration, numero, operation.Log, ct).ConfigureAwait(false);
-            return (allStopped ? null : outcome, new { esito = outcome });
+            var (outcome, allStopped) = await DockerEnvironmentProvisioner.StopAsync(configuration, number, operation.Log, ct).ConfigureAwait(false);
+            return (allStopped ? null : outcome, new { result = outcome });
         }, cancellationToken);
 
-    [McpServerTool(Name = "avvia_servizio_docker", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Accende o ricostruisce un servizio dell'ambiente Docker (up -d --build per api e web, up -d per il database), con il suo env_file riscritto. Dopo modifiche al codice del backend serve per vederle nell'api; per il web apre anche il Compose Watch.")]
-    public static Task<string> AvviaServizioDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
-        [Description("Servizio del compose: quello dell'api, del web o del database (i nomi sono in stato_ambiente_docker).")] string servizio,
-        [Description(WaitDescription)] int attesaSecondi = 20,
+    [McpServerTool(Name = "start_docker_service", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Starts or rebuilds a service of the Docker environment (up -d --build for api and web, up -d for the database), with its env_file rewritten. After changes to the backend code, use it to see them in the api; for the web it also opens the Compose Watch.")]
+    public static Task<string> StartDockerService(
+        [Description("Docker environment number.")] int number,
+        [Description("Compose service: the api, web or database one (the names are in docker_environment_status).")] string service,
+        [Description(WaitDescription)] int waitSeconds = 20,
         CancellationToken cancellationToken = default)
-        => OnSlot(numero, $"avvia {servizio}", attesaSecondi, async (configuration, slot, operation, ct) =>
+        => OnSlot(number, $"start {service}", waitSeconds, async (configuration, slot, operation, ct) =>
         {
-            if (await DockerEnvironmentProvisioner.StartServiceAsync(configuration, numero, servizio, operation.Log, ct).ConfigureAwait(false) is { } error)
+            if (await DockerEnvironmentProvisioner.StartServiceAsync(configuration, number, service, operation.Log, ct).ConfigureAwait(false) is { } error)
             {
                 return (error, null);
             }
 
-            if (string.Equals(servizio, slot.WebService, StringComparison.Ordinal))
+            if (string.Equals(service, slot.WebService, StringComparison.Ordinal))
             {
                 operation.Log(DockerWatchConsole.Start(ProcessTable.Read([]), slot));
             }
 
-            return (null, new { esito = $"{servizio} acceso" });
+            return (null, new { result = $"{service} started" });
         }, cancellationToken);
 
-    [McpServerTool(Name = "ferma_servizio_docker", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Ferma un servizio dell'ambiente Docker (docker compose stop); per il web chiude prima il Compose Watch.")]
-    public static Task<string> FermaServizioDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
-        [Description("Servizio del compose: quello dell'api, del web o del database.")] string servizio,
-        [Description(WaitDescription)] int attesaSecondi = 30,
+    [McpServerTool(Name = "stop_docker_service", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Stops a service of the Docker environment (docker compose stop); for the web it closes the Compose Watch first.")]
+    public static Task<string> StopDockerService(
+        [Description("Docker environment number.")] int number,
+        [Description("Compose service: the api, web or database one.")] string service,
+        [Description(WaitDescription)] int waitSeconds = 30,
         CancellationToken cancellationToken = default)
-        => OnSlot(numero, $"ferma {servizio}", attesaSecondi, async (configuration, slot, operation, ct) =>
+        => OnSlot(number, $"stop {service}", waitSeconds, async (configuration, slot, operation, ct) =>
         {
-            if (string.Equals(servizio, slot.WebService, StringComparison.Ordinal))
+            if (string.Equals(service, slot.WebService, StringComparison.Ordinal))
             {
                 operation.Log(DockerWatchConsole.Stop(ProcessTable.Read([]), slot));
             }
 
-            var error = await DockerEnvironmentProvisioner.StopServiceAsync(configuration, numero, servizio, operation.Log, ct).ConfigureAwait(false);
-            return (error, error is null ? new { esito = $"{servizio} fermato" } : null);
+            var error = await DockerEnvironmentProvisioner.StopServiceAsync(configuration, number, service, operation.Log, ct).ConfigureAwait(false);
+            return (error, error is null ? new { result = $"{service} stopped" } : null);
         }, cancellationToken);
 
-    [McpServerTool(Name = "log_servizio_docker", ReadOnly = true, Idempotent = true, OpenWorld = false)]
-    [Description("Le ultime righe del log di un servizio dell'ambiente Docker (docker compose logs --tail).")]
-    public static async Task<string> LogServizioDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
-        [Description("Servizio del compose: quello dell'api, del web o del database.")] string servizio,
-        [Description("Quante righe dalla fine (1-2000).")] int righe = 200,
+    [McpServerTool(Name = "docker_service_logs", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [Description("The last lines of the log of a service of the Docker environment (docker compose logs --tail).")]
+    public static async Task<string> DockerServiceLogs(
+        [Description("Docker environment number.")] int number,
+        [Description("Compose service: the api, web or database one.")] string service,
+        [Description("How many lines from the end (1-2000).")] int lines = 200,
         CancellationToken cancellationToken = default)
     {
-        if (Resolve(numero, out _, out var slot) is { } error)
+        if (Resolve(number, out _, out var slot) is { } error)
         {
-            return EnvironmentTools.Serialize(new { errore = error });
+            return EnvironmentTools.Serialize(new { error });
         }
 
-        if (!Services(slot).Any(s => s.Service == servizio))
+        if (!Services(slot).Any(s => s.Service == service))
         {
-            return EnvironmentTools.Serialize(new { errore = $"{servizio} non e' un servizio dell'ambiente {numero} ({string.Join(", ", Services(slot).Select(s => s.Service))})" });
+            return EnvironmentTools.Serialize(new { error = $"{service} is not a service of environment {number} ({string.Join(", ", Services(slot).Select(s => s.Service))})" });
         }
 
         var logs = await ComposeRunner.RunAsync(
             slot,
-            $"logs --no-color --tail {Math.Clamp(righe, 1, 2000)} {servizio}",
-            web: string.Equals(servizio, slot.WebService, StringComparison.Ordinal),
+            $"logs --no-color --tail {Math.Clamp(lines, 1, 2000)} {service}",
+            web: string.Equals(service, slot.WebService, StringComparison.Ordinal),
             timeoutSeconds: 60,
             ct: cancellationToken).ConfigureAwait(false);
         return EnvironmentTools.Serialize(logs.Success
-            ? new { servizio, log = logs.StandardOutput + logs.StandardError }
-            : (object)new { errore = logs.Tail(10) });
+            ? new { service, log = logs.StandardOutput + logs.StandardError }
+            : (object)new { error = logs.Tail(10) });
     }
 
-    [McpServerTool(Name = "applica_migrazioni_docker", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Applica al database dell'ambiente Docker le migrazioni EF del branch del worktree del backend (dotnet restore, poi dotnet ef database update per context), con la guardia che il worktree punti al database dello slot. Da usare dopo aver aggiunto o cambiato una migrazione.")]
-    public static Task<string> ApplicaMigrazioniDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
-        [Description("Solo questo context; vuoto = tutti.")] string? context = null,
-        [Description(WaitDescription)] int attesaSecondi = 60,
+    [McpServerTool(Name = "apply_docker_migrations", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Applies the EF migrations of the backend worktree's branch to the Docker environment's database (dotnet restore, then dotnet ef database update per context), guarding that the worktree points to the slot database. Use it after adding or changing a migration.")]
+    public static Task<string> ApplyDockerMigrations(
+        [Description("Docker environment number.")] int number,
+        [Description("Only this context; empty = all.")] string? context = null,
+        [Description(WaitDescription)] int waitSeconds = 60,
         CancellationToken cancellationToken = default)
-        => OnSlot(numero, "migrazioni", attesaSecondi, async (configuration, slot, operation, ct) =>
+        => OnSlot(number, "migrations", waitSeconds, async (configuration, slot, operation, ct) =>
         {
             if (slot.Backend?.Repository is not BackendConfiguration backend)
             {
-                return ($"l'ambiente {numero} non ha un backend", null);
+                return ($"environment {number} has no backend", null);
             }
 
             var error = await DockerEnvironmentProvisioner.ApplyMigrationsAsync(slot, backend, operation.Log, ct, context).ConfigureAwait(false);
-            return (error, error is null ? new { esito = "migrazioni applicate" } : null);
+            return (error, error is null ? new { result = "migrations applied" } : null);
         }, cancellationToken);
 
-    [McpServerTool(Name = "ripara_env_docker", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Riscrive gli env dei worktree e gli env_file dei container dell'ambiente Docker dalla configurazione (come «Ripara env» dell'exe), poi controlla che il backend punti al database dello slot. I container leggono gli env_file al prossimo avvio.")]
-    public static Task<string> RiparaEnvDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
-        [Description(WaitDescription)] int attesaSecondi = 20,
+    [McpServerTool(Name = "repair_docker_env", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Rewrites the worktrees' env files and the containers' env_file files of the Docker environment from the configuration (like \"Repair env\" in the app), then checks that the backend points to the slot database. The containers read the env_file files on their next start.")]
+    public static Task<string> RepairDockerEnv(
+        [Description("Docker environment number.")] int number,
+        [Description(WaitDescription)] int waitSeconds = 20,
         CancellationToken cancellationToken = default)
-        => OnSlot(numero, "ripara env", attesaSecondi, async (configuration, slot, operation, ct) =>
+        => OnSlot(number, "repair env", waitSeconds, async (configuration, slot, operation, ct) =>
         {
-            var error = await DockerEnvironmentProvisioner.RepairEnvAsync(configuration, numero, operation.Log, ct).ConfigureAwait(false);
-            return (error, error is null ? new { esito = "env riscritti", prossimoPasso = "avvia_servizio_docker o avvia_ambiente_docker perche' i container li leggano" } : null);
+            var error = await DockerEnvironmentProvisioner.RepairEnvAsync(configuration, number, operation.Log, ct).ConfigureAwait(false);
+            return (error, error is null ? new { result = "env files rewritten", nextStep = "start_docker_service or start_docker_environment so the containers read them" } : null);
         }, cancellationToken);
 
-    [McpServerTool(Name = "accendi_tunnel_docker", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Accende il tunnel dell'ambiente Docker: l'ambiente reclama un tunnel libero del pool (un tunnel e' di un solo ambiente), ogni suo repository che espone una porta riceve un URL pubblico con accesso anonimo, l'host del tunnel si accende e le variabili di env che dipendono dal pool si riscrivono. Con il pool pieno risponde con l'errore. I container leggono gli env al prossimo avvio del servizio.")]
-    public static Task<string> AccendiTunnelDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
-        [Description(WaitDescription)] int attesaSecondi = 90,
+    [McpServerTool(Name = "enable_docker_tunnel", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Turns on the Docker environment's tunnel: the environment claims a free tunnel from the pool (a tunnel belongs to a single environment), each of its repositories that exposes a port gets a public URL with anonymous access, the tunnel host starts and the env variables that depend on the pool are rewritten. If the pool is full, responds with the error. The containers read the env files on the service's next start.")]
+    public static Task<string> EnableDockerTunnel(
+        [Description("Docker environment number.")] int number,
+        [Description(WaitDescription)] int waitSeconds = 90,
         CancellationToken cancellationToken = default)
-        => OnSlot(numero, "tunnel", attesaSecondi, async (configuration, slot, operation, ct) =>
+        => OnSlot(number, "tunnel", waitSeconds, async (configuration, slot, operation, ct) =>
         {
-            if (await EnvironmentTunnel.EnableAsync(configuration, numero, operation.Log, ct).ConfigureAwait(false) is { } error)
+            if (await EnvironmentTunnel.EnableAsync(configuration, number, operation.Log, ct).ConfigureAwait(false) is { } error)
             {
                 return (error, null);
             }
 
-            var urls = await DockerEnvironmentProvisioner.PoolUrlsAsync(numero, ct).ConfigureAwait(false);
-            return (null, new { tunnel = TunnelPool.Read().Where(a => a.Environment == numero).Select(a => a.TunnelDescription).Distinct(), url = urls, prossimoPasso = "avvia_servizio_docker perche' i container leggano gli env nuovi" });
+            var urls = await DockerEnvironmentProvisioner.PoolUrlsAsync(number, ct).ConfigureAwait(false);
+            return (null, new { tunnel = TunnelPool.Read().Where(a => a.Environment == number).Select(a => a.TunnelDescription).Distinct(), url = urls, nextStep = "start_docker_service so the containers read the new env files" });
         }, cancellationToken);
 
-    [McpServerTool(Name = "spegni_tunnel_docker", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Spegne il tunnel dell'ambiente Docker: rilascia tutte le sue porte del pool (con l'accesso anonimo), chiude l'host, restituisce il tunnel al pool e riscrive le variabili di env che dipendevano dal pool. Riaccendendolo l'ambiente puo' ricevere un tunnel diverso, con URL diversi.")]
-    public static Task<string> SpegniTunnelDocker(
-        [Description("Numero dell'ambiente Docker.")] int numero,
-        [Description(WaitDescription)] int attesaSecondi = 60,
+    [McpServerTool(Name = "disable_docker_tunnel", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Turns off the Docker environment's tunnel: releases all its pool ports (and their anonymous access), closes the host, returns the tunnel to the pool and rewrites the env variables that depended on the pool. When turned on again, the environment may get a different tunnel, with different URLs.")]
+    public static Task<string> DisableDockerTunnel(
+        [Description("Docker environment number.")] int number,
+        [Description(WaitDescription)] int waitSeconds = 60,
         CancellationToken cancellationToken = default)
-        => OnSlot(numero, "tunnel spento", attesaSecondi, async (configuration, slot, operation, ct) =>
+        => OnSlot(number, "tunnel off", waitSeconds, async (configuration, slot, operation, ct) =>
         {
-            var had = EnvironmentTunnel.IsOn(numero);
-            var error = await EnvironmentTunnel.DisableAsync(configuration, numero, operation.Log, ct).ConfigureAwait(false);
-            return error is not null ? (error, null) : (null, new { esito = had ? "tunnel spento, porte rilasciate" : $"l'ambiente {numero} non aveva il tunnel" });
+            var had = EnvironmentTunnel.IsOn(number);
+            var error = await EnvironmentTunnel.DisableAsync(configuration, number, operation.Log, ct).ConfigureAwait(false);
+            return error is not null ? (error, null) : (null, new { result = had ? "tunnel turned off, ports released" : $"environment {number} did not have its tunnel on" });
         }, cancellationToken);
 
-    [McpServerTool(Name = "nota_ambiente", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Scrive la nota di un ambiente (locale o Docker), visibile sulla sua colonna nell'exe: per esempio il lavoro a cui e' dedicato. Sostituisce la nota precedente; vuota la cancella.")]
-    public static string NotaAmbiente(
-        [Description("Numero dell'ambiente.")] int numero,
-        [Description("Testo della nota.")] string testo)
+    [McpServerTool(Name = "set_environment_note", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Writes the note of an environment (local or Docker), shown on its column in the app: for example the work it is dedicated to. Replaces the previous note; an empty text clears it.")]
+    public static string SetEnvironmentNote(
+        [Description("Environment number.")] int number,
+        [Description("Text of the note.")] string text)
     {
         if (EnvironmentTools.LoadConfiguration(out var error) is not { } configuration)
         {
-            return EnvironmentTools.Serialize(new { errore = error });
+            return EnvironmentTools.Serialize(new { error });
         }
 
-        if (configuration.Environment(numero) is null)
+        if (configuration.Environment(number) is null)
         {
-            return EnvironmentTools.Serialize(new { errore = $"l'ambiente {numero} non e' configurato" });
+            return EnvironmentTools.Serialize(new { error = $"environment {number} is not configured" });
         }
 
-        WriteNote(numero, testo);
-        return EnvironmentTools.Serialize(new { esito = "nota scritta", nota = testo });
+        WriteNote(number, text);
+        return EnvironmentTools.Serialize(new { result = "note written", note = text });
     }
 
-    [McpServerTool(Name = "stato_operazione", ReadOnly = true, Idempotent = true, OpenWorld = false)]
-    [Description("Avanzamento ed esito di un'operazione avviata da uno strumento Docker (crea, avvia, migrazioni…) o da esegui_comando_extra:stato in corso / riuscita / fallita, ultime righe del log, errore ed esito. Le operazioni vivono nel processo del server MCP.")]
-    public static async Task<string> StatoOperazione(
-        [Description("Id dell'operazione, dalla risposta dello strumento che l'ha avviata.")] string operazione,
-        [Description("Righe del log da riportare, dalla fine.")] int righe = 40,
-        [Description("Secondi da aspettare la fine prima di rispondere (0-110).")] int attesaSecondi = 0,
+    [McpServerTool(Name = "operation_status", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [Description("Progress and result of an operation started by a Docker tool (create, start, migrations…) or by run_extra_command: status running / succeeded / failed, last lines of the log, error and result. Operations live in the MCP server process.")]
+    public static async Task<string> OperationStatus(
+        [Description("Operation id, from the response of the tool that started it.")] string operation,
+        [Description("Log lines to return, from the end.")] int lines = 40,
+        [Description("Seconds to wait for completion before responding (0-110).")] int waitSeconds = 0,
         CancellationToken cancellationToken = default)
     {
-        if (Operations.Find(operazione) is not { } operation)
+        if (Operations.Find(operation) is not { } found)
         {
-            return EnvironmentTools.Serialize(new { errore = $"operazione {operazione} sconosciuta: le operazioni vivono solo nel processo del server MCP che le ha avviate" });
+            return EnvironmentTools.Serialize(new { error = $"unknown operation {operation}: operations live only in the process of the MCP server that started them" });
         }
 
-        if (operation.IsRunning && attesaSecondi > 0)
+        if (found.IsRunning && waitSeconds > 0)
         {
             try
             {
-                await Task.WhenAny(operation.Completion, Task.Delay(TimeSpan.FromSeconds(Math.Clamp(attesaSecondi, 0, 110)), cancellationToken)).ConfigureAwait(false);
+                await Task.WhenAny(found.Completion, Task.Delay(TimeSpan.FromSeconds(Math.Clamp(waitSeconds, 0, 110)), cancellationToken)).ConfigureAwait(false);
             }
             catch (OperationCanceledException)
             {
             }
         }
 
-        return EnvironmentTools.Serialize(operation.Snapshot(Math.Clamp(righe, 1, 400)));
+        return EnvironmentTools.Serialize(found.Snapshot(Math.Clamp(lines, 1, 400)));
     }
 
     private static async Task<string> Run(Func<Task<object>> body)
         => EnvironmentTools.Serialize(await body().ConfigureAwait(false));
 
     private static Task<string> OnSlot(
-        int numero,
+        int number,
         string kind,
-        int attesaSecondi,
+        int waitSeconds,
         Func<AppConfiguration, DockerSlot, Operation, CancellationToken, Task<(string? Error, object? Result)>> work,
         CancellationToken cancellationToken)
-        => Run(async () => Resolve(numero, out var configuration, out var slot) is { } error
-            ? new { errore = error }
-            : await Operations.RunAsync(kind, numero, attesaSecondi, (operation, ct) => work(configuration, slot, operation, ct), cancellationToken).ConfigureAwait(false));
+        => Run(async () => Resolve(number, out var configuration, out var slot) is { } error
+            ? new { error }
+            : await Operations.RunAsync(kind, number, waitSeconds, (operation, ct) => work(configuration, slot, operation, ct), cancellationToken).ConfigureAwait(false));
 
-    // La configurazione e lo slot di un ambiente Docker, o l'errore da restituire.
-    private static string? Resolve(int numero, out AppConfiguration configuration, out DockerSlot slot)
+    // The configuration and slot of a Docker environment, or the error to return.
+    private static string? Resolve(int number, out AppConfiguration configuration, out DockerSlot slot)
     {
         configuration = null!;
         slot = null!;
@@ -395,14 +395,14 @@ public static class DockerTools
             return error;
         }
 
-        if (loaded.Environment(numero) is not { } environment)
+        if (loaded.Environment(number) is not { } environment)
         {
-            return $"l'ambiente {numero} non e' configurato";
+            return $"environment {number} is not configured";
         }
 
         if (environment.Kind != EnvironmentKind.Docker)
         {
-            return $"l'ambiente {numero} e' locale: gli strumenti *_docker agiscono solo sugli ambienti Docker";
+            return $"environment {number} is local: the *_docker tools act only on Docker environments";
         }
 
         configuration = loaded;
@@ -426,21 +426,21 @@ public static class DockerTools
 
     private static object Summary(DockerSlot slot) => new
     {
-        ambiente = slot.Number,
+        environment = slot.Number,
         worktree = slot.Repositories.ToDictionary(r => r.Id, r => r.Path),
-        servizi = Services(slot).Select(s => new { servizio = s.Service, indirizzo = s.IsDatabase ? $"127.0.0.1,{s.Port}" : $"http://localhost:{s.Port}/" }),
-        prossimoPasso = "stato_ambiente_docker per lo stato dei container e delle migrazioni",
+        services = Services(slot).Select(s => new { service = s.Service, address = s.IsDatabase ? $"127.0.0.1,{s.Port}" : $"http://localhost:{s.Port}/" }),
+        nextStep = "docker_environment_status for the status of containers and migrations",
     };
 
-    private static string NotePath(int numero) => Path.Combine(ConfigurationFiles.DataFolder, "Note", $"ambiente-{numero}.txt");
+    private static string NotePath(int number) => Path.Combine(ConfigurationFiles.DataFolder, "Note", $"ambiente-{number}.txt");
 
-    private static string? ReadNote(int numero)
-        => File.Exists(NotePath(numero)) && File.ReadAllText(NotePath(numero)) is { Length: > 0 } text ? text : null;
+    private static string? ReadNote(int number)
+        => File.Exists(NotePath(number)) && File.ReadAllText(NotePath(number)) is { Length: > 0 } text ? text : null;
 
-    // Lo stesso file di EnvironmentNote: l'exe lo osserva e aggiorna la colonna.
-    private static void WriteNote(int numero, string text)
+    // The same file as EnvironmentNote: the app watches it and updates the column.
+    private static void WriteNote(int number, string text)
     {
-        Directory.CreateDirectory(Path.GetDirectoryName(NotePath(numero))!);
-        File.WriteAllText(NotePath(numero), text);
+        Directory.CreateDirectory(Path.GetDirectoryName(NotePath(number))!);
+        File.WriteAllText(NotePath(number), text);
     }
 }

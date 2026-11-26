@@ -1,10 +1,10 @@
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// Esegue la lettura di una sezione del pannello una alla volta. Una richiesta arrivata mentre
-/// una lettura e' in corso non ne avvia una seconda in parallelo (due git fetch concorrenti si
-/// contendono il lock del repository, due devtunnel sono solo spreco): resta accodata e parte
-/// appena la corrente finisce, conservando solo l'ultima richiesta ricevuta.
+/// Runs the reads of a panel section one at a time. A request that arrives while
+/// a read is in progress does not start a second one in parallel (two concurrent git fetches
+/// fight over the repository lock, two devtunnel calls are just waste): it is queued and starts
+/// as soon as the current one finishes, keeping only the last request received.
 /// </summary>
 public sealed class SectionLoader
 {
@@ -38,8 +38,8 @@ public sealed class SectionLoader
             }
             catch
             {
-                // Il lavoro di sezione riporta i propri errori nel pannello: qui si evita solo
-                // che un'eccezione sfuggita lasci la sezione bloccata per sempre su "running".
+                // Section work reports its own errors in the panel: this only prevents
+                // an escaped exception from leaving the section stuck on "running" forever.
             }
 
             lock (gate)

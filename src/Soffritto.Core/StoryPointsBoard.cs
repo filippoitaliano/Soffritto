@@ -6,28 +6,28 @@ using Soffritto.Core.AzureDevOps;
 namespace Soffritto.Core;
 
 /// <summary>
-/// Una storia utente o un bug da stimare nella riunione: la descrizione e' gia' testo semplice (per
-/// un bug sono i passaggi per riprodurre). Un bug puo' non avere una funzionalita' padre.
+/// A user story or a bug to estimate in the meeting: the description is already plain text (for
+/// a bug, the repro steps). A bug may have no parent feature.
 /// </summary>
 public sealed record StoryToEstimate(int Id, string Title, string Description, int? FeatureId, string FeatureTitle, bool IsBug = false);
 
 public sealed record StoriesToEstimate(IReadOnlyList<StoryToEstimate> Stories, string? Error = null);
 
 /// <summary>
-/// Le storie utente da stimare nella riunione dei punti storia e il salvataggio della stima, sul
-/// progetto configurato (vedi <see cref="AzureDevOpsConnection"/>).
+/// The user stories to estimate in the story points meeting and saving the estimate, on the
+/// configured project (see <see cref="AzureDevOpsConnection"/>).
 /// </summary>
 public sealed partial class StoryPointsBoard(AzureDevOpsConnection connection)
 {
     public const string StoryPointsField = "Microsoft.VSTS.Scheduling.StoryPoints";
 
-    // Nomi del processo in italiano, come li restituisce il server.
+    // Process names in Italian, exactly as the server returns them.
     private const string FeatureType = "Funzionalità";
     private const string StoryType = "Storia utente";
     private const string BugType = "Bug";
     private const string ReproStepsField = "Microsoft.VSTS.TCM.ReproSteps";
 
-    // Una funzionalita' gia' attiva puo' avere storie nuove da stimare.
+    // A feature that is already active can have new stories to estimate.
     private static readonly string[] FeatureStates = ["Accettato", "Attivo"];
     private static readonly string[] DoneStates = ["Chiuso", "Rimosso"];
 
@@ -36,15 +36,15 @@ public sealed partial class StoryPointsBoard(AzureDevOpsConnection connection)
     public string Project => connection.Project;
 
     /// <summary>
-    /// Le storie utente figlie di funzionalita' accettate o attive e tutti i bug, purche' ancora
-    /// aperti e senza punti. In ordine di funzionalita' e di id; i bug senza funzionalita' in fondo.
+    /// The user stories under accepted or active features, and all bugs, as long as they are still
+    /// open and have no points. Ordered by feature and id; bugs without a feature come last.
     /// </summary>
     public async Task<StoriesToEstimate> ReadAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            // Stato chiuso e punti vuoti si filtrano dopo: in WIQL il confronto con un numerico
-            // vuoto non e' affidabile tra versioni del server.
+            // Closed state and empty points are filtered afterwards: in WIQL comparing against an empty
+            // numeric field is not reliable across server versions.
             var storyLinks = await ReadLinksAsync(
                 "SELECT [System.Id] FROM WorkItemLinks"
                     + " WHERE ([Source].[System.TeamProject] = @project"
@@ -55,8 +55,8 @@ public sealed partial class StoryPointsBoard(AzureDevOpsConnection connection)
                     + " MODE (MustContain)",
                 cancellationToken).ConfigureAwait(false);
 
-            // I bug contano qualunque sia lo stato della funzionalita', e anche senza: la
-            // funzionalita' padre serve solo a mostrarla.
+            // Bugs count whatever the feature's state, and even without one: the
+            // parent feature is only there to be shown.
             var bugIds = await ReadIdsAsync(
                 "SELECT [System.Id] FROM WorkItems"
                     + " WHERE [System.TeamProject] = @project"
@@ -114,11 +114,11 @@ public sealed partial class StoryPointsBoard(AzureDevOpsConnection connection)
         }
         catch (Exception ex)
         {
-            return new StoriesToEstimate([], ex is TaskCanceledException ? "Azure DevOps non ha risposto entro 30 secondi." : ex.Message);
+            return new StoriesToEstimate([], ex is TaskCanceledException ? "Azure DevOps did not respond within 30 seconds." : ex.Message);
         }
     }
 
-    /// <summary>Scrive i punti storia sul work item. Null se riuscito, altrimenti il motivo.</summary>
+    /// <summary>Writes the story points on the work item. Null on success, otherwise the reason.</summary>
     public async Task<string?> SaveAsync(int storyId, int points, CancellationToken cancellationToken = default)
     {
         try
@@ -129,7 +129,7 @@ public sealed partial class StoryPointsBoard(AzureDevOpsConnection connection)
         }
         catch (Exception ex)
         {
-            return ex is TaskCanceledException ? "Azure DevOps non ha risposto entro 30 secondi." : ex.Message;
+            return ex is TaskCanceledException ? "Azure DevOps did not respond within 30 seconds." : ex.Message;
         }
     }
 
@@ -162,7 +162,7 @@ public sealed partial class StoryPointsBoard(AzureDevOpsConnection connection)
     {
         var result = new Dictionary<int, (string, string, string, string, double?)>();
 
-        // L'API accetta al massimo 200 id per chiamata.
+        // The API accepts at most 200 ids per call.
         foreach (var chunk in ids.Chunk(200))
         {
             var url = $"{CollectionUrl}/_apis/wit/workitems?ids={string.Join(',', chunk)}"
@@ -188,7 +188,7 @@ public sealed partial class StoryPointsBoard(AzureDevOpsConnection connection)
         return result;
     }
 
-    // La descrizione e' HTML: per leggerla in riunione bastano i paragrafi.
+    // The description is HTML: paragraphs are enough to read it in the meeting.
     private static string PlainText(string html)
     {
         var text = BlockEnd().Replace(html, "\n");
@@ -208,14 +208,14 @@ public sealed partial class StoryPointsBoard(AzureDevOpsConnection connection)
 }
 
 /// <summary>
-/// La scala dei punti storia: la media dei voti si arrotonda al valore piu' vicino. Il massimo e'
-/// 13: una storia che pesa di piu' va spezzata, non stimata.
+/// The story points scale: the average of the votes is rounded to the nearest value. The maximum is
+/// 13: a story that weighs more should be split, not estimated.
 /// </summary>
 public static class StoryPointsScale
 {
     public static IReadOnlyList<int> Values { get; } = [1, 2, 3, 5, 8, 13];
 
-    /// <summary>A pari distanza vince il valore piu' alto: nel dubbio una storia pesa di piu'.</summary>
+    /// <summary>On a tie the higher value wins: when in doubt, a story weighs more.</summary>
     public static int Nearest(double average)
         => Values.OrderBy(v => Math.Abs(v - average)).ThenByDescending(v => v).First();
 }

@@ -5,20 +5,20 @@ using System.Text.Json;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Un browser di playwright-cli acceso: nome della sessione (-s), cartella da cui e' stato aperto,
-/// la LOCALAPPDATA del registro in cui sta e quando ci e' stato scritto.
+/// A running playwright-cli browser: session name (-s), the folder it was opened from, the
+/// LOCALAPPDATA of the registry it lives in and when it was written there.
 /// </summary>
 public sealed record PlaywrightSession(string Name, string? WorkspaceDir, string LocalAppData, DateTime RegisteredAt);
 
 /// <summary>
-/// I browser che playwright-cli tiene accesi, letti dallo stesso registro che usa la sua
-/// dashboard: un file JSON per browser in %LOCALAPPDATA%\ms-playwright\b. Un file resta anche se
-/// il daemon muore male, quindi conta solo il browser il cui endpoint risponde ancora.
+/// The browsers playwright-cli keeps running, read from the same registry its dashboard uses: one
+/// JSON file per browser in %LOCALAPPDATA%\ms-playwright\b. A file survives a daemon that dies
+/// badly, so only browsers whose endpoint still answers count.
 /// </summary>
 /// <remarks>
-/// Un'app MSIX (l'app desktop di Claude) virtualizza AppData\Local per i processi che lancia: il
-/// registro dei browser aperti dalle sue sessioni sta in Packages\&lt;famiglia&gt;\LocalCache\Local e
-/// fuori dal pacchetto non si vede. Le pipe degli endpoint invece sono globali.
+/// An MSIX app (the Claude desktop app) virtualizes AppData\Local for the processes it launches: the
+/// registry of the browsers opened by its sessions lives in Packages\&lt;family&gt;\LocalCache\Local
+/// and is invisible outside the package. Endpoint pipes, on the other hand, are global.
 /// </remarks>
 public static class PlaywrightSessions
 {
@@ -26,7 +26,7 @@ public static class PlaywrightSessions
 
     public static IReadOnlyList<PlaywrightSession> ReadLive()
     {
-        // Elencare le pipe non apre connessioni verso il browser: per la pipe basta esserci.
+        // Listing pipes opens no connection to the browser: for a pipe, existing is enough.
         HashSet<string>? pipes = null;
         var sessions = new List<PlaywrightSession>();
 
@@ -45,7 +45,7 @@ public static class PlaywrightSessions
                     continue;
                 }
 
-                // Come la dashboard: i browser interni di playwright non sono sessioni di qualcuno.
+                // Like the dashboard: playwright's internal browsers are nobody's sessions.
                 if (descriptor.Title.StartsWith("--playwright-internal", StringComparison.Ordinal))
                 {
                     continue;
@@ -108,7 +108,7 @@ public static class PlaywrightSessions
         }
         catch
         {
-            // File a meta' scrittura o rimosso tra l'elenco e la lettura: si rilegge al giro dopo.
+            // File half-written or removed between listing and reading: it is read again next round.
             return null;
         }
     }
@@ -125,8 +125,8 @@ public static class PlaywrightSessions
         }
     }
 
-    // Endpoint ws:// (browser attaccati via CDP o server remoti): stesso controllo della dashboard,
-    // una connessione TCP aperta e subito chiusa.
+    // ws:// endpoints (browsers attached via CDP or remote servers): same check as the dashboard,
+    // a TCP connection opened and closed right away.
     private static bool CanConnect(string endpoint)
     {
         if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || uri.Port <= 0)

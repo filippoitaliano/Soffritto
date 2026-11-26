@@ -5,8 +5,8 @@ using Soffritto.Desktop.ViewModels;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Le colonne degli ambienti affiancate, da sinistra, larghe <see cref="MainViewModel.ColumnWidth"/>
-/// ciascuna; una colonna nascosta non occupa spazio. Lo spazio che avanza resta vuoto a destra.
+/// The environment columns side by side, from the left, each <see cref="MainViewModel.ColumnWidth"/>
+/// wide; a hidden column takes no space. Leftover space stays empty on the right.
 /// </summary>
 public sealed class ColumnsPanel : Panel
 {

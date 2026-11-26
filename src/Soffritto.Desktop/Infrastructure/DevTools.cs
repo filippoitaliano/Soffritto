@@ -2,10 +2,10 @@ using System.Diagnostics;
 
 namespace Soffritto.Desktop.Infrastructure;
 
-/// <summary>Dove stanno Visual Studio e VS Code su questa macchina.</summary>
+/// <summary>Where Visual Studio and VS Code live on this machine.</summary>
 public static class DevTools
 {
-    /// <summary>devenv.exe dell'installazione piu' recente, prerelease comprese (oggi VS 18 Insiders).</summary>
+    /// <summary>devenv.exe of the most recent installation, prereleases included (currently VS 18 Insiders).</summary>
     public static string? VisualStudio()
     {
         var vswhere = System.IO.Path.Combine(
@@ -30,7 +30,7 @@ public static class DevTools
         return string.IsNullOrEmpty(path) || !System.IO.File.Exists(path) ? null : path;
     }
 
-    /// <summary>VS Code, preferendo l'Insiders installata sulla macchina; poi la stabile.</summary>
+    /// <summary>VS Code, preferring the Insiders build installed on the machine; then the stable one.</summary>
     public static string? VisualStudioCode()
     {
         var programs = System.IO.Path.Combine(

@@ -12,8 +12,8 @@ public sealed class ClipboardText : IClipboard
 
         UiThread.Run(() =>
         {
-            // La clipboard e' una risorsa globale contesa: un altro processo puo' tenerla
-            // aperta per qualche millisecondo, quindi si ritenta invece di fallire subito.
+            // The clipboard is a contended global resource: another process may keep it
+            // open for a few milliseconds, so retry instead of failing right away.
             for (var attempt = 0; attempt < 5 && !copied; attempt++)
             {
                 try

@@ -8,9 +8,9 @@ using Soffritto.Presentation;
 namespace Soffritto.Desktop.ViewModels;
 
 /// <summary>
-/// La scheda Componenti del setup: i programmi esterni che l'exe usa, il server MCP e la VSIX
-/// che arrivano con l'installazione, gli aggiornamenti. Niente finisce in config.json: ogni
-/// bottone agisce subito, quasi sempre in una console dove si vede cosa succede.
+/// The Components tab of the setup: the external programs the app uses, the MCP server and the
+/// VSIX that ship with the installation, and updates. Nothing ends up in config.json: every
+/// button acts right away, almost always in a console where you can watch what happens.
 /// </summary>
 public sealed class ComponentsViewModel : ObservableObject
 {
@@ -30,9 +30,9 @@ public sealed class ComponentsViewModel : ObservableObject
     {
         Prerequisites =
         [
-            new Prerequisite("Git", "Stato dei cloni, pull, cambio branch, worktree degli ambienti Docker.", "Git.Git", "git.exe"),
-            new Prerequisite("Dev tunnel", "Condividere gli ambienti fuori dal PC (scheda Tunnel).", "Microsoft.devtunnel", "devtunnel.exe"),
-            new Prerequisite("Docker Desktop", "Solo per gli ambienti Docker.", "Docker.DockerDesktop", "docker.exe"),
+            new Prerequisite("Git", "Clone status, pull, branch switching, worktrees of Docker environments.", "Git.Git", "git.exe"),
+            new Prerequisite("Dev tunnel", "Share environments outside this PC (Tunnels tab).", "Microsoft.devtunnel", "devtunnel.exe"),
+            new Prerequisite("Docker Desktop", "Only for Docker environments.", "Docker.DockerDesktop", "docker.exe"),
         ];
 
         RefreshCommand = new RelayCommand(_ => Refresh());
@@ -44,13 +44,13 @@ public sealed class ComponentsViewModel : ObservableObject
         CheckUpdatesCommand = new AsyncCommand(CheckUpdatesAsync);
 
         UpdateStatus = Installation.IsInstalled
-            ? Installation.PendingVersion is { } version ? $"La v{version} è scaricata: si installa alla chiusura dell'exe." : "Si cercano all'avvio dell'exe."
-            : "Questa build non viene dal Setup.exe: si aggiorna ricompilandola.";
+            ? Installation.PendingVersion is { } version ? $"v{version} is downloaded: it installs when the app closes." : "Updates are checked when the app starts."
+            : "This build does not come from Setup.exe: rebuild it to update.";
     }
 
     public IReadOnlyList<Prerequisite> Prerequisites { get; }
 
-    public string McpPath { get; } = Path.Combine(AppContext.BaseDirectory, "mcp", "Soffritto.Mcp.exe");
+    public string McpPath { get; } = Path.Combine(AppContext.BaseDirectory, "Soffritto.Mcp.exe");
 
     public string VsixPath { get; } = Path.Combine(AppContext.BaseDirectory, "vsix", "Soffritto.Vsix.vsix");
 
@@ -82,12 +82,12 @@ public sealed class ComponentsViewModel : ObservableObject
 
     public ICommand CheckUpdatesCommand { get; }
 
-    /// <summary>Rilegge cosa c'e' sulla macchina: si chiama all'apertura della scheda e da «Ricontrolla».</summary>
+    /// <summary>Reads again what is on the machine: called when the tab opens and from “Check again”.</summary>
     public void Refresh()
     {
         var winget = ExecutableSearch.Find("winget.exe");
         WingetStatus = winget is null
-            ? "winget non c'è: installa «App Installer» dal Microsoft Store, oppure i programmi dai loro siti."
+            ? "winget is missing: install “App Installer” from the Microsoft Store, or get the programs from their websites."
             : string.Empty;
 
         foreach (var prerequisite in Prerequisites)
@@ -106,14 +106,14 @@ public sealed class ComponentsViewModel : ObservableObject
     {
         if (!File.Exists(McpPath))
         {
-            McpStatus = "Il server MCP arriva con il Setup.exe: in questa build non c'è.";
+            McpStatus = "The MCP server ships with Setup.exe: this build does not include it.";
             CanRegisterMcp = false;
             return;
         }
 
         if (claude is null)
         {
-            McpStatus = "Claude Code non è installato: per un altro client MCP registra a mano l'exe qui sotto come server stdio.";
+            McpStatus = "Claude Code is not installed: for another MCP client, register the exe below by hand as a stdio server.";
             CanRegisterMcp = false;
             return;
         }
@@ -121,15 +121,15 @@ public sealed class ComponentsViewModel : ObservableObject
         CanRegisterMcp = true;
         McpStatus = RegisteredMcpCommand() switch
         {
-            null => $"In Claude Code non c'è un server «{McpServerName}».",
+            null => $"Claude Code has no “{McpServerName}” server.",
             var command when string.Equals(Path.GetFullPath(command), McpPath, StringComparison.OrdinalIgnoreCase)
-                => $"Registrato in Claude Code come «{McpServerName}».",
-            var command => $"In Claude Code «{McpServerName}» lancia un altro exe ({command}): «Registra» lo sostituisce con questo.",
+                => $"Registered in Claude Code as “{McpServerName}”.",
+            var command => $"In Claude Code, “{McpServerName}” launches a different exe ({command}): “Register” replaces it with this one.",
         };
     }
 
-    // Il server registrato per l'utente (claude mcp add --scope user) sta in ~\.claude.json.
-    // Leggere il file evita «claude mcp get», che per controllare il server lo avvia.
+    // The server registered for the user (claude mcp add --scope user) lives in ~\.claude.json.
+    // Reading the file avoids "claude mcp get", which starts the server in order to check it.
     private static string? RegisteredMcpCommand()
     {
         try
@@ -148,22 +148,22 @@ public sealed class ComponentsViewModel : ObservableObject
     {
         if (!File.Exists(VsixPath))
         {
-            VsixStatus = "L'estensione arriva con il Setup.exe: in questa build non c'è.";
+            VsixStatus = "The extension ships with Setup.exe: this build does not include it.";
             CanInstallVsix = false;
         }
         else if (visualStudio is null)
         {
-            VsixStatus = "Visual Studio non è installato: l'estensione serve solo lì.";
+            VsixStatus = "Visual Studio is not installed: the extension is only useful there.";
             CanInstallVsix = false;
         }
         else
         {
-            VsixStatus = "Chiudi Visual Studio prima di installare: l'installer lo chiede comunque. Serve Visual Studio 2026 18.12 o successivo.";
+            VsixStatus = "Close Visual Studio before installing: the installer asks you to anyway. Requires Visual Studio 2026 18.12 or later.";
             CanInstallVsix = true;
         }
     }
 
-    // winget in una console sua: licenze, richieste di elevazione ed esito restano davanti a chi installa.
+    // winget in its own console: licenses, elevation prompts and the outcome stay in front of whoever is installing.
     private void Install(Prerequisite? prerequisite)
     {
         if (prerequisite is null)
@@ -180,14 +180,14 @@ public sealed class ComponentsViewModel : ObservableObject
         OpenConsole($"\"{devtunnel}\" user login");
     }
 
-    // Un server con lo stesso nome si toglie prima: «claude mcp add» non sovrascrive.
+    // A server with the same name is removed first: "claude mcp add" does not overwrite.
     private void RegisterMcp()
     {
         OpenConsole($"claude mcp remove --scope user {McpServerName} & claude mcp add --scope user {McpServerName} -- \"{McpPath}\"");
     }
 
-    // VSLauncher instrada il .vsix verso l'installer giusto, come il doppio click: VSIXInstaller
-    // da riga di comando rifiuta le estensioni VisualStudio.Extensibility (docs/GUIDA.md, «Installazione dell'estensione»).
+    // VSLauncher routes the .vsix to the right installer, like a double click: VSIXInstaller
+    // from the command line rejects VisualStudio.Extensibility extensions (docs/GUIDE.md, “Installing the extension”).
     private void InstallVsix()
     {
         var launcher = Path.Combine(
@@ -196,7 +196,7 @@ public sealed class ComponentsViewModel : ObservableObject
 
         if (!File.Exists(launcher))
         {
-            VsixStatus = $"VSLauncher.exe non trovato: installa con un doppio click su {VsixPath}.";
+            VsixStatus = $"VSLauncher.exe not found: install by double-clicking {VsixPath}.";
             return;
         }
 
@@ -207,14 +207,14 @@ public sealed class ComponentsViewModel : ObservableObject
     {
         isCheckingUpdates = true;
         OnPropertyChanged(nameof(CanCheckUpdates));
-        UpdateStatus = "Cerco l'ultima release…";
+        UpdateStatus = "Looking for the latest release…";
         try
         {
             UpdateStatus = await Installation.CheckForUpdatesAsync();
         }
         catch (Exception ex)
         {
-            UpdateStatus = $"Ricerca non riuscita: {ex.Message}";
+            UpdateStatus = $"Check failed: {ex.Message}";
         }
         finally
         {
@@ -223,8 +223,8 @@ public sealed class ComponentsViewModel : ObservableObject
         }
     }
 
-    // cmd /k: a comando finito la console resta aperta con l'esito. Le virgolette esterne le toglie
-    // cmd stesso, quelle interne restano al comando.
+    // cmd /k: when the command finishes the console stays open with the outcome. cmd itself strips
+    // the outer quotes; the inner ones stay with the command.
     private static void OpenConsole(string command) =>
         DetachedLauncher.Start(
             $"cmd.exe /k \"{command}\"",
@@ -254,14 +254,14 @@ public sealed class Prerequisite(string name, string purpose, string wingetId, s
     {
         var found = executable == "devtunnel.exe" ? DevTunnelReader.ResolveExecutable() : ExecutableSearch.Find(executable);
         IsMissing = found is null;
-        Status = found ?? "Non trovato.";
+        Status = found ?? "Not found.";
         CanInstall = IsMissing && canInstall;
     }
 }
 
 /// <summary>
-/// Cerca un eseguibile nel PATH della macchina e dell'utente letti adesso dal registro: un
-/// programma appena installato da winget non e' nel PATH che l'exe ha ricevuto all'avvio.
+/// Looks for an executable in the machine and user PATH, read fresh from the registry: a
+/// program winget has just installed is not in the PATH the app received at startup.
 /// </summary>
 public static class ExecutableSearch
 {

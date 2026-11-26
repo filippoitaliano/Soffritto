@@ -4,8 +4,8 @@ using Soffritto.Presentation;
 
 namespace Soffritto.Desktop.ViewModels;
 
-// Stessa macchina a stati della tendina della VSIX (UI/StatusViewModel.cs): un cambio di
-// comportamento va riportato in entrambi i file. L'algoritmo delle voci e' condiviso (BranchList).
+// Same state machine as the VSIX drop-down (UI/StatusViewModel.cs): a behaviour change must be
+// mirrored in both files. The item algorithm is shared (BranchList).
 public sealed class BranchPickerViewModel : ObservableObject
 {
     private readonly object branchesGate = new();
@@ -15,12 +15,12 @@ public sealed class BranchPickerViewModel : ObservableObject
     private string branchText = string.Empty;
     private bool branchDropDownOpen;
 
-    /// <summary>Le voci della tendina: il branch corrente in testa, poi quelli che passano il filtro, in ordine.</summary>
+    /// <summary>The drop-down items: the current branch first, then the ones that pass the filter, in order.</summary>
     public ObservableCollection<string> Branches { get; } = [];
 
     /// <summary>
-    /// Testo nella casella della ComboBox editabile. Mentre si scrive filtra le voci e apre il
-    /// menu; quando WPF lo riscrive con la voce scelta (o col corrente) non e' una ricerca.
+    /// Text in the editable ComboBox's box. While typing it filters the items and opens the
+    /// menu; when WPF rewrites it with the chosen item (or the current one) it is not a search.
     /// </summary>
     public string BranchText
     {
@@ -41,9 +41,9 @@ public sealed class BranchPickerViewModel : ObservableObject
 
             branchFilter = text;
 
-            // Se la selezione e' andata persa (testo svuotato dal controllo), col filtro vuoto
-            // si torna sul corrente; mentre si scrive la selezione non va toccata, altrimenti
-            // WPF riscriverebbe la casella con il nome del branch selezionato.
+            // If the selection was lost (text cleared by the control), an empty filter goes back
+            // to the current branch; while typing the selection must be left alone, otherwise
+            // WPF would rewrite the box with the selected branch name.
             SyncBranches(reselect: text.Length == 0 && selectedBranch is null);
 
             if (text.Length > 0)
@@ -54,9 +54,9 @@ public sealed class BranchPickerViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Aperto dal ViewModel appena si scrive, chiuso dall'utente o da una scelta. Se si chiude
-    /// (Esc, click fuori, Tab) mentre nella casella c'e' ancora un testo di ricerca, la ricerca
-    /// e' abbandonata: la casella torna a mostrare il branch corrente.
+    /// Opened by the ViewModel as soon as the user types, closed by the user or by a choice. If it
+    /// closes (Esc, click outside, Tab) while the box still holds search text, the search is
+    /// abandoned: the box goes back to showing the current branch.
     /// </summary>
     public bool BranchDropDownOpen
     {
@@ -75,16 +75,16 @@ public sealed class BranchPickerViewModel : ObservableObject
         }
     }
 
-    /// <summary>Branch corrente secondo l'ultima lettura: una selezione diversa da questo e' una richiesta di switch.</summary>
+    /// <summary>Current branch as of the last read: a different selection is a switch request.</summary>
     public string? CurrentBranch { get; private set; }
 
-    /// <summary>Chiamato dal setter di <see cref="SelectedBranch"/> quando l'utente sceglie un branch diverso dal corrente.</summary>
+    /// <summary>Called by the <see cref="SelectedBranch"/> setter when the user picks a branch other than the current one.</summary>
     public Action<string>? BranchSelected { get; set; }
 
-    // Binding TwoWay dalla ComboBox: il setter arriva sia dalle scelte dell'utente sia dalle
-    // riassegnazioni del sink (e con null se la voce selezionata sparisce). Solo una scelta
-    // diversa dal branch corrente e' un'intenzione di cambiare. Una scelta chiude comunque la
-    // ricerca: l'eco del testo che WPF manda subito dopo trova gia' il filtro vuoto.
+    // TwoWay binding from the ComboBox: the setter is hit both by the user's choices and by the
+    // sink's reassignments (and with null if the selected item disappears). Only a choice other
+    // than the current branch is an intent to switch. A choice always closes the search: the
+    // text echo WPF sends right after finds the filter already empty.
     public string? SelectedBranch
     {
         get => selectedBranch;
@@ -112,8 +112,8 @@ public sealed class BranchPickerViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Nuova lettura di git: fissa il corrente e l'elenco completo, poi riallinea la tendina
-    /// sul corrente. <paramref name="current"/> null significa git non disponibile: tendina vuota.
+    /// A fresh git read: sets the current branch and the full list, then realigns the drop-down
+    /// on the current one. A null <paramref name="current"/> means git is unavailable: empty drop-down.
     /// </summary>
     public void SetBranches(string? current, IEnumerable<string> names)
     {

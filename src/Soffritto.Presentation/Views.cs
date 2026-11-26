@@ -1,7 +1,7 @@
 namespace Soffritto.Presentation;
 
-// Viste indipendenti dall'host: ciascun sink le mappa sui propri ViewModel. Visibilita' come
-// bool e colori come stringhe #RRGGBB, che entrambi gli host sanno convertire.
+// Host-independent views: each sink maps them onto its own ViewModels. Visibility as
+// bool and colors as #RRGGBB strings, which both hosts know how to convert.
 
 public sealed record RepoLoadingView(string CloneName, string RepoLine, string RepoToolTip, string Stamp);
 
@@ -19,8 +19,8 @@ public sealed record GitView(
     IReadOnlyList<string> Branches,
     string Problems);
 
-/// <param name="RunGlyph">Glifo Segoe Fluent Icons del lancio: avanti, rollback o niente da fare.</param>
-/// <param name="CanRun">Falso se il database e' gia' fermo a questa migrazione.</param>
+/// <param name="RunGlyph">Segoe Fluent Icons glyph of the run button: forward, rollback or nothing to do.</param>
+/// <param name="CanRun">False if the database is already at this migration.</param>
 public sealed record MigrationRowView(
     string MigrationId,
     string DisplayName,

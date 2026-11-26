@@ -17,26 +17,26 @@ internal sealed class StatusWindow : ToolWindow
     private readonly StatusViewModel viewModel = new();
     private AppConfiguration configuration = new();
 
-    // Le letture sopravvivono al comando che le ha chieste: si fermano solo con la finestra.
+    // Reads outlive the command that requested them: they stop only with the window.
     private readonly CancellationTokenSource lifetime = new();
     private readonly CancellationToken lifetimeToken;
 
-    // Lo splash resta almeno questo tempo: le letture partono comunque dietro, cosi' quando
-    // il pannello compare le sezioni sono gia' popolate invece di riempirsi alla spicciolata.
+    // The splash stays for at least this long: the reads start behind it anyway, so when
+    // the panel appears the sections are already populated instead of filling in piecemeal.
     private static readonly TimeSpan MinimumSplash = TimeSpan.FromSeconds(3);
 
     private StatusSink sink = null!;
     private RepoSession session = null!;
 
-    // Kestrel e host del tunnel del clone: lo stato si rilegge dai processi ogni pochi secondi
-    // (lettura locale, non tocca git, database o rete), e subito dopo un avvio o uno stop.
+    // Kestrel and tunnel host of the clone: the state is reread from the processes every few seconds
+    // (a local read, it does not touch git, database or network), and right after a start or stop.
     private readonly SemaphoreSlim scanRequested = new(0);
     private BackendTools? tools;
     private string? toolsRoot;
     private IReadOnlyList<ProcessRow> lastScan = [];
     private StatusControl? content;
 
-    // La nota segue il clone letto per ultimo, come gli strumenti di Kestrel.
+    // The note follows the last clone read, like the Kestrel tools.
     private readonly object noteGate = new();
     private EnvironmentNote? note;
     private bool loadedOnce;
@@ -57,8 +57,8 @@ internal sealed class StatusWindow : ToolWindow
 
     public override Task InitializeAsync(CancellationToken cancellationToken)
     {
-        // La configurazione e' quella dell'exe Soffritto: si rilegge a ogni Aggiorna, cosi'
-        // ambienti, database protetti e pool cambiati nel setup dell'exe arrivano anche qui.
+        // The configuration is the Soffritto app's: it is reread on every Refresh, so
+        // environments, protected databases and pool changed in the app's setup reach this window too.
         ReloadConfiguration();
 
         sink = new StatusSink(
@@ -80,7 +80,7 @@ internal sealed class StatusWindow : ToolWindow
             openPortFactory: row => new AsyncCommand(
                 (_, _, _) => Task.Run(() => viewModel.ActivityLine = OpenInBrowser(row.Url))));
 
-        // Una sola sessione per finestra, e il suo gate e' l'unico per le azioni di scrittura.
+        // A single session per window, and its gate is the only one for write actions.
         session = new RepoSession(
             token => SolutionRootResolver.ResolveAsync(this.Extensibility, token),
             new RepoSessionOptions(
@@ -89,11 +89,11 @@ internal sealed class StatusWindow : ToolWindow
                 ReadsTunnel: true,
                 TunnelGate: null,
                 EnvironmentLabel: null,
-                RootUnavailableHeadline: "nessuna soluzione aperta",
-                RootUnavailableMessage: "Apri la soluzione del backend per leggere lo stato.",
-                // Le regole seguono l'ambiente della soluzione aperta, locale o Docker, e la
-                // configurazione riletta: porta del pool, guardia dello slot, database spento,
-                // database protetto. Fuori dagli ambienti della configurazione non valgono.
+                RootUnavailableHeadline: "no solution open",
+                RootUnavailableMessage: "Open the backend solution to read its status.",
+                // The rules follow the environment of the open solution, local or Docker, and the
+                // reloaded configuration: pool port, slot guard, stopped database,
+                // protected database. Outside the configured environments they do not apply.
                 PoolAssignmentOf: root => EnvironmentOf(root) is { } match ? TunnelPool.AssignmentOf(match.Environment.Number, match.Backend.Id) : null,
                 DatabaseGuard: SlotGuard,
                 DatabaseOffline: () => databaseOffline,
@@ -157,10 +157,10 @@ internal sealed class StatusWindow : ToolWindow
         return Task.FromResult<IRemoteUserControl>(content);
     }
 
-    // All'avvio dell'IDE la finestra viene ripristinata prima che la soluzione sia caricata, e
-    // il Remote UI non offre un evento "soluzione pronta" comodo da intercettare: si aspetta un
-    // secondo e, finche' la soluzione non c'e', si riprova ogni due secondi per un minuto. Poi
-    // parte lo stesso refresh completo del pulsante Aggiorna, fetch e tunnel compresi.
+    // When the IDE starts, the window is restored before the solution is loaded, and
+    // Remote UI offers no convenient "solution ready" event to hook: wait one
+    // second and, while there is no solution, retry every two seconds for a minute. Then
+    // the same full refresh as the Refresh button runs, fetch and tunnel included.
     private async Task InitialRefreshAsync(CancellationToken cancellationToken)
     {
         var deadline = DateTimeOffset.Now.AddMinutes(1);
@@ -176,7 +176,7 @@ internal sealed class StatusWindow : ToolWindow
 
                 if (refreshedOnce)
                 {
-                    // L'utente ha gia' premuto Aggiorna nel frattempo.
+                    // The user has already pressed Refresh in the meantime.
                     return;
                 }
 
@@ -188,18 +188,18 @@ internal sealed class StatusWindow : ToolWindow
 
                 if (DateTimeOffset.Now >= deadline)
                 {
-                    session.ReportFailure("nessuna soluzione aperta", "Apri la soluzione del backend e premi Aggiorna.");
+                    session.ReportFailure("no solution open", "Open the backend solution and press Refresh.");
                     return;
                 }
 
-                // L'attesa della soluzione esiste solo nella VSIX: il testo resta qui.
-                sink.SetActivity("in attesa che la soluzione sia caricata…");
+                // Waiting for the solution exists only in the VSIX: the text lives here.
+                sink.SetActivity("waiting for the solution to load…");
                 delay = TimeSpan.FromSeconds(2);
             }
         }
         catch (OperationCanceledException)
         {
-            // Finestra chiusa durante l'attesa.
+            // Window closed while waiting.
         }
         finally
         {
@@ -229,7 +229,7 @@ internal sealed class StatusWindow : ToolWindow
         }
         catch (OperationCanceledException)
         {
-            // Finestra chiusa durante lo splash.
+            // Window closed during the splash.
         }
     }
 
@@ -256,7 +256,7 @@ internal sealed class StatusWindow : ToolWindow
     private (EnvironmentDefinition Environment, EnvironmentRepository Backend)? EnvironmentOf(string? root)
         => root is null ? null : configuration.BackendEnvironmentOf(root);
 
-    /// <summary>L'ambiente Docker della soluzione aperta col suo slot; null per un locale o fuori configurazione.</summary>
+    /// <summary>The Docker environment of the open solution with its slot; null for a local one or outside the configuration.</summary>
     private (int Number, DockerSlot Slot)? DockerEnvironment()
     {
         if (EnvironmentOf(sink.Root) is not { Environment.Kind: EnvironmentKind.Docker } match)
@@ -274,8 +274,8 @@ internal sealed class StatusWindow : ToolWindow
         }
     }
 
-    // Come nell'exe: nel worktree di un ambiente Docker letture delle migrazioni, update, rollback
-    // e copia del comando passano solo se il worktree punta al SQL Server del suo slot.
+    // As in the app: in the worktree of a Docker environment, migration reads, update, rollback
+    // and command copy go through only if the worktree points to its slot's SQL Server.
     private string? SlotGuard(string root)
     {
         if (EnvironmentOf(root) is not { Environment.Kind: EnvironmentKind.Docker } match)
@@ -293,13 +293,13 @@ internal sealed class StatusWindow : ToolWindow
         }
         catch (Exception ex)
         {
-            return $"slot non calcolabile: {ex.Message}";
+            return $"slot cannot be computed: {ex.Message}";
         }
     }
 
-    // Il database dello slot spento o in avvio: le migrazioni non tentano la connessione. RepoSession
-    // chiede il motivo in modo sincrono, quindi si legge l'ultimo docker ps: lo aggiornano il giro
-    // dei processi ogni 3 secondi e, prima di ogni refresh completo, UpdateDatabaseOfflineAsync.
+    // The slot database is stopped or starting: migrations do not attempt the connection. RepoSession
+    // asks for the reason synchronously, so the last docker ps is read: it is updated by the process
+    // loop every 3 seconds and, before every full refresh, by UpdateDatabaseOfflineAsync.
     private volatile string? databaseOffline;
 
     private async Task UpdateDatabaseOfflineAsync(string? root, CancellationToken cancellationToken)
@@ -317,7 +317,7 @@ internal sealed class StatusWindow : ToolWindow
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            databaseOffline = $"stato del database non letto: {ex.Message}";
+            databaseOffline = $"database state not read: {ex.Message}";
         }
     }
 
@@ -326,8 +326,8 @@ internal sealed class StatusWindow : ToolWindow
         : status.StateOf(slot.Project, slot.DatabaseService) switch
         {
             ContainerRunState.Running => null,
-            ContainerRunState.Starting => "Database in avvio",
-            _ => "Database spento: avvia i container dall'exe",
+            ContainerRunState.Starting => "Database starting",
+            _ => "Database stopped: start the containers from the app",
         };
 
     private async Task RefreshAllAsync(string? root, CancellationToken cancellationToken)
@@ -336,7 +336,7 @@ internal sealed class StatusWindow : ToolWindow
         await session.RefreshAsync(full: true, cancellationToken).ConfigureAwait(false);
     }
 
-    // Tag dell'intestazione e interruttore Tunnel: dall'ambiente della soluzione aperta.
+    // Header tag and Tunnel switch: from the environment of the open solution.
     private void ShowEnvironment(string? root)
     {
         var match = EnvironmentOf(root);
@@ -355,7 +355,7 @@ internal sealed class StatusWindow : ToolWindow
         var service = slot.ApiService;
         if (service is null)
         {
-            viewModel.ActivityLine = $"l'ambiente {number} non ha un'api nei container";
+            viewModel.ActivityLine = $"environment {number} has no api among its containers";
             return;
         }
 
@@ -363,12 +363,12 @@ internal sealed class StatusWindow : ToolWindow
         viewModel.BeginOperation();
         try
         {
-            viewModel.ActivityLine = stopping ? $"arresto di {service}…" : $"avvio di {service}…";
+            viewModel.ActivityLine = stopping ? $"stopping {service}…" : $"starting {service}…";
             void Log(string line) => viewModel.ActivityLine = StatusText.Progress(line);
             var error = stopping
                 ? await DockerEnvironmentProvisioner.StopServiceAsync(configuration, number, service, Log, cancellationToken).ConfigureAwait(false)
                 : await DockerEnvironmentProvisioner.StartServiceAsync(configuration, number, service, Log, cancellationToken).ConfigureAwait(false);
-            viewModel.ActivityLine = error ?? (stopping ? $"{service} fermato" : $"{service} avviato");
+            viewModel.ActivityLine = error ?? (stopping ? $"{service} stopped" : $"{service} started");
         }
         catch (Exception ex)
         {
@@ -381,8 +381,8 @@ internal sealed class StatusWindow : ToolWindow
         }
     }
 
-    // L'interruttore «Tunnel» dell'ambiente, come nell'exe: acceso reclama un tunnel del pool e da'
-    // una porta a ogni repository che ne espone una, spento le rilascia (EnvironmentTunnel).
+    // The environment's “Tunnel” switch, as in the app: on claims a pool tunnel and gives
+    // a port to every repository that exposes one, off releases them (EnvironmentTunnel).
     private async Task ToggleTunnelAsync(CancellationToken cancellationToken)
     {
         if (EnvironmentOf(sink.Root) is not { } match)
@@ -396,14 +396,14 @@ internal sealed class StatusWindow : ToolWindow
         viewModel.BeginOperation();
         try
         {
-            viewModel.ActivityLine = on ? "tunnel: rilascio le porte del pool…" : "tunnel: reclamo un tunnel del pool…";
+            viewModel.ActivityLine = on ? "tunnel: releasing the pool ports…" : "tunnel: claiming a pool tunnel…";
             void Log(string line) => viewModel.ActivityLine = StatusText.Progress(line);
             var error = on
                 ? await EnvironmentTunnel.DisableAsync(configuration, number, Log, cancellationToken).ConfigureAwait(false)
                 : await EnvironmentTunnel.EnableAsync(configuration, number, Log, cancellationToken).ConfigureAwait(false);
             viewModel.ActivityLine = error is not null
-                ? $"tunnel non {(on ? "spento" : "acceso")}: {error}"
-                : on ? "tunnel spento" : "tunnel acceso";
+                ? $"tunnel not turned {(on ? "off" : "on")}: {error}"
+                : on ? "tunnel turned off" : "tunnel turned on";
         }
         catch (Exception ex)
         {
@@ -416,7 +416,7 @@ internal sealed class StatusWindow : ToolWindow
             viewModel.EndOperation();
         }
 
-        // Come il pulsante Aggiorna: porte e URL nella card del tunnel, stato dell'host.
+        // Like the Refresh button: ports and URLs in the tunnel card, host state.
         await RefreshAllAsync(sink.Root, cancellationToken).ConfigureAwait(false);
     }
 
@@ -425,11 +425,11 @@ internal sealed class StatusWindow : ToolWindow
         try
         {
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true })?.Dispose();
-            return $"aperto nel browser: {url}";
+            return $"opened in the browser: {url}";
         }
         catch (Exception ex)
         {
-            return $"browser non aperto: {ex.Message}";
+            return $"browser not opened: {ex.Message}";
         }
     }
 
@@ -446,7 +446,7 @@ internal sealed class StatusWindow : ToolWindow
             EnvironmentNote? created = null;
             created = new EnvironmentNote(key, text =>
             {
-                // Una nota sostituita da un'altra soluzione aperta non scrive piu' nel pannello.
+                // A note replaced by another opened solution no longer writes to the panel.
                 if (ReferenceEquals(note, created))
                 {
                     viewModel.ShowNote(key, text);
@@ -468,9 +468,9 @@ internal sealed class StatusWindow : ToolWindow
                 var current = ToolsForRoot();
                 if (current is not null)
                 {
-                    // Nel worktree Docker bottone e pallino sono quelli del container dell'api, e
-                    // lo stesso docker ps dice se il database dello slot risponde: docker ps
-                    // prima, cosi' lo stato di Kestrel non lampeggia nel mezzo.
+                    // In the Docker worktree the button and the dot belong to the api container, and
+                    // the same docker ps says whether the slot database responds: docker ps
+                    // first, so the Kestrel state does not flicker in between.
                     var docker = DockerEnvironment();
                     var status = docker is not null ? await DockerStatusReader.ReadAsync(cancellationToken).ConfigureAwait(false) : null;
                     databaseOffline = docker is { } environment && status is not null ? OfflineReason(status, environment.Slot) : null;
@@ -485,7 +485,7 @@ internal sealed class StatusWindow : ToolWindow
             }
             catch
             {
-                // WMI non disponibile per un giro: lo stato resta com'era e si riprova al successivo.
+                // WMI unavailable for one round: the state stays as it was and the next round retries.
             }
 
             try
@@ -499,7 +499,7 @@ internal sealed class StatusWindow : ToolWindow
         }
     }
 
-    // Gli strumenti seguono il clone letto per ultimo: con un'altra soluzione aperta cambiano.
+    // The tools follow the last clone read: they change when another solution is opened.
     private BackendTools? ToolsForRoot()
     {
         var root = sink.Root;
@@ -521,7 +521,7 @@ internal sealed class StatusWindow : ToolWindow
     {
         try
         {
-            var current = ToolsForRoot() ?? throw new InvalidOperationException("Nessun clone letto: aggiorna il pannello.");
+            var current = ToolsForRoot() ?? throw new InvalidOperationException("No clone read: refresh the panel.");
             viewModel.ActivityLine = action(current);
         }
         catch (Exception ex)

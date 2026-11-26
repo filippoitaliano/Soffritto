@@ -1,9 +1,9 @@
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// La nota libera di un ambiente, condivisa tra exe e VSIX: un file di testo per ambiente in
-/// %LOCALAPPDATA%\Soffritto\Note. Le modifiche si salvano poco dopo l'ultimo
-/// tasto; quelle fatte dall'altro processo arrivano a <c>externalChanged</c>.
+/// The free-text note of an environment, shared between the app and the VSIX: one text file per environment in
+/// %LOCALAPPDATA%\Soffritto\Note. Edits are saved shortly after the last
+/// keystroke; those made by the other process reach <c>externalChanged</c>.
 /// </summary>
 public sealed class EnvironmentNote : IDisposable
 {
@@ -11,8 +11,8 @@ public sealed class EnvironmentNote : IDisposable
 
     private static readonly TimeSpan SaveDelay = TimeSpan.FromMilliseconds(500);
 
-    // Una scrittura arriva al watcher come piu' eventi, e il file puo' essere ancora aperto
-    // dall'altro processo: si rilegge una volta sola, a eventi finiti.
+    // A single write reaches the watcher as several events, and the file may still be open
+    // in the other process: it is reread only once, after the events settle.
     private static readonly TimeSpan ReloadDelay = TimeSpan.FromMilliseconds(200);
 
     private readonly string path;
@@ -26,8 +26,8 @@ public sealed class EnvironmentNote : IDisposable
     private bool savePending;
     private bool disposed;
 
-    /// <param name="key">Il numero dell'ambiente, o il nome della cartella se non ha un numero (vedi <see cref="BackendTools.EnvironmentKey"/>).</param>
-    /// <param name="externalChanged">Chiamato da un thread del pool quando il file cambia per mano dell'altro processo.</param>
+    /// <param name="key">The environment number, or the folder name if it has no number (see <see cref="BackendTools.EnvironmentKey"/>).</param>
+    /// <param name="externalChanged">Called from a thread-pool thread when the file is changed by the other process.</param>
     public EnvironmentNote(string key, Action<string> externalChanged)
     {
         path = Path.Combine(Folder, $"ambiente-{key}.txt");
@@ -51,7 +51,7 @@ public sealed class EnvironmentNote : IDisposable
         }
         catch (Exception)
         {
-            // Cartella non creabile: la nota resta modificabile, ma non si allinea con l'altro processo.
+            // Folder cannot be created: the note stays editable, but does not sync with the other process.
             watcher = null;
         }
     }
@@ -67,7 +67,7 @@ public sealed class EnvironmentNote : IDisposable
         }
     }
 
-    /// <summary>Testo scritto dall'utente: si salva dopo <see cref="SaveDelay"/> senza altri tasti.</summary>
+    /// <summary>Text typed by the user: saved after <see cref="SaveDelay"/> with no further keystrokes.</summary>
     public void Edit(string value)
     {
         lock (gate)
@@ -83,7 +83,7 @@ public sealed class EnvironmentNote : IDisposable
         }
     }
 
-    /// <summary>Salva subito un testo ancora in attesa, per esempio alla chiusura.</summary>
+    /// <summary>Immediately saves any pending text, for example on close.</summary>
     public void Flush()
     {
         string toSave;
@@ -104,7 +104,7 @@ public sealed class EnvironmentNote : IDisposable
             return;
         }
 
-        // File rimasto occupato: si riprova piu' tardi, finche' la nota e' aperta.
+        // File still locked: retry later, as long as the note is open.
         lock (gate)
         {
             if (saved == toSave)
@@ -159,8 +159,8 @@ public sealed class EnvironmentNote : IDisposable
 
         lock (gate)
         {
-            // L'eco del proprio salvataggio coincide con saved. Un testo locale ancora da salvare
-            // vince: il salvataggio in arrivo riscrivera' il file.
+            // The echo of our own save matches saved. Local text not yet saved
+            // wins: the upcoming save will rewrite the file.
             if (disposed || savePending || current == saved)
             {
                 return;
@@ -172,7 +172,7 @@ public sealed class EnvironmentNote : IDisposable
         externalChanged(current);
     }
 
-    /// <returns>Il contenuto, vuoto se il file non c'e'; null se resta occupato dall'altro processo.</returns>
+    /// <returns>The content, empty if the file does not exist; null if it stays locked by the other process.</returns>
     private string? ReadFile()
     {
         for (var attempt = 0; attempt < 5; attempt++)

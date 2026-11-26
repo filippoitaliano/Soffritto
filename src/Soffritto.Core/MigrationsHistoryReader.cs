@@ -4,7 +4,7 @@ namespace Soffritto.Core;
 
 public sealed record AppliedMigration(string MigrationId, string? ProductVersion);
 
-/// <param name="Connected">Il database ha risposto: con la tabella della history assente l'errore c'e', ma la history vuota e' vera.</param>
+/// <param name="Connected">The database responded: when the history table is missing there is an error, but the empty history is real.</param>
 public sealed record HistoryReadResult(
     IReadOnlyList<AppliedMigration> Applied,
     string? Server,
@@ -32,7 +32,7 @@ public static class MigrationsHistoryReader
         }
         catch (Exception ex)
         {
-            return new HistoryReadResult([], null, null, $"Connection string non valida: {ex.Message}");
+            return new HistoryReadResult([], null, null, $"Invalid connection string: {ex.Message}");
         }
 
         var server = builder.DataSource;
@@ -55,7 +55,7 @@ public static class MigrationsHistoryReader
                     [],
                     server,
                     database,
-                    $"Tabella {HistoryTable} assente: nessuna migrazione risulta mai applicata su questo database.",
+                    $"Table {HistoryTable} is missing: no migration has ever been applied to this database.",
                     Connected: true);
             }
 

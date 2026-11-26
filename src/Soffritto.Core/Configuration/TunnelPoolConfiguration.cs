@@ -1,12 +1,12 @@
 namespace Soffritto.Core.Configuration;
 
-/// <summary>I dev tunnel creati dall'utente le cui porte Soffritto assegna agli ambienti.</summary>
+/// <summary>The user-created dev tunnels whose ports Soffritto assigns to environments.</summary>
 public sealed class TunnelPoolConfiguration
 {
     public List<PoolTunnelConfiguration> Tunnels { get; set; } = [];
 }
 
-/// <summary>Un tunnel del pool, ritrovato per Description come quelli degli ambienti locali.</summary>
+/// <summary>A pool tunnel, found by Description like the tunnels of local environments.</summary>
 public sealed class PoolTunnelConfiguration
 {
     public string Description { get; set; } = string.Empty;

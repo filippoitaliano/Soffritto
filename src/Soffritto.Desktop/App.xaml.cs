@@ -15,20 +15,20 @@ public partial class App : Application
 
     protected override void OnStartup(StartupEventArgs e)
     {
-        // dotnet ef database update compila il backend, e per default lascia vivi nodi MSBuild,
-        // server MSBuild e compilatore condiviso (VBCSCompiler) che altre build della macchina
-        // possono riusare. Dentro il job dell'exe verrebbero uccisi alla chiusura: con queste
-        // variabili, ereditate da tutti i processi figli, quei processi non nascono affatto.
+        // dotnet ef database update builds the backend, and by default leaves MSBuild nodes, the
+        // MSBuild server and the shared compiler (VBCSCompiler) alive for other builds on the
+        // machine to reuse. Inside the exe's job they would be killed on exit: with these
+        // variables, inherited by every child process, those processes are never started.
         Environment.SetEnvironmentVariable("MSBUILDDISABLENODEREUSE", "1");
         Environment.SetEnvironmentVariable("DOTNET_CLI_USE_MSBUILD_SERVER", "0");
         Environment.SetEnvironmentVariable("UseSharedCompilation", "false");
 
-        // Se il job non si aggancia si prosegue: resta la cancellazione delle letture alla chiusura.
+        // If the job cannot be attached we carry on: reads are still cancelled on exit.
         ChildProcessJob.TryAttachCurrentProcess();
 
         base.OnStartup(e);
 
-        // Prima di qualunque accesso ai dati: una cartella dati sbagliata non ricade su quella di lavoro.
+        // Before any data access: a wrong data folder must not fall back to the working one.
         if (ConfigurationFiles.DataFolderProblem is { } problem)
         {
             MessageBox.Show(problem, ProductName, MessageBoxButton.OK, MessageBoxImage.Error);
@@ -39,7 +39,7 @@ public partial class App : Application
         if (!TryParseConfig(e.Args, out importPath))
         {
             MessageBox.Show(
-                "Uso: Soffritto.exe [--config <file json>]",
+                "Usage: Soffritto.exe [--config <json file>]",
                 ProductName,
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
@@ -78,12 +78,12 @@ public partial class App : Application
             await Installation.CheckForUpdatesAsync();
             if (Installation.PendingVersion is { } version)
             {
-                UiThread.Run(() => viewModel.UpdateNotice = $" · v{version} alla chiusura");
+                UiThread.Run(() => viewModel.UpdateNotice = $" · v{version} on exit");
             }
         }
         catch
         {
-            // Senza rete o senza release l'exe funziona lo stesso: si riprova al prossimo avvio.
+            // Without a network or a release the app works anyway: it tries again at next startup.
         }
     }
 
@@ -94,9 +94,9 @@ public partial class App : Application
         base.OnExit(e);
     }
 
-    // Una configurazione nuova si applica riaprendo l'exe: la copia nuova parte fuori dal job
-    // di questa, che altrimenti la chiuderebbe uscendo. Riparte senza --config: il file e' gia'
-    // stato importato, e reimportarlo cancellerebbe cio' che si e' appena salvato dal setup.
+    // A new configuration is applied by reopening the exe: the new copy starts outside this one's
+    // job, which would otherwise close it on exit. It restarts without --config: the file has
+    // already been imported, and importing it again would wipe what was just saved from setup.
     private void Restart(MainWindow window)
     {
         if (!window.ExitForRestart())

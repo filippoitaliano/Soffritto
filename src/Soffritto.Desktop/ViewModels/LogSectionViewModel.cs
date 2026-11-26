@@ -3,8 +3,8 @@ using Soffritto.Desktop.Infrastructure;
 namespace Soffritto.Desktop.ViewModels;
 
 /// <summary>
-/// Una sezione «Log» chiusa di default dentro una card: le operazioni di un ambiente Docker
-/// (<see cref="Append"/>) o le ultime righe del container di una card (<see cref="Replace"/>).
+/// A “Log” section inside a card, closed by default: the operations of a Docker environment
+/// (<see cref="Append"/>) or the last lines of a card's container (<see cref="Replace"/>).
 /// </summary>
 public sealed class LogSectionViewModel : ObservableObject
 {
@@ -25,17 +25,17 @@ public sealed class LogSectionViewModel : ObservableObject
 
     public string Text { get => text; private set => SetProperty(ref text, value); }
 
-    /// <summary>Nota accanto al titolo: quante righe, o perche' il log non si legge.</summary>
+    /// <summary>Note next to the title: how many lines, or why the log cannot be read.</summary>
     public string State { get => state; set => SetProperty(ref state, value); }
 
-    /// <summary>Lo stesso log seguito in una console: il bottone dell'intestazione c'e' solo se e' impostato.</summary>
+    /// <summary>The same log followed in a console: the header button is there only when this is set.</summary>
     public System.Windows.Input.ICommand? ConsoleCommand { get; init; }
 
     public string ConsoleToolTip { get; init; } = string.Empty;
 
     public string ConsoleVisibility => ConsoleCommand is null ? "Collapsed" : "Visible";
 
-    /// <summary>Una riga con l'ora in fondo al log. Da qualunque thread.</summary>
+    /// <summary>A timestamped line at the end of the log. From any thread.</summary>
     public void Append(string line) => UiThread.Run(() =>
     {
         lines.Add($"{DateTime.Now:HH:mm:ss} {line}");
@@ -45,10 +45,10 @@ public sealed class LogSectionViewModel : ObservableObject
         }
 
         Text = string.Join(Environment.NewLine, lines);
-        State = $"{lines.Count} righe";
+        State = $"{lines.Count} lines";
     });
 
-    /// <summary>Tutto il log in una volta, com'e' letto dalla sorgente. Da qualunque thread.</summary>
+    /// <summary>The whole log at once, as read from the source. From any thread.</summary>
     public void Replace(string content, string note) => UiThread.Run(() =>
     {
         lines.Clear();

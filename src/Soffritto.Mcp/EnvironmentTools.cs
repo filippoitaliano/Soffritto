@@ -12,10 +12,10 @@ namespace Soffritto.Mcp;
 [McpServerToolType]
 public static class EnvironmentTools
 {
-    // Oltre questa soglia l'elenco delle mancanti dice poco a chi legge e costa contesto: basta il conteggio.
+    // Beyond this threshold the list of pending migrations tells the reader little and costs context: the count is enough.
     private const int MaxPendingListed = 20;
 
-    private const string ExternalHost = "da un host che non e' tra i processi di questa macchina";
+    private const string ExternalHost = "from a host that is not among this machine's processes";
 
     private static readonly JsonSerializerOptions Json = new()
     {
@@ -25,83 +25,83 @@ public static class EnvironmentTools
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase) },
     };
 
-    [McpServerTool(Name = "elenca_ambienti", ReadOnly = true, Idempotent = true, OpenWorld = false)]
-    [Description("Gli ambienti configurati, locali (cloni) e Docker (worktree e container), con le cartelle dei repository predefiniti (backend, frontend, app) e la lista completa dei repository di ogni ambiente, e l'ambiente a cui appartiene una cartella. Un ambiente con databaseProtetto=true punta a un database protetto (per esempio usato anche da altri): si legge e si usa normalmente, ma non vi si applicano migrazioni ne' si altera lo schema; per un lavoro che crea o applica migrazioni scegli un altro ambiente (o crea un ambiente Docker). Veloce: non legge database, git, tunnel ne' container.")]
-    public static string ElencaAmbienti(
-        [Description("Cartella da riconoscere, di solito la cartella di lavoro della sessione; vuota = la cartella corrente del server.")] string? cartella = null)
+    [McpServerTool(Name = "list_environments", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [Description("The configured environments, local (clones) and Docker (worktrees and containers), with the folders of the primary repositories (backend, frontend, app), the full list of repositories of each environment, and the environment a folder belongs to. An environment with protectedDatabase=true points to a protected database (for example one shared with others): it can be read and used normally, but no migrations are applied to it and its schema is never altered; for work that creates or applies migrations pick another environment (or create a Docker environment). Fast: it does not read databases, git, tunnels or containers.")]
+    public static string ListEnvironments(
+        [Description("Folder to recognize, usually the session's working folder; empty = the server's current folder.")] string? folder = null)
     {
         if (LoadConfiguration(out var error) is not { } configuration)
         {
-            return Serialize(new { errore = error });
+            return Serialize(new { error });
         }
 
-        var path = string.IsNullOrWhiteSpace(cartella) ? Environment.CurrentDirectory : cartella;
+        var path = string.IsNullOrWhiteSpace(folder) ? Environment.CurrentDirectory : folder;
         var located = Locate(configuration, path);
 
         return Serialize(new
         {
-            fileConfigurazione = ConfigurationFiles.ConfigPath,
-            cartellaRiconosciuta = new
+            configFile = ConfigurationFiles.ConfigPath,
+            recognizedFolder = new
             {
-                cartella = path,
-                ambiente = located?.Number,
+                folder = path,
+                environment = located?.Number,
                 repository = located is { } l ? AppConfiguration.TypeName(l.Repo.Type) : null,
                 id = located?.Repo.Id,
-                nota = located is null ? "La cartella non appartiene a nessun ambiente configurato." : null,
+                note = located is null ? "The folder does not belong to any configured environment." : null,
             },
-            ambienti = configuration.Environments.Select(environment =>
+            environments = configuration.Environments.Select(environment =>
             {
                 var repositories = configuration.RepositoriesOf(environment);
                 return new
                 {
-                    numero = environment.Number,
-                    tipo = environment.Kind == EnvironmentKind.Docker ? "docker" : "locale",
-                    databaseProtetto = environment.SchemaLockReason is not null ? true : (bool?)null,
-                    vincoloDatabase = environment.SchemaLockReason,
+                    number = environment.Number,
+                    kind = environment.Kind == EnvironmentKind.Docker ? "docker" : "local",
+                    protectedDatabase = environment.SchemaLockReason is not null ? true : (bool?)null,
+                    protectedDatabaseReason = environment.SchemaLockReason,
                     backend = Folder(PrimaryIn(repositories, RepositoryType.Backend)),
                     frontend = Folder(PrimaryIn(repositories, RepositoryType.Frontend)),
                     app = Folder(PrimaryIn(repositories, RepositoryType.App)),
                     repository = repositories.Select(r => new
                     {
                         id = r.Id,
-                        tipo = AppConfiguration.TypeName(r.Type),
-                        predefinito = r.IsPrimary,
-                        cartella = r.Path,
-                        esiste = Directory.Exists(r.Path),
-                        comandoExtra = ExtraCommand.Of(r.Repository),
+                        type = AppConfiguration.TypeName(r.Type),
+                        primary = r.IsPrimary,
+                        folder = r.Path,
+                        exists = Directory.Exists(r.Path),
+                        extraCommand = ExtraCommand.Of(r.Repository),
                     }),
                 };
             }),
         });
     }
 
-    [McpServerTool(Name = "stato_ambiente", ReadOnly = true, Idempotent = true, OpenWorld = false)]
-    [Description("Stato completo di un ambiente N: database a cui punta il backend predefinito (server, nome, file da cui viene la connection string), migrazioni EF per context (mancanti, fuori ordine, sconosciute), git e dev tunnel di tutti i repository dell'ambiente, servizi accesi (Kestrel, host dei tunnel, dev server, app, Metro) e un elenco di problemi. Con databaseProtetto=true le migrazioni mancanti si segnalano ma non si applicano: lo schema di un database protetto non si tocca. Le chiavi backend, frontend e app descrivono i repository predefiniti; la lista repository li contiene tutti. Solo lettura; impiega qualche secondo.")]
-    public static async Task<string> StatoAmbiente(
-        [Description("Numero dell'ambiente; se manca si ricava da 'cartella'.")] int? numero = null,
-        [Description("Cartella di un repository dell'ambiente, usata quando 'numero' manca; vuota = la cartella corrente del server.")] string? cartella = null,
-        [Description("Esegue git fetch prima di leggere ahead/behind (tocca solo i remote-tracking ref). Piu' lento.")] bool fetch = false,
-        [Description("Legge i dev tunnel dei repository dell'ambiente (devtunnel list/show e probe delle porte). Senza, l'host di un tunnel si riconosce solo se avviato dalla CLI.")] bool tunnel = true,
+    [McpServerTool(Name = "environment_status", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [Description("Full status of a local environment N: the database the primary backend points to (server, name, file the connection string comes from), EF migrations per context (pending, out of order, unknown), git and dev tunnels of all the environment's repositories, running services (Kestrel, tunnel hosts, dev server, app, Metro) and a list of problems. With protectedDatabase=true pending migrations are reported but not applied: the schema of a protected database is never touched. The backend, frontend and app keys describe the primary repositories; the repository list contains all of them. Read-only; takes a few seconds.")]
+    public static async Task<string> EnvironmentStatus(
+        [Description("Environment number; if missing, it is derived from 'folder'.")] int? number = null,
+        [Description("Folder of a repository in the environment, used when 'number' is missing; empty = the server's current folder.")] string? folder = null,
+        [Description("Runs git fetch before reading ahead/behind (touches only remote-tracking refs). Slower.")] bool fetch = false,
+        [Description("Reads the dev tunnels of the environment's repositories (devtunnel list/show and port probes). Without it, a tunnel host is recognized only if it was started from the CLI.")] bool tunnel = true,
         CancellationToken cancellationToken = default)
     {
         if (LoadConfiguration(out var error) is not { } configuration)
         {
-            return Serialize(new { errore = error });
+            return Serialize(new { error });
         }
 
-        var number = numero ?? Locate(configuration, string.IsNullOrWhiteSpace(cartella) ? Environment.CurrentDirectory : cartella)?.Number;
-        if (number is { } docker && configuration.Environment(docker) is { Kind: EnvironmentKind.Docker })
+        var resolved = number ?? Locate(configuration, string.IsNullOrWhiteSpace(folder) ? Environment.CurrentDirectory : folder)?.Number;
+        if (resolved is { } docker && configuration.Environment(docker) is { Kind: EnvironmentKind.Docker })
         {
-            return Serialize(new { errore = $"L'ambiente {docker} e' un ambiente Docker: usa stato_ambiente_docker." });
+            return Serialize(new { error = $"Environment {docker} is a Docker environment: use docker_environment_status." });
         }
 
-        if (number is not { } n || configuration.Environment(n) is not { Kind: EnvironmentKind.Local } environment)
+        if (resolved is not { } n || configuration.Environment(n) is not { Kind: EnvironmentKind.Local } environment)
         {
             return Serialize(new
             {
-                errore = numero is null
-                    ? "La cartella non appartiene a nessun ambiente configurato: passa 'numero'."
-                    : $"L'ambiente {numero} non e' configurato (ambienti configurati: {string.Join(", ", configuration.Environments.Select(e => e.Number))}).",
+                error = number is null
+                    ? "The folder does not belong to any configured environment: pass 'number'."
+                    : $"Environment {number} is not configured (configured environments: {string.Join(", ", configuration.Environments.Select(e => e.Number))}).",
             });
         }
 
@@ -116,8 +116,8 @@ public static class EnvironmentTools
         var migrationsTask = backendRepo is not null && Directory.Exists(backendRepo.Path)
             ? StatusProbe.RunMigrationsAsync(backendRepo.Path, options, cancellationToken)
             : null;
-        // I tunnel si leggono uno dopo l'altro, come fa l'exe: non e' verificato che la CLI
-        // devtunnel regga chiamate concorrenti sulla stessa login.
+        // Tunnels are read one after the other, as the app does: it is not verified that the
+        // devtunnel CLI handles concurrent calls on the same login.
         var tunnelsTask = tunnel ? ReadTunnelsAsync(repositories, cancellationToken) : null;
         var gitTasks = repositories
             .Where(r => Directory.Exists(r.Path))
@@ -145,8 +145,8 @@ public static class EnvironmentTools
             : new Dictionary<string, string>();
         var devServerPort = FrontendEnv.ReadDevServerPort(frontendRepo?.Path ?? string.Empty, frontendSettings);
 
-        // Il frontend punta al backend dello stesso ambiente se un valore del suo env contiene
-        // localhost:<porta https di Kestrel> oppure l'host dell'URL del pool del backend.
+        // The frontend points to the backend of the same environment if a value in its env contains
+        // localhost:<Kestrel https port> or the host of the backend's pool URL.
         var kestrelPort = backendRepo is not null && Directory.Exists(backendRepo.Path)
             ? DevTunnelProvisioner.KestrelPorts(backendRepo.Path, backendSettings).FirstOrDefault()?.Number
             : null;
@@ -176,22 +176,22 @@ public static class EnvironmentTools
 
         return Serialize(new
         {
-            ambiente = n,
-            databaseProtetto = environment.SchemaLockReason is not null ? true : (bool?)null,
-            vincoloDatabase = environment.SchemaLockReason,
-            problemi = problems,
+            environment = n,
+            protectedDatabase = environment.SchemaLockReason is not null ? true : (bool?)null,
+            protectedDatabaseReason = environment.SchemaLockReason,
+            problems,
             backend = backendRepo is null
                 ? Missing(RepositoryType.Backend, n)
                 : new
                 {
-                    cartella = backendRepo.Path,
-                    esiste = Directory.Exists(backendRepo.Path),
+                    folder = backendRepo.Path,
+                    exists = Directory.Exists(backendRepo.Path),
                     kestrel = new
                     {
-                        stato = backendServices!.Kestrel,
+                        status = backendServices!.Kestrel,
                         pid = Pids(scan, p => ConsoleServices.Is(p, backendSettings.ApiProcess) && ConsoleServices.Under(p.ExecutablePath, backendRepo.Path)),
-                        profilo = backendSettings.LaunchProfile,
-                        indirizzi = KestrelUrls(backendRepo.Path, backendSettings),
+                        profile = backendSettings.LaunchProfile,
+                        addresses = KestrelUrls(backendRepo.Path, backendSettings),
                     },
                     database = migrations is null ? null : DatabaseSection(backendRepo.Path, options, migrations),
                     git = git.TryGetValue(backendRepo, out var backendGit) ? GitSection(backendGit) : null,
@@ -201,17 +201,17 @@ public static class EnvironmentTools
                 ? Missing(RepositoryType.Frontend, n)
                 : new
                 {
-                    cartella = frontendRepo.Path,
-                    esiste = Directory.Exists(frontendRepo.Path),
+                    folder = frontendRepo.Path,
+                    exists = Directory.Exists(frontendRepo.Path),
                     devServer = new
                     {
-                        stato = frontendServices!.DevServer,
+                        status = frontendServices!.DevServer,
                         pid = Pids(scan, p => RepoProcesses.IsFrontend(p, frontendRepo.Path, frontendSettings)),
                         url = $"http://localhost:{devServerPort}/",
                     },
-                    fileEnv = frontendSettings.EnvFile.Length > 0 ? frontendSettings.EnvFile : null,
-                    variabiliEnv = envVariables,
-                    puntaAlBackendDellAmbiente = frontendOnBackend,
+                    envFile = frontendSettings.EnvFile.Length > 0 ? frontendSettings.EnvFile : null,
+                    envVariables,
+                    pointsToEnvironmentBackend = frontendOnBackend,
                     devTunnel = TunnelSection(frontendTunnelStatus, frontendServices.HostState, frontendServices.HostToolTip),
                     git = git.TryGetValue(frontendRepo, out var frontendGit) ? GitSection(frontendGit) : null,
                 },
@@ -219,9 +219,9 @@ public static class EnvironmentTools
                 ? Missing(RepositoryType.App, n)
                 : new
                 {
-                    cartella = appRepo.Path,
-                    esiste = Directory.Exists(appRepo.Path),
-                    stato = appServices!.App,
+                    folder = appRepo.Path,
+                    exists = Directory.Exists(appRepo.Path),
+                    status = appServices!.App,
                     metro = appServices.Metro,
                     pid = Pids(scan, p => RepoProcesses.IsApp(p, appRepo.Path)),
                     git = git.TryGetValue(appRepo, out var appGit) ? GitSection(appGit) : null,
@@ -229,25 +229,25 @@ public static class EnvironmentTools
             repository = repositories.Select(r => new
             {
                 id = r.Id,
-                tipo = AppConfiguration.TypeName(r.Type),
-                predefinito = r.IsPrimary,
-                cartella = r.Path,
-                esiste = Directory.Exists(r.Path),
+                type = AppConfiguration.TypeName(r.Type),
+                primary = r.IsPrimary,
+                folder = r.Path,
+                exists = Directory.Exists(r.Path),
                 git = git.TryGetValue(r, out var repositoryGit) ? GitSection(repositoryGit) : null,
                 devTunnel = !r.HasTunnel ? null : TunnelSection(tunnels.GetValueOrDefault(r), services[r].HostState, services[r].HostToolTip),
-                servizi = new
+                services = new
                 {
                     kestrel = services[r].Kestrel,
                     devServer = services[r].DevServer,
                     app = services[r].App,
                     metro = services[r].Metro,
-                    hostTunnel = !r.HasTunnel ? null : ConsoleServices.Describe(services[r].HostState),
+                    tunnelHost = !r.HasTunnel ? null : ConsoleServices.Describe(services[r].HostState),
                 },
             }),
         });
     }
 
-    /// <summary>Lo stato dei servizi di un repository, con gli stessi marcatori dell'exe (chiave "N" o "N-id").</summary>
+    /// <summary>The status of a repository's services, with the same markers as the app (key "N" or "N-id").</summary>
     private static RepositoryServices Services(EnvironmentRepository repository, IReadOnlyList<ProcessRow> scan, DevTunnelStatus? tunnel)
     {
         var key = repository.Key;
@@ -280,13 +280,13 @@ public static class EnvironmentTools
         }
     }
 
-    // L'host di un repository e' quello del tunnel del pool su cui ha la porta (console
-    // AMBIENTI tunnel-pool-<Description> nella cartella dati); senza porta non e' condiviso.
+    // A repository's host is the host of the pool tunnel it has a port on (console
+    // AMBIENTI tunnel-pool-<Description> in the data folder); without a port it is not shared.
     private static (ServiceState State, string ToolTip) PoolHostOf(EnvironmentRepository repository, IReadOnlyList<ProcessRow> scan, DevTunnelStatus? tunnel)
     {
         if (Soffritto.Core.Docker.TunnelPool.AssignmentOf(repository.Number, repository.Id) is not { } assignment)
         {
-            return (ServiceState.Stopped, "non condiviso");
+            return (ServiceState.Stopped, "not shared");
         }
 
         var host = PoolHosts.Tools(assignment.TunnelDescription).Evaluate(scan, tunnel?.TunnelId ?? assignment.TunnelId, tunnel?.IsHostConnected == true, string.Empty);
@@ -299,15 +299,15 @@ public static class EnvironmentTools
     {
         var result = new Dictionary<EnvironmentRepository, DevTunnelStatus>();
 
-        // Prima i predefiniti, cosi' le chiavi di sempre arrivano anche se un tunnel in piu' e' lento.
+        // Primary repositories first, so the usual keys arrive even if an additional tunnel is slow.
         foreach (var repository in repositories.OrderByDescending(r => r.IsPrimary))
         {
             if (repository.HasTunnel && Directory.Exists(repository.Path))
             {
-                // Il tunnel del repository e' quello della sua porta del pool, con la sola porta assegnata.
+                // The repository's tunnel is the one of its pool port, with only the assigned port.
                 result[repository] = Soffritto.Core.Docker.TunnelPool.AssignmentOf(repository.Number, repository.Id) is { } assignment
                     ? await DevTunnelReader.ReadAsync(repository.Path, assignment.TunnelDescription, cancellationToken, assignment.Port).ConfigureAwait(false)
-                    : DevTunnelStatus.NotShared("non condiviso: nessuna porta del pool (si assegna dall'exe Soffritto)");
+                    : DevTunnelStatus.NotShared("not shared: no pool port (assign one from the app)");
             }
         }
 
@@ -316,18 +316,18 @@ public static class EnvironmentTools
 
     private static object TunnelSection(DevTunnelStatus? status, ServiceState host, string hostToolTip) => new
     {
-        letto = status is not null,
-        condiviso = status?.Shared,
-        descrizione = status?.Description,
+        read = status is not null,
+        shared = status?.Shared,
+        description = status?.Description,
         id = status?.TunnelId,
         host = ConsoleServices.Describe(host),
-        dettaglioHost = hostToolTip,
-        connessioniHost = status?.HostConnections,
-        porte = status?.AllPorts.Select(p => new { porta = p.PortNumber, uri = p.PortUri, raggiungibile = p.Reachable }),
-        errore = status is { Shared: true } ? status.Error : null,
-        nota = status is { Shared: false } ? status.Error : null,
-        tunnelDisponibili = status is { Shared: true, Error: not null }
-            ? status.AllAvailable.Select(t => new { id = t.TunnelId, descrizione = t.Description, hostConnesso = t.IsHostConnected })
+        hostDetail = hostToolTip,
+        hostConnections = status?.HostConnections,
+        ports = status?.AllPorts.Select(p => new { port = p.PortNumber, uri = p.PortUri, reachable = p.Reachable }),
+        error = status is { Shared: true } ? status.Error : null,
+        note = status is { Shared: false } ? status.Error : null,
+        availableTunnels = status is { Shared: true, Error: not null }
+            ? status.AllAvailable.Select(t => new { id = t.TunnelId, description = t.Description, hostConnected = t.IsHostConnected })
             : null,
     };
 
@@ -339,30 +339,30 @@ public static class EnvironmentTools
         {
             server = report.Server,
             database = report.Database,
-            fileConnectionString = sourceFile,
-            errore = report.ConfigurationError ?? report.DatabaseError,
-            allineato = report.IsEnvironmentUpToDate,
+            connectionStringFile = sourceFile,
+            error = report.ConfigurationError ?? report.DatabaseError,
+            upToDate = report.IsEnvironmentUpToDate,
             context = report.Contexts.Select(c => new
             {
-                nome = c.ContextName,
-                applicate = c.AppliedCount,
-                totali = c.Entries.Count,
-                ultimaApplicata = c.LastApplied,
-                mancanti = c.Pending.Count,
-                fuoriOrdine = c.OutOfOrder.Count,
-                elencoMancanti = c.Pending.Count > 0
+                name = c.ContextName,
+                applied = c.AppliedCount,
+                total = c.Entries.Count,
+                lastApplied = c.LastApplied,
+                pending = c.Pending.Count,
+                outOfOrder = c.OutOfOrder.Count,
+                pendingList = c.Pending.Count > 0
                     ? c.Pending.Take(MaxPendingListed).Select(e => new
                     {
                         id = e.MigrationId,
-                        fuoriOrdine = e.State == MigrationState.PendingOutOfOrder ? true : (bool?)null,
+                        outOfOrder = e.State == MigrationState.PendingOutOfOrder ? true : (bool?)null,
                     })
                     : null,
-                updateBanale = c.Pending.Count > 0 ? c.CanApplyPending : (bool?)null,
-                idDiversiDalNomeFile = c.FileNameMismatches.Count > 0
+                trivialUpdate = c.Pending.Count > 0 ? c.CanApplyPending : (bool?)null,
+                idsNotMatchingFileName = c.FileNameMismatches.Count > 0
                     ? c.FileNameMismatches.Select(e => new { id = e.MigrationId, file = e.MismatchedFileName })
                     : null,
             }),
-            sconosciute = report.Unknown.Select(e => e.MigrationId),
+            unknown = report.Unknown.Select(e => e.MigrationId),
         };
     }
 
@@ -373,9 +373,9 @@ public static class EnvironmentTools
         upstream = git.HasUpstream,
         ahead = git.Ahead,
         behind = git.Behind,
-        fileModificati = git.DirtyFiles,
-        erroreFetch = git.FetchError,
-        errore = git.Error,
+        modifiedFiles = git.DirtyFiles,
+        fetchError = git.FetchError,
+        error = git.Error,
     };
 
     private static void CollectProblems(
@@ -391,52 +391,52 @@ public static class EnvironmentTools
     {
         foreach (var repository in repositories.Where(r => !Directory.Exists(r.Path)))
         {
-            problems.Add($"Manca la cartella {OfRepo(repository)} dell'ambiente {n}: {repository.Path}.");
+            problems.Add($"The folder of {OfRepo(repository)} of environment {n} is missing: {repository.Path}.");
         }
 
         if (migrations is not null)
         {
             if ((migrations.ConfigurationError ?? migrations.DatabaseError) is { } dbError)
             {
-                problems.Add($"Database del backend {n} non letto: {dbError}");
+                problems.Add($"Database of backend {n} not read: {dbError}");
             }
 
             foreach (var context in migrations.Contexts.Where(c => !c.IsUpToDate))
             {
                 problems.Add(context.OutOfOrder.Count > 0
-                    ? $"{context.ContextName}: {context.Pending.Count} migrazioni mancanti, di cui {context.OutOfOrder.Count} fuori ordine (rientro da un branch parallelo)."
-                    : $"{context.ContextName}: {context.Pending.Count} migrazioni mancanti su {migrations.Database}.");
+                    ? $"{context.ContextName}: {context.Pending.Count} pending migrations, {context.OutOfOrder.Count} of them out of order (merged in from a parallel branch)."
+                    : $"{context.ContextName}: {context.Pending.Count} pending migrations on {migrations.Database}.");
                 if (schemaLock is not null)
                 {
-                    problems.Add($"{context.ContextName}: le migrazioni mancanti non si applicano, {schemaLock}.");
+                    problems.Add($"{context.ContextName}: the pending migrations are not applied, {schemaLock}.");
                 }
             }
 
             if (migrations.Unknown.Count > 0)
             {
-                problems.Add($"{migrations.Unknown.Count} migrazioni applicate su {migrations.Database} non esistono nel codice del branch corrente.");
+                problems.Add($"{migrations.Unknown.Count} migrations applied on {migrations.Database} do not exist in the code of the current branch.");
             }
         }
 
         foreach (var (repository, status) in git)
         {
-            var name = $"git {OfRepo(repository)}";
+            var name = $"git of {OfRepo(repository)}";
             if (status.Error is not null)
             {
                 problems.Add($"{name}: {status.Error}");
             }
             else if (status.Behind > 0)
             {
-                problems.Add($"{name}: il branch {status.Branch} e' indietro di {status.Behind} commit rispetto all'upstream.");
+                problems.Add($"{name}: branch {status.Branch} is {status.Behind} commits behind its upstream.");
             }
 
             if (status.FetchError is not null)
             {
-                problems.Add($"{name}: fetch non riuscito ({status.FetchError}).");
+                problems.Add($"{name}: fetch failed ({status.FetchError}).");
             }
         }
 
-        // Un backend non condiviso non e' un problema: la porta del pool si assegna quando serve.
+        // An unshared backend is not a problem: the pool port is assigned when needed.
         if (tunnel is { Shared: true, Error: not null })
         {
             problems.Add($"Dev tunnel {n}: {tunnel.Error}");
@@ -444,12 +444,12 @@ public static class EnvironmentTools
 
         if (frontendOnBackend == false)
         {
-            problems.Add($"Nessuna variabile dell'env del frontend {n} punta al backend {n} (localhost:{kestrelPort?.ToString() ?? "<porta>"} o il suo URL del pool).");
+            problems.Add($"No variable in the env of frontend {n} points to backend {n} (localhost:{kestrelPort?.ToString() ?? "<port>"} or its pool URL).");
         }
     }
 
-    // Come li risolve ASP.NET: gli endpoint Kestrel del primo appsettings che li dichiara vincono
-    // sull'applicationUrl del profilo di launchSettings.
+    // As ASP.NET resolves them: the Kestrel endpoints of the first appsettings that declares them win
+    // over the applicationUrl of the launchSettings profile.
     private static IReadOnlyList<string> KestrelUrls(string backendPath, BackendConfiguration settings)
     {
         foreach (var candidate in settings.AppSettings)
@@ -498,11 +498,11 @@ public static class EnvironmentTools
         }
     }
 
-    // I predefiniti si chiamano come sempre ("del backend"); gli altri con il loro id.
+    // Primary repositories are named as usual ("the backend"); the others by their id.
     private static string OfRepo(EnvironmentRepository repository)
-        => !repository.IsPrimary ? $"del repository {repository.Id}"
-            : repository.Type == RepositoryType.App ? "dell'app"
-            : $"del {AppConfiguration.TypeName(repository.Type)}";
+        => !repository.IsPrimary ? $"repository {repository.Id}"
+            : repository.Type == RepositoryType.App ? "the app"
+            : $"the {AppConfiguration.TypeName(repository.Type)}";
 
     private static IReadOnlyList<int> Pids(IReadOnlyList<ProcessRow> scan, Func<ProcessRow, bool> isAnchor)
         => scan.Where(isAnchor).Select(p => p.ProcessId).ToList();
@@ -512,14 +512,14 @@ public static class EnvironmentTools
 
     private static object Folder(EnvironmentRepository? repository)
         => repository is null
-            ? new { cartella = (string?)null, esiste = false }
-            : new { cartella = (string?)repository.Path, esiste = Directory.Exists(repository.Path) };
+            ? new { folder = (string?)null, exists = false }
+            : new { folder = (string?)repository.Path, exists = Directory.Exists(repository.Path) };
 
     private static object Missing(RepositoryType type, int number) => new
     {
-        cartella = (string?)null,
-        esiste = false,
-        nota = $"L'ambiente {number} non include un repository di tipo {AppConfiguration.TypeName(type)}.",
+        folder = (string?)null,
+        exists = false,
+        note = $"Environment {number} does not include a repository of type {AppConfiguration.TypeName(type)}.",
     };
 
     private static (int Number, EnvironmentRepository Repo)? Locate(AppConfiguration configuration, string path)
@@ -552,7 +552,7 @@ public static class EnvironmentTools
 
     internal static AppConfiguration? LoadConfiguration(out string? error)
     {
-        // Una cartella dati sbagliata non ricade su quella di lavoro: si risponde con l'errore.
+        // A wrong data folder does not fall back to the working folder: the response carries the error.
         if (ConfigurationFiles.DataFolderProblem is { } problem)
         {
             error = problem;
@@ -562,13 +562,13 @@ public static class EnvironmentTools
         var configuration = ConfigurationFiles.TryLoad(out error);
         if (configuration is null)
         {
-            error ??= $"Configurazione assente ({ConfigurationFiles.ConfigPath}): compilala dal setup dell'exe Soffritto.";
+            error ??= $"Configuration missing ({ConfigurationFiles.ConfigPath}): fill it in from the app's setup.";
             return null;
         }
 
         if (configuration.Validate() is { Count: > 0 } errors)
         {
-            error = $"Configurazione non valida ({ConfigurationFiles.ConfigPath}): {string.Join(" ", errors)}";
+            error = $"Invalid configuration ({ConfigurationFiles.ConfigPath}): {string.Join(" ", errors)}";
             return null;
         }
 
@@ -577,7 +577,7 @@ public static class EnvironmentTools
 
     internal static string Serialize(object value) => JsonSerializer.Serialize(value, Json);
 
-    /// <summary>Stato dei servizi di un repository; null per quelli che il suo tipo non ha.</summary>
+    /// <summary>Status of a repository's services; null for those its type does not have.</summary>
     private sealed record RepositoryServices(
         string? Kestrel,
         string? DevServer,

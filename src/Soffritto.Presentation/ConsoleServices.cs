@@ -6,24 +6,24 @@ public enum ServiceState
 {
     Stopped,
 
-    /// <summary>La console aperta dall'host c'e', il processo vero non ancora (build, install) o non piu'.</summary>
+    /// <summary>The console opened by the host is there, the actual process is not yet (build, install) or no longer.</summary>
     WindowOnly,
 
     Running,
 }
 
 /// <summary>
-/// Servizi di sviluppo in console staccate (Kestrel, host del tunnel, dev server, app): lo stato
-/// si ricava dai processi della macchina, non da cio' che l'host ricorda, cosi' vale anche per
-/// cio' che e' partito prima o da Visual Studio. Ogni console aperta porta nel titolo un
-/// marcatore (es. "AMBIENTI kestrel-1") che la riconosce anche dopo un riavvio dell'host.
+/// Development services in detached consoles (Kestrel, tunnel host, dev server, app): the state
+/// is derived from the machine's processes, not from what the host remembers, so it also holds for
+/// whatever was started earlier or from Visual Studio. Every opened console carries a marker in its
+/// title (e.g. "AMBIENTI kestrel-1") that identifies it even after the host restarts.
 /// </summary>
 public static class ConsoleServices
 {
-    /// <summary>Il marcatore nel titolo della console di un servizio, es. "AMBIENTI kestrel-1".</summary>
+    /// <summary>The marker in the console title of a service, e.g. "AMBIENTI kestrel-1".</summary>
     public static string Marker(string service, string key) => $"AMBIENTI {service}-{key}";
 
-    /// <summary>Running se c'e' un processo riconosciuto, WindowOnly se c'e' solo la console marcata.</summary>
+    /// <summary>Running if a recognised process exists, WindowOnly if only the marked console exists.</summary>
     public static ServiceState StateOf(IReadOnlyList<ProcessRow> scan, string marker, Func<ProcessRow, bool> isAnchor)
     {
         if (scan.Any(isAnchor))
@@ -34,20 +34,20 @@ public static class ConsoleServices
         return scan.Any(p => IsConsole(p, marker)) ? ServiceState.WindowOnly : ServiceState.Stopped;
     }
 
-    // Prima le console marcate (il loro albero comprende tutto), poi i processi riconosciuti
-    // partiti in altro modo.
+    // Marked consoles first (their tree covers everything), then recognised processes
+    // started some other way.
     public static IEnumerable<int> Pids(IReadOnlyList<ProcessRow> scan, string marker, Func<ProcessRow, bool> isAnchor)
         => scan.Where(p => IsConsole(p, marker)).Concat(scan.Where(isAnchor)).Select(p => p.ProcessId).Distinct();
 
     /// <summary>
-    /// Apre una console staccata che esegue <paramref name="command"/>. False se e' partita
-    /// dentro il job dell'host e quindi si chiudera' con lui.
+    /// Opens a detached console that runs <paramref name="command"/>. False if it started
+    /// inside the host's job and will therefore close along with it.
     /// </summary>
-    // /k lascia la console aperta quando il comando finisce: un errore di build o di avvio resta
-    // leggibile invece di sparire con la finestra.
-    // La console nasce da un cmd intermedio che esce subito: resta senza un genitore vivo, e chi
-    // chiude l'host con tutto il suo albero di processi (un client MCP che riavvia il server) non
-    // la raggiunge. Il breakaway dal job da solo non basta contro una chiusura per albero.
+    // /k keeps the console open when the command ends: a build or startup error stays
+    // readable instead of vanishing with the window.
+    // The console is spawned by an intermediate cmd that exits immediately: it is left without a live
+    // parent, so whoever kills the host along with its whole process tree (an MCP client restarting
+    // the server) does not reach it. Breaking away from the job alone is not enough against a tree kill.
     public static bool StartConsole(string workingDirectory, string marker, string command)
         => DetachedLauncher.Start(
             $"cmd.exe /d /s /c \"start \"\" cmd.exe /k \"title {marker} && {command}\"\"",
@@ -55,7 +55,7 @@ public static class ConsoleServices
             newConsole: false,
             hidden: true);
 
-    /// <summary>Chiude ogni processo indicato con tutto il suo albero.</summary>
+    /// <summary>Kills every given process along with its whole tree.</summary>
     public static void Stop(IEnumerable<int> pids)
     {
         foreach (var pid in pids.ToList())
@@ -70,7 +70,7 @@ public static class ConsoleServices
         }
     }
 
-    /// <summary>Colore del pallino di stato: verde acceso, arancio solo console aperta, grigio spento.</summary>
+    /// <summary>Color of the status dot: green running, orange console only, grey stopped.</summary>
     public static string ColorOf(ServiceState state) => state switch
     {
         ServiceState.Running => StatusBadge.OkColor,
@@ -80,9 +80,9 @@ public static class ConsoleServices
 
     public static string Describe(ServiceState state) => state switch
     {
-        ServiceState.Running => "acceso",
-        ServiceState.WindowOnly => "console aperta, processo non (ancora) attivo",
-        _ => "spento",
+        ServiceState.Running => "running",
+        ServiceState.WindowOnly => "console open, process not running (yet)",
+        _ => "stopped",
     };
 
     public static bool Is(ProcessRow p, string name) => string.Equals(p.Name, name, StringComparison.OrdinalIgnoreCase);

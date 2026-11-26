@@ -5,17 +5,17 @@ using System.Text.Json;
 namespace Soffritto.Core.AzureDevOps;
 
 /// <summary>
-/// La connessione ad Azure DevOps, on-prem o servizio, presa dal server MCP Azure DevOps: URL
-/// della collection, progetto e PAT. Il PAT viaggia in Basic auth con utente vuoto, cioe' quello
-/// che manda la VssBasicCredential dell'MCP, senza i client TFS che ci stanno intorno. Senza PAT
-/// vale l'utente Windows che esegue il processo. Nessun codice TLS: la fiducia nel certificato
-/// interno e' della CA nel trust store della macchina, come nell'MCP. Il PAT non si logga mai.
+/// The connection to Azure DevOps, on-prem or service, modeled on the Azure DevOps MCP server: collection
+/// URL, project and PAT. The PAT travels as Basic auth with an empty user, which is what the
+/// MCP's VssBasicCredential sends, without the TFS clients wrapped around it. Without a PAT
+/// the Windows user running the process is used. No TLS code: trust in the internal certificate
+/// comes from the CA in the machine's trust store, as in the MCP. The PAT is never logged.
 /// </summary>
 public sealed class AzureDevOpsConnection : IDisposable
 {
     private readonly HttpClient http;
 
-    /// <param name="pat">Null o vuoto: autenticazione Windows.</param>
+    /// <param name="pat">Null or empty: Windows authentication.</param>
     public AzureDevOpsConnection(string collectionUrl, string project, string? pat)
     {
         CollectionUrl = collectionUrl.Trim().TrimEnd('/');
@@ -39,11 +39,11 @@ public sealed class AzureDevOpsConnection : IDisposable
 
     public string Project { get; }
 
-    /// <summary>Descrizione del PAT sicura per log e messaggi: solo presenza e lunghezza, mai il valore.</summary>
+    /// <summary>A description of the PAT safe for logs and messages: only presence and length, never the value.</summary>
     public static string DescribePat(string? pat)
-        => string.IsNullOrEmpty(pat) ? "PAT assente" : $"PAT presente, lunghezza {pat.Length}";
+        => string.IsNullOrEmpty(pat) ? "no PAT" : $"PAT present, length {pat.Length}";
 
-    /// <summary>Chi risulta autenticato: per il bottone "Prova connessione" del setup.</summary>
+    /// <summary>Who is authenticated: for the setup's "Test connection" button.</summary>
     public async Task<string> WhoAmIAsync(CancellationToken cancellationToken = default)
     {
         using var connection = await GetJsonAsync($"{CollectionUrl}/_apis/connectionData", cancellationToken).ConfigureAwait(false);
@@ -51,13 +51,13 @@ public sealed class AzureDevOpsConnection : IDisposable
 
         return user.TryGetProperty("providerDisplayName", out var name) && name.ValueKind == JsonValueKind.String
             ? name.GetString()!
-            : user.GetProperty("id").GetString() ?? "utente sconosciuto";
+            : user.GetProperty("id").GetString() ?? "unknown user";
     }
 
     public Task<JsonDocument> GetJsonAsync(string url, CancellationToken cancellationToken)
         => SendAsync(new HttpRequestMessage(HttpMethod.Get, url), cancellationToken);
 
-    /// <param name="mediaType">Le modifiche ai work item vogliono <c>application/json-patch+json</c>.</param>
+    /// <param name="mediaType">Work item updates require <c>application/json-patch+json</c>.</param>
     public Task<JsonDocument> SendJsonAsync(HttpMethod method, string url, string json, string mediaType, CancellationToken cancellationToken)
         => SendAsync(new HttpRequestMessage(method, url) { Content = new StringContent(json, Encoding.UTF8, mediaType) }, cancellationToken);
 
@@ -66,18 +66,18 @@ public sealed class AzureDevOpsConnection : IDisposable
         using var _ = request;
         using var response = await http.SendAsync(request, cancellationToken).ConfigureAwait(false);
 
-        // Con un PAT scaduto o senza permessi il server risponde 401/203 con una pagina di login:
-        // meglio dirlo che lasciar fallire il parser JSON.
+        // With an expired PAT or one lacking permissions the server answers 401/203 with a login page:
+        // better to say so than to let the JSON parser fail.
         if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized
             || response.StatusCode == System.Net.HttpStatusCode.NonAuthoritativeInformation)
         {
-            throw new HttpRequestException("Azure DevOps ha rifiutato le credenziali (401): controlla il PAT o l'utente Windows.");
+            throw new HttpRequestException("Azure DevOps rejected the credentials (401): check the PAT or the Windows user.");
         }
 
-        // Un PAT di sola lettura passa le GET e cade sulle scritture.
+        // A read-only PAT gets through the GETs and fails on writes.
         if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
         {
-            throw new HttpRequestException("Azure DevOps ha negato l'operazione (403): al PAT serve il permesso di scrittura sui work item.");
+            throw new HttpRequestException("Azure DevOps denied the operation (403): the PAT needs write permission on work items.");
         }
 
         response.EnsureSuccessStatusCode();

@@ -5,8 +5,8 @@ using Soffritto.Core.Configuration;
 namespace Soffritto.Core.Docker;
 
 /// <summary>
-/// I nomi delle risorse Docker di una cartella dati: progetti, container del seed ed etichetta.
-/// Due exe con cartelle dati diverse (la Debug isolata e la Release) non si toccano le risorse.
+/// The names of a data folder's Docker resources: projects, seed container and label.
+/// Two executables with different data folders (the isolated Debug one and the Release one) never touch each other's resources.
 /// </summary>
 public static class DockerNames
 {
@@ -14,20 +14,20 @@ public static class DockerNames
 
     private const string Prefix = "soffritto-";
 
-    /// <summary>Le prime 8 cifre esadecimali dello SHA256 del percorso normalizzato della cartella dati.</summary>
+    /// <summary>The first 8 hex digits of the SHA256 of the data folder's normalized path.</summary>
     public static string DataFolderTag => TagOf(ConfigurationFiles.DataFolder);
 
-    /// <summary>"soffritto-", o "soffritto-&lt;4 cifre del tag&gt;-" con la cartella dati sovrascritta.</summary>
+    /// <summary>"soffritto-", or "soffritto-&lt;4 digits of the tag&gt;-" when the data folder is overridden.</summary>
     public static string ProjectPrefix => ConfigurationFiles.IsDataFolderOverridden ? $"{Prefix}{DataFolderTag[..4]}-" : Prefix;
 
-    /// <summary>L'etichetta che l'override generato mette su ogni servizio, e su cui filtra docker ps.</summary>
+    /// <summary>The label the generated override puts on every service, and that docker ps filters on.</summary>
     public static string Label => $"{LabelKey}={DataFolderTag}";
 
     public static string Project(int number) => $"{ProjectPrefix}{number}";
 
     public static string SeedContainer => $"{ProjectPrefix}seed";
 
-    /// <summary>Il progetto senza "soffritto-": la chiave delle console di un ambiente Docker.</summary>
+    /// <summary>The project without "soffritto-": the key of a Docker environment's consoles.</summary>
     public static string KeyOf(string project) => project.StartsWith(Prefix, StringComparison.Ordinal) ? project[Prefix.Length..] : project;
 
     public static string TagOf(string dataFolder)

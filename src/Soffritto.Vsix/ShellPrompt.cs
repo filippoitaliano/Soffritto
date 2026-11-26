@@ -6,7 +6,7 @@ namespace Soffritto.Vsix;
 
 internal sealed class ShellPrompt(VisualStudioExtensibility extensibility) : IUserPrompt
 {
-    // Il prompt della Shell non ha titolo ne' elenchi: la conferma arriva in testo semplice, titolo in testa.
+    // The Shell prompt has neither a title nor lists: the confirmation arrives as plain text, title first.
     public Task<bool> ConfirmAsync(Confirmation confirmation, CancellationToken cancellationToken)
         => extensibility.Shell().ShowPromptAsync(confirmation.ToPlainText(), PromptOptions.OKCancel, cancellationToken);
 }

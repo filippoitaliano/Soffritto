@@ -4,19 +4,19 @@ using Microsoft.VisualStudio.Extensibility.UI;
 
 namespace Soffritto.Vsix.UI;
 
-// Le proprieta' *Visibility sono stringhe ("Visible"/"Collapsed") invece di bool: il dialetto
-// XAML del Remote UI non espone converter, e il type converter di Visibility accetta la stringa.
-// Stessa tecnica per le proprieta' *Color, lette da Border.Background via il converter di Brush.
+// The *Visibility properties are strings ("Visible"/"Collapsed") instead of bools: the Remote UI
+// XAML dialect exposes no converters, and the Visibility type converter accepts the string.
+// Same technique for the *Color properties, read by Border.Background through the Brush converter.
 
-// Pallini di stato (tavolozza in StatusBadge di Presentation) e icone sono disegnati in XAML,
-// pallini come Ellipse e icone come glifi Segoe Fluent Icons, invece di usare <vs:Image>: quel
-// controllo delega a CrispImage, che quando eredita CrispImage.HighContrast=true dall'albero
-// che ospita il Remote UI serve la variante monocromatica del moniker. I glifi seguono il colore
-// del testo del tema, come nell'exe Desktop.
+// Status dots (palette in Presentation's StatusBadge) and icons are drawn in XAML,
+// dots as Ellipses and icons as Segoe Fluent Icons glyphs, instead of using <vs:Image>: that
+// control delegates to CrispImage, which, when it inherits CrispImage.HighContrast=true from the tree
+// hosting the Remote UI, serves the monochrome variant of the moniker. The glyphs follow the theme's
+// text color, as in the Desktop app.
 
 /// <summary>
-/// La pastiglia a destra di una riga delle liste, come la Note della Lane dell'exe: iniziale
-/// maiuscola, rossa per cio' che e' rotto e grigia per il resto, in tinte che reggono chiaro e scuro.
+/// The pill on the right of a list row, like the Note of the app's Lane: capitalised
+/// first letter, red for what is broken and grey for the rest, in tints that work on light and dark.
 /// </summary>
 internal static class LaneNote
 {
@@ -35,7 +35,7 @@ internal sealed class MigrationRow(string migrationId, string kind) : NotifyProp
     [DataMember]
     public string MigrationId { get; } = migrationId;
 
-    /// <summary>Etichetta breve a fianco dell'ID.</summary>
+    /// <summary>Short label next to the ID.</summary>
     [DataMember]
     public string Kind { get; } = kind;
 }
@@ -43,18 +43,18 @@ internal sealed class MigrationRow(string migrationId, string kind) : NotifyProp
 [DataContract]
 internal sealed class RecentMigrationRow(string displayName, string state, int position = 0, string name = "") : NotifyPropertyChangedObject
 {
-    /// <summary>Posizione nel context, nel badge grigio della riga come nell'exe; vuota se non nota.</summary>
+    /// <summary>Position in the context, in the row's grey badge as in the app; empty if unknown.</summary>
     [DataMember]
     public string Position { get; } = position > 0 ? position.ToString() : string.Empty;
 
     [DataMember]
     public string BadgeVisibility => Position.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Nome senza timestamp; senza posizione, il nome da mostrare per intero.</summary>
+    /// <summary>Name without timestamp; without a position, the name to show in full.</summary>
     [DataMember]
     public string Name { get; } = name.Length > 0 ? name : displayName;
 
-    /// <summary>La pastiglia della riga: solo cio' che non e' «applicata» (mancante, fuori ordine, feedback della copia).</summary>
+    /// <summary>The row's pill: only what is not “applied” (missing, out of order, copy feedback).</summary>
     [DataMember]
     public string Note => LaneNote.Of(kind, hidden: MigrationLabels.Applied);
 
@@ -67,15 +67,15 @@ internal sealed class RecentMigrationRow(string displayName, string state, int p
     [DataMember]
     public string RunToolTip { get; set; } = string.Empty;
 
-    /// <summary>Glifo Segoe Fluent Icons del lancio: Play in avanti, Undo per un rollback.</summary>
+    /// <summary>Segoe Fluent Icons glyph of the run button: Play forward, Undo for a rollback.</summary>
     [DataMember]
     public string RunGlyph { get; set; } = string.Empty;
 
-    /// <summary>Falso se il database e' gia' fermo a questa migrazione.</summary>
+    /// <summary>False if the database is already at this migration.</summary>
     [DataMember]
     public bool CanRun { get; set; }
 
-    /// <summary>False mentre un'azione di scrittura e' in corso: la copia resta libera, il lancio no.</summary>
+    /// <summary>False while a write action is in progress: copying stays available, running does not.</summary>
     public bool IsNotBusy
     {
         get => isNotBusy;
@@ -98,11 +98,11 @@ internal sealed class RecentMigrationRow(string displayName, string state, int p
     private string kind = state;
     private string kindColor = MigrationColors.For(state);
 
-    /// <summary>Nome della migrazione senza il timestamp: quello che si legge a colpo d'occhio.</summary>
+    /// <summary>Migration name without the timestamp: what you read at a glance.</summary>
     [DataMember]
     public string DisplayName { get; } = displayName;
 
-    /// <summary>Stato della migrazione, o il feedback transitorio della copia.</summary>
+    /// <summary>Migration state, or the transient copy feedback.</summary>
     [DataMember]
     public string Kind
     {
@@ -122,7 +122,7 @@ internal sealed class RecentMigrationRow(string displayName, string state, int p
     [DataMember]
     public string KindColor { get => kindColor; private set => SetProperty(ref kindColor, value); }
 
-    /// <summary>Etichetta da ripristinare quando il feedback della copia scade.</summary>
+    /// <summary>Label to restore when the copy feedback expires.</summary>
     internal string State { get; } = state;
 
     [DataMember]
@@ -143,13 +143,13 @@ internal sealed class TunnelPortRow(string endpoint, string url, string state, i
     [DataMember]
     public string BadgeVisibility => PortNumber.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>L'host senza schema, come nell'exe: gli URL pubblici dei tunnel sono https.</summary>
+    /// <summary>The host without scheme, as in the app: public tunnel URLs are https.</summary>
     [DataMember]
     public string Host { get; } = url.Replace("https://", string.Empty, StringComparison.OrdinalIgnoreCase);
 
-    /// <summary>La pastiglia: «nessuna risposta» e il feedback della copia; «raggiungibile» no.</summary>
+    /// <summary>The pill: “no response” and the copy feedback; not “reachable”.</summary>
     [DataMember]
-    public string Note => LaneNote.Of(kind, hidden: "raggiungibile");
+    public string Note => LaneNote.Of(kind, hidden: "reachable");
 
     [DataMember]
     public string NoteColor => LaneNote.ColorOf(kind, error: kind == StatusText.CopyFailed);
@@ -157,13 +157,13 @@ internal sealed class TunnelPortRow(string endpoint, string url, string state, i
     [DataMember]
     public string NoteVisibility => Note.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Porta e URL come si leggono nella riga: "5000 · https://…".</summary>
+    /// <summary>Port and URL as they read in the row: "5000 · https://…".</summary>
     [DataMember]
     public string Endpoint { get; } = endpoint;
 
     /// <summary>
-    /// Esito del probe HTTP ("raggiungibile", "nessuna risposta", vuota se non eseguito) o il
-    /// feedback transitorio della copia.
+    /// Outcome of the HTTP probe ("reachable", "no response", empty if not run) or the
+    /// transient copy feedback.
     /// </summary>
     [DataMember]
     public string Kind
@@ -180,10 +180,10 @@ internal sealed class TunnelPortRow(string endpoint, string url, string state, i
         }
     }
 
-    /// <summary>URL completo che l'icona mette negli appunti, senza slash finale.</summary>
+    /// <summary>Full URL the icon puts on the clipboard, without the trailing slash.</summary>
     internal string Url { get; } = url;
 
-    /// <summary>Etichetta da ripristinare quando il feedback della copia scade.</summary>
+    /// <summary>Label to restore when the copy feedback expires.</summary>
     internal string State { get; } = state;
 
     [DataMember]
@@ -202,11 +202,11 @@ internal sealed class TunnelPortRow(string endpoint, string url, string state, i
 [DataContract]
 internal sealed class TunnelSummaryRow(string title, string kind, string statusColor) : NotifyPropertyChangedObject
 {
-    /// <summary>ID del tunnel e sua descrizione: "jolly-river-lx35cgb.euw · 2".</summary>
+    /// <summary>Tunnel ID and its description: "jolly-river-lx35cgb.euw · 2".</summary>
     [DataMember]
     public string Title { get; } = title;
 
-    /// <summary>Stato sintetico: "host connesso · 2 porte".</summary>
+    /// <summary>Short state: "host connected · 2 ports".</summary>
     [DataMember]
     public string Kind { get; } = kind;
 
@@ -215,13 +215,13 @@ internal sealed class TunnelSummaryRow(string title, string kind, string statusC
 }
 
 /// <summary>
-/// Apertura e chiusura di una card: l'intestazione resta, il corpo si nasconde. Stesso
-/// comportamento dell'exe Desktop (ViewModels/Expander.cs), sui tipi del Remote UI.
+/// Expanding and collapsing a card: the header stays, the body hides. Same
+/// behavior as the Desktop app (ViewModels/Expander.cs), on Remote UI types.
 /// </summary>
 [DataContract]
 internal sealed class ExpanderState : NotifyPropertyChangedObject
 {
-    // Glifi Segoe Fluent Icons: freccia giu' (aperta) e a destra (chiusa).
+    // Segoe Fluent Icons glyphs: arrow down (expanded) and right (collapsed).
     private const string ExpandedGlyph = "";
     private const string CollapsedGlyph = "";
 
@@ -279,12 +279,12 @@ internal sealed class ContextRow : NotifyPropertyChangedObject
         Counters = counters;
         StatusColor = statusColor;
 
-        // Un context allineato non ha niente da dire oltre al contatore: parte chiuso. Le righe
-        // si ricreano a ogni lettura, quindi lo stato si riallinea a ogni refresh.
+        // An up-to-date context has nothing to say beyond its counter: it starts collapsed. The rows
+        // are recreated on every read, so the state realigns on every refresh.
         Expander = new ExpanderState(isExpanded: !isUpToDate);
 
-        // Sfogliare e' un'operazione locale sulle righe gia' costruite: nessuna rilettura,
-        // quindi i comandi restano qui invece di arrivare dalla finestra come le azioni vere.
+        // Paging is a local operation on rows already built: no reread,
+        // so the commands live here instead of coming from the window like the real actions.
         PreviousPageCommand = new AsyncCommand((_, _, _) =>
         {
             ShowPage(page - 1);
@@ -301,18 +301,18 @@ internal sealed class ContextRow : NotifyPropertyChangedObject
     [DataMember]
     public string Name { get; }
 
-    /// <summary>Note, ultime migrazioni e pager: visibili solo a card aperta.</summary>
+    /// <summary>Notes, latest migrations and pager: visible only when the card is expanded.</summary>
     [DataMember]
     public ExpanderState Expander { get; }
 
     /// <summary>
-    /// Ora dell'ultima lettura ("aggiornato 10:32:15"), "lettura…" mentre si rilegge, o l'azione
-    /// in corso sulle migrazioni.
+    /// Time of the last read ("updated 10:32:15"), "reading…" while rereading, or the migration
+    /// action in progress.
     /// </summary>
     [DataMember]
     public string Stamp { get => action ?? stamp; set => SetProperty(ref stamp, value); }
 
-    /// <summary>Azione in corso sulle migrazioni ("dotnet ef database update…"); null a fine azione.</summary>
+    /// <summary>Migration action in progress ("dotnet ef database update…"); null when the action ends.</summary>
     internal string? Action
     {
         get => action;
@@ -326,7 +326,7 @@ internal sealed class ContextRow : NotifyPropertyChangedObject
         }
     }
 
-    /// <summary>False mentre un'azione di scrittura e' in corso: blocca tutti i bottoni di update.</summary>
+    /// <summary>False while a write action is in progress: disables all update buttons.</summary>
     [DataMember]
     public bool IsNotBusy
     {
@@ -348,22 +348,22 @@ internal sealed class ContextRow : NotifyPropertyChangedObject
     [DataMember]
     public string Counters { get; }
 
-    /// <summary>Pallino dopo il nome: verde allineato, arancio con migrazioni da sistemare.</summary>
+    /// <summary>Dot after the name: green up to date, orange with migrations to sort out.</summary>
     [DataMember]
     public string StatusColor { get; }
 
-    /// <summary>La pagina corrente delle migrazioni del context, dalla piu' nuova.</summary>
+    /// <summary>The current page of the context's migrations, newest first.</summary>
     [DataMember]
     public ObservableList<RecentMigrationRow> Recent { get; } = [];
 
     [DataMember]
     public string RecentVisibility { get; set; } = "Collapsed";
 
-    /// <summary>Il pager compare solo quando le migrazioni non stanno in una pagina.</summary>
+    /// <summary>The pager appears only when the migrations do not fit in one page.</summary>
     [DataMember]
     public string PagerVisibility { get; set; } = "Collapsed";
 
-    /// <summary>Posizione della pagina nel totale: "1-8 di 47".</summary>
+    /// <summary>Position of the page in the total: "1-8 of 47".</summary>
     [DataMember]
     public string PageLabel { get => pageLabel; set => SetProperty(ref pageLabel, value); }
 
@@ -385,7 +385,7 @@ internal sealed class ContextRow : NotifyPropertyChangedObject
     [DataMember]
     public string NoteVisibility { get; set; } = "Collapsed";
 
-    /// <summary>Visibile solo quando le pendenti sono tutte successive all'ultima applicata.</summary>
+    /// <summary>Visible only when all pending migrations come after the last applied one.</summary>
     [DataMember]
     public string ApplyVisibility { get; set; } = "Collapsed";
 
@@ -396,8 +396,8 @@ internal sealed class ContextRow : NotifyPropertyChangedObject
     public AsyncCommand? ApplyCommand { get; set; }
 
     /// <summary>
-    /// Tutte le migrazioni del context, gia' ordinate dalla piu' recente: <see cref="Recent"/>
-    /// ne mostra una pagina alla volta e riparte dalla prima.
+    /// All the context's migrations, already sorted newest first: <see cref="Recent"/>
+    /// shows one page at a time and starts again from the first.
     /// </summary>
     internal void SetRecent(IReadOnlyList<RecentMigrationRow> ordered)
     {
@@ -433,7 +433,7 @@ internal sealed class ContextRow : NotifyPropertyChangedObject
 internal sealed class StatusViewModel : NotifyPropertyChangedObject
 {
     private bool isNotBusy = true;
-    private string activityLine = "avvio…";
+    private string activityLine = "starting…";
     private string splashVisibility = "Visible";
     private string mainVisibility = "Collapsed";
     private string clone = "\u2014";
@@ -441,12 +441,12 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     private string server = "\u2014";
     private string database = "\u2014";
     private string repoLine = string.Empty;
-    private string repoDetail = "in attesa della prima lettura";
+    private string repoDetail = "waiting for the first read";
     private string upstreamWarning = string.Empty;
     private string upstreamWarningVisibility = "Collapsed";
     private string repoToolTip = string.Empty;
-    private string repoStamp = "non ancora letto";
-    private string tunnelStamp = "non letto";
+    private string repoStamp = "not read yet";
+    private string tunnelStamp = "not read";
     private string tunnelLine = string.Empty;
     private string tunnelDetail = string.Empty;
     private string tunnelDetailVisibility = "Visible";
@@ -468,16 +468,16 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     private List<string> allBranches = [];
 
     /// <summary>
-    /// False solo mentre un'azione di scrittura (pull, database update) e' in corso. Le letture
-    /// delle sezioni non lo toccano: una lettura lenta del tunnel o del fetch non deve impedire
-    /// ne' le azioni ne' un nuovo refresh.
+    /// False only while a write action (pull, database update) is in progress. Section reads
+    /// do not touch it: a slow tunnel read or fetch must block neither
+    /// the actions nor a new refresh.
     /// </summary>
     [DataMember]
     public bool IsNotBusy { get => isNotBusy; set => SetProperty(ref isNotBusy, value); }
 
-    // Finche' la prima lettura vera non parte (soluzione risolta), al posto delle sezioni vuote
-    // c'e' lo splash col logo: intestazione a trattini e sezioni "non ancora lette" sembrerebbero
-    // un pannello rotto. Le due visibilita' sono complementari.
+    // Until the first real read starts (solution resolved), the splash with the logo stands in for
+    // the empty sections: a header full of dashes and "not read yet" sections would look like
+    // a broken panel. The two visibilities are complementary.
     [DataMember]
     public string SplashVisibility { get => splashVisibility; set => SetProperty(ref splashVisibility, value); }
 
@@ -485,9 +485,9 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     public string MainVisibility { get => mainVisibility; set => SetProperty(ref mainVisibility, value); }
 
     /// <summary>
-    /// Cosa sta facendo un'azione (progresso di pull, switch o database update), il titolo del
-    /// suo fallimento, o <see cref="StatusText.IdleActivity"/>. Sempre una riga: le righe di stato che
-    /// compaiono e scompaiono farebbero scattare tutto il pannello.
+    /// What an action is doing (progress of pull, switch or database update), the title of
+    /// its failure, or <see cref="StatusText.IdleActivity"/>. Always one line: status lines that
+    /// appear and disappear would make the whole panel jump.
     /// </summary>
     [DataMember]
     public string ActivityLine
@@ -502,7 +502,7 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
         }
     }
 
-    /// <summary>Pallino accanto al nome dell'ambiente, come nell'exe: verde se pronto, grigio altrimenti.</summary>
+    /// <summary>Dot next to the environment name, as in the app: green when ready, grey otherwise.</summary>
     [DataMember]
     public string EnvironmentStatusColor => activityLine == StatusText.IdleActivity ? StatusBadge.OkColor : StatusBadge.OffColor;
 
@@ -511,13 +511,13 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     private string notePlaceholder = string.Empty;
     private string noteVisibility = "Collapsed";
 
-    /// <summary>"AMBIENTE 1", come la testata di colonna dell'exe; vuoto finche' non si conosce il clone.</summary>
+    /// <summary>"ENVIRONMENT 1", like the app's column header; empty until the clone is known.</summary>
     [DataMember]
     public string EnvironmentTitle { get => environmentTitle; private set => SetProperty(ref environmentTitle, value); }
 
     /// <summary>
-    /// Nota libera dell'ambiente, la stessa che mostra l'exe. Il setter arriva dalla casella
-    /// (binding TwoWay); quello che arriva dal file passa da <see cref="ShowNote"/>.
+    /// The environment's free-text note, the same one the app shows. The setter is called by the text box
+    /// (TwoWay binding); what comes from the file goes through <see cref="ShowNote"/>.
     /// </summary>
     [DataMember]
     public string Note
@@ -533,14 +533,14 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
         }
     }
 
-    /// <summary>"aggiungi una nota all'ambiente 1…": dice a quale ambiente va la nota.</summary>
+    /// <summary>"add a note to environment 1…": says which environment the note belongs to.</summary>
     [DataMember]
     public string NotePlaceholder { get => notePlaceholder; private set => SetProperty(ref notePlaceholder, value); }
 
     [DataMember]
     public string NotePlaceholderVisibility => note.Length == 0 ? "Visible" : "Collapsed";
 
-    /// <summary>La casella compare quando si conosce il clone, quindi l'ambiente.</summary>
+    /// <summary>The text box appears once the clone, and therefore the environment, is known.</summary>
     [DataMember]
     public string NoteVisibility { get => noteVisibility; private set => SetProperty(ref noteVisibility, value); }
 
@@ -554,7 +554,7 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     private bool tunnelOn;
     private bool tunnelSwitchEnabled = true;
 
-    /// <summary>Tag rosso «DB protetto» dell'intestazione, come nell'exe: le migrazioni si leggono ma non si applicano.</summary>
+    /// <summary>Red “Protected DB” tag in the header, as in the app: migrations are read but not applied.</summary>
     [DataMember]
     public string ProtectedDatabaseVisibility { get => protectedDatabaseVisibility; private set => SetProperty(ref protectedDatabaseVisibility, value); }
 
@@ -564,35 +564,35 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     [DataMember]
     public string ProtectedDatabaseToolTip { get => protectedDatabaseToolTip; private set => SetProperty(ref protectedDatabaseToolTip, value); }
 
-    /// <summary>Tag viola «Docker»: la soluzione aperta e' il worktree di un ambiente Docker.</summary>
+    /// <summary>Purple “Docker” tag: the open solution is the worktree of a Docker environment.</summary>
     [DataMember]
     public string DockerVisibility { get => dockerVisibility; private set => SetProperty(ref dockerVisibility, value); }
 
-    /// <summary>In un ambiente Docker il server e' sempre il container dello slot: il tag non dice niente.</summary>
+    /// <summary>In a Docker environment the server is always the slot's container: the tag says nothing.</summary>
     [DataMember]
     public string ServerVisibility { get => serverVisibility; private set => SetProperty(ref serverVisibility, value); }
 
-    /// <summary>L'interruttore Tunnel compare quando la soluzione aperta e' il backend di un ambiente della configurazione.</summary>
+    /// <summary>The Tunnel switch appears when the open solution is the backend of a configured environment.</summary>
     [DataMember]
     public string TunnelSwitchVisibility { get => tunnelSwitchVisibility; private set => SetProperty(ref tunnelSwitchVisibility, value); }
 
-    /// <summary>L'ambiente ha porte del pool: lo stato letto dalle assegnazioni, non il clic.</summary>
+    /// <summary>The environment has pool ports: the state read from the assignments, not the click.</summary>
     [DataMember]
     public bool TunnelOn { get => tunnelOn; set => SetProperty(ref tunnelOn, value); }
 
-    /// <summary>Falso mentre il tunnel si accende o si spegne: l'interruttore resta fermo.</summary>
+    /// <summary>False while the tunnel is turning on or off: the switch stays put.</summary>
     [DataMember]
     public bool TunnelSwitchEnabled { get => tunnelSwitchEnabled; set => SetProperty(ref tunnelSwitchEnabled, value); }
 
     [DataMember]
     public string TunnelSwitchToolTip => tunnelOn
-        ? "L'ambiente ha un tunnel del pool: gli URL sono nella card del tunnel. Spegni per rilasciare le porte"
-        : "Reclama un tunnel libero del pool, da' una porta a ogni repository che ne espone una e accende l'host";
+        ? "The environment has a pool tunnel: the URLs are in the tunnel card. Turn off to release the ports"
+        : "Claims a free pool tunnel, gives a port to every repository that exposes one and turns on the host";
 
     [DataMember]
     public AsyncCommand TunnelSwitchCommand { get; set; } = null!;
 
-    /// <summary>L'ambiente della soluzione aperta secondo la configurazione: tag dell'intestazione e interruttore.</summary>
+    /// <summary>The environment of the open solution according to the configuration: header tags and switch.</summary>
     internal void ShowEnvironment(bool known, bool isDocker, string? schemaLock)
     {
         TunnelSwitchVisibility = known ? "Visible" : "Collapsed";
@@ -611,8 +611,8 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
 
     internal void ShowNote(string environment, string text)
     {
-        EnvironmentTitle = $"AMBIENTE {environment}";
-        NotePlaceholder = $"aggiungi una nota all'ambiente {environment}…";
+        EnvironmentTitle = $"ENVIRONMENT {environment}";
+        NotePlaceholder = $"add a note to environment {environment}…";
         NoteVisibility = "Visible";
 
         if (SetProperty(ref note, text, nameof(Note)))
@@ -621,9 +621,9 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
         }
     }
 
-    // Intestazione a colpo d'occhio. Il default e' un trattino lungo (U+2014), scritto come
-    // escape per non dipendere dall'encoding del file.
-    /// <summary>Nome della cartella di lavoro del clone (es. backend-1).</summary>
+    // Header at a glance. The default is an em dash (U+2014), written as an
+    // escape so as not to depend on the file encoding.
+    /// <summary>Name of the clone's working folder (e.g. backend-1).</summary>
     [DataMember]
     public string Clone { get => clone; set => SetProperty(ref clone, value); }
 
@@ -651,7 +651,7 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     [DataMember]
     public string RepoToolTip { get => repoToolTip; set => SetProperty(ref repoToolTip, value); }
 
-    /// <summary>"aggiornato HH:mm:ss", oppure cosa si sta leggendo: mai vuoto, per non muovere il layout.</summary>
+    /// <summary>"updated HH:mm:ss", or what is being read: never empty, so the layout does not move.</summary>
     [DataMember]
     public string RepoStamp { get => repoStamp; set => SetProperty(ref repoStamp, value); }
 
@@ -661,7 +661,7 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     [DataMember]
     public string TunnelDetail { get => tunnelDetail; set => SetProperty(ref tunnelDetail, value); }
 
-    /// <summary>Il dettaglio serve solo quando il tunnel non e' letto o e' in errore: a tunnel risolto parlano badge e porte.</summary>
+    /// <summary>The detail is needed only when the tunnel is not read or is in error: once the tunnel is resolved, badge and ports speak for it.</summary>
     [DataMember]
     public string TunnelDetailVisibility { get => tunnelDetailVisibility; set => SetProperty(ref tunnelDetailVisibility, value); }
 
@@ -671,14 +671,14 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     [DataMember]
     public ObservableList<TunnelPortRow> TunnelPorts { get; } = [];
 
-    /// <summary>I tunnel dell'account, mostrati solo quando nessuno corrisponde al clone.</summary>
+    /// <summary>The account's tunnels, shown only when none matches the clone.</summary>
     [DataMember]
     public ObservableList<TunnelSummaryRow> TunnelList { get; } = [];
 
     [DataMember]
     public string TunnelListVisibility { get => tunnelListVisibility; set => SetProperty(ref tunnelListVisibility, value); }
 
-    /// <summary>"aggiornato HH:mm:ss", "lettura…" o "non letto": mai vuoto, per non muovere il layout.</summary>
+    /// <summary>"updated HH:mm:ss", "reading…" or "not read": never empty, so the layout does not move.</summary>
     [DataMember]
     public string TunnelStamp { get => tunnelStamp; set => SetProperty(ref tunnelStamp, value); }
 
@@ -694,20 +694,20 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     [DataMember]
     public string UnknownVisibility { get => unknownVisibility; set => SetProperty(ref unknownVisibility, value); }
 
-    /// <summary>Fetch, pull e tendina dei branch: visibili dall'inizio, nascosti solo se git non e' disponibile.</summary>
+    /// <summary>Fetch, pull and branch drop-down: visible from the start, hidden only if git is unavailable.</summary>
     [DataMember]
     public string GitActionsVisibility { get => gitActionsVisibility; set => SetProperty(ref gitActionsVisibility, value); }
 
     [DataMember]
     public string PullToolTip { get => pullToolTip; set => SetProperty(ref pullToolTip, value); }
 
-    /// <summary>Le voci della tendina: il branch corrente in testa, poi quelli che passano il filtro, in ordine.</summary>
+    /// <summary>The drop-down items: the current branch first, then those matching the filter, in order.</summary>
     [DataMember]
     public ObservableList<string> Branches { get; } = [];
 
     /// <summary>
-    /// Testo nella casella della ComboBox editabile. Mentre si scrive filtra le voci e apre il
-    /// menu; quando WPF lo riscrive con la voce scelta (o col corrente) non e' una ricerca.
+    /// Text in the editable ComboBox's box. While typing it filters the items and opens the
+    /// menu; when WPF rewrites it with the chosen item (or the current one) it is not a search.
     /// </summary>
     [DataMember]
     public string BranchText
@@ -729,9 +729,9 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
 
             branchFilter = text;
 
-            // Se la selezione e' andata persa (testo svuotato dal controllo), col filtro vuoto
-            // si torna sul corrente; mentre si scrive la selezione non va toccata, altrimenti
-            // WPF riscriverebbe la casella con il nome del branch selezionato.
+            // If the selection was lost (text cleared by the control), with an empty filter
+            // go back to the current branch; while typing the selection must not be touched, otherwise
+            // WPF would rewrite the box with the name of the selected branch.
             SyncBranches(reselect: text.Length == 0 && selectedBranch is null);
 
             if (text.Length > 0)
@@ -742,9 +742,9 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     }
 
     /// <summary>
-    /// Aperto dal ViewModel appena si scrive, chiuso dall'utente o da una scelta. Se si chiude
-    /// (Esc, click fuori, Tab) mentre nella casella c'e' ancora un testo di ricerca, la ricerca
-    /// e' abbandonata: la casella torna a mostrare il branch corrente.
+    /// Opened by the ViewModel as soon as you type, closed by the user or by a choice. If it closes
+    /// (Esc, click outside, Tab) while the box still holds search text, the search
+    /// is abandoned: the box goes back to showing the current branch.
     /// </summary>
     [DataMember]
     public bool BranchDropDownOpen
@@ -764,7 +764,7 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
         }
     }
 
-    /// <summary>Vero mentre almeno una lettura, un'azione o l'attesa iniziale e' in corso: anima la barra in fondo.</summary>
+    /// <summary>True while at least one read, action or the initial wait is in progress: animates the bar at the bottom.</summary>
     [DataMember]
     public bool IsLoading { get => isLoading; private set => SetProperty(ref isLoading, value); }
 
@@ -791,12 +791,12 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
         SetProperty(ref branchText, CurrentBranch ?? string.Empty, nameof(BranchText));
     }
 
-    /// <summary>Branch corrente secondo l'ultima lettura: una selezione diversa da questo e' una richiesta di switch.</summary>
+    /// <summary>Current branch according to the last read: a different selection is a switch request.</summary>
     internal string? CurrentBranch { get; private set; }
 
     /// <summary>
-    /// Nuova lettura di git: fissa il corrente e l'elenco completo, poi riallinea la tendina
-    /// sul corrente. <paramref name="current"/> null significa git non disponibile: tendina vuota.
+    /// New git read: sets the current branch and the full list, then realigns the drop-down
+    /// on the current one. A null <paramref name="current"/> means git is unavailable: empty drop-down.
     /// </summary>
     internal void SetBranches(string? current, IEnumerable<string> names)
     {
@@ -809,13 +809,13 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
         SyncBranches(reselect: true);
     }
 
-    /// <summary>Chiamato dal setter di <see cref="SelectedBranch"/> quando l'utente sceglie un branch diverso dal corrente.</summary>
+    /// <summary>Called by the <see cref="SelectedBranch"/> setter when the user picks a branch other than the current one.</summary>
     internal Action<string>? BranchSelected { get; set; }
 
-    // Binding TwoWay dalla ComboBox: il setter arriva sia dalle scelte dell'utente sia dalle
-    // riassegnazioni del presenter (e con null se la voce selezionata sparisce). Solo una scelta
-    // diversa dal branch corrente e' un'intenzione di cambiare. Una scelta chiude comunque la
-    // ricerca: l'eco del testo che WPF manda subito dopo trova gia' il filtro vuoto.
+    // TwoWay binding from the ComboBox: the setter is called both by the user's choices and by
+    // the presenter's reassignments (and with null if the selected item disappears). Only a choice
+    // different from the current branch is an intent to switch. A choice closes the
+    // search anyway: the text echo WPF sends right after finds the filter already empty.
     [DataMember]
     public string? SelectedBranch
     {
@@ -891,7 +891,7 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     [DataMember]
     public AsyncCommand PruneCommand { get; set; } = null!;
 
-    // Le card restano come le lascia l'utente anche ai refresh: partono aperte.
+    // Cards stay as the user leaves them, even across refreshes: they start expanded.
     [DataMember]
     public ExpanderState RepoExpander { get; } = new(isExpanded: true);
 
@@ -901,14 +901,14 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
     [DataMember]
     public ExpanderState UnknownExpander { get; } = new(isExpanded: true);
 
-    /// <summary>Versione dell'estensione per il footer: "v1.0.3".</summary>
+    /// <summary>Extension version for the footer: "v1.0.3".</summary>
     [DataMember]
     public string AppVersion { get; } =
         $"v{typeof(StatusViewModel).Assembly.GetName().Version?.ToString(3) ?? "?"}";
 
-    // Kestrel (o il container dell'api in un ambiente Docker) ha pallino e avvia/ferma nella card
-    // del repository; l'host del tunnel ha solo il pallino, nella card del tunnel. Avvia e ferma
-    // sono lo stesso bottone: il glifo dice cosa fara'.
+    // Kestrel (or the api container in a Docker environment) has a dot and start/stop in the repository
+    // card; the tunnel host has only the dot, in the tunnel card. Start and stop
+    // are the same button: the glyph says what it will do.
     private const string PlayGlyph = "";
     private const string StopGlyph = "";
 
@@ -946,11 +946,11 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
 
     private bool kestrelCanStop;
 
-    /// <summary>Vero se il bottone di Kestrel ferma invece di avviare: allora e' rosso, come nell'exe.</summary>
+    /// <summary>True if the Kestrel button stops instead of starting: it is then red, as in the app.</summary>
     [DataMember]
     public bool KestrelCanStop { get => kestrelCanStop; private set => SetProperty(ref kestrelCanStop, value); }
 
-    /// <summary>Applica lo stato di Kestrel e dell'host del tunnel calcolato da BackendTools (ambiente locale).</summary>
+    /// <summary>Applies the state of Kestrel and of the tunnel host computed by BackendTools (local environment).</summary>
     internal void ApplyTools(BackendToolsView view)
     {
         KestrelColor = ConsoleServices.ColorOf(view.Kestrel);
@@ -959,17 +959,17 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
         KestrelToggleGlyph = KestrelCanStop ? StopGlyph : PlayGlyph;
         KestrelToggleEnabled = true;
         KestrelToggleToolTip = KestrelCanStop
-            ? "Ferma Kestrel avviato dalla console (chiude la console e i processi figli)"
-            : "Avvia Kestrel (dotnet run) in una console";
+            ? "Stop Kestrel started from the console (closes the console and its child processes)"
+            : "Start Kestrel (dotnet run) in a console";
 
-        // L'host del tunnel del pool si accende e si spegne con l'interruttore Tunnel dell'ambiente.
+        // The pool tunnel host is turned on and off with the environment's Tunnel switch.
         TunnelHostColor = ConsoleServices.ColorOf(view.Tunnel);
         TunnelHostToolTip = view.TunnelToolTip;
     }
 
     /// <summary>
-    /// Nel worktree di un ambiente Docker il bottone di Kestrel governa il container dell'api:
-    /// <paramref name="state"/> null se Docker non risponde (<paramref name="error"/>).
+    /// In the worktree of a Docker environment the Kestrel button controls the api container:
+    /// <paramref name="state"/> is null if Docker does not respond (<paramref name="error"/>).
     /// </summary>
     internal void ApplyContainer(string service, Soffritto.Core.Docker.ContainerRunState? state, string? error)
     {
@@ -982,16 +982,16 @@ internal sealed class StatusViewModel : NotifyPropertyChangedObject
         };
         KestrelToolTip = state switch
         {
-            Soffritto.Core.Docker.ContainerRunState.Running => $"container {service}: acceso",
-            Soffritto.Core.Docker.ContainerRunState.Starting => $"container {service}: in avvio",
+            Soffritto.Core.Docker.ContainerRunState.Running => $"container {service}: running",
+            Soffritto.Core.Docker.ContainerRunState.Starting => $"container {service}: starting",
             null => $"container {service}: {error}",
-            _ => $"container {service}: spento",
+            _ => $"container {service}: stopped",
         };
         KestrelCanStop = state is Soffritto.Core.Docker.ContainerRunState.Running or Soffritto.Core.Docker.ContainerRunState.Starting;
         KestrelToggleGlyph = KestrelCanStop ? StopGlyph : PlayGlyph;
         KestrelToggleEnabled = state is not null;
         KestrelToggleToolTip = KestrelCanStop
-            ? $"Ferma il container {service} (docker compose stop)"
-            : $"Avvia il container {service} (docker compose up --build)";
+            ? $"Stop the {service} container (docker compose stop)"
+            : $"Start the {service} container (docker compose up --build)";
     }
 }

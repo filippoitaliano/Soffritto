@@ -5,8 +5,8 @@ using Soffritto.Core.Configuration;
 namespace Soffritto.Core.Env;
 
 /// <summary>
-/// Un appsettings*.json visto come chiavi "A:B" (come la configurazione di .NET, con gli indici
-/// degli array). In scrittura cambia solo le chiavi del set; i commenti del file non sopravvivono.
+/// An appsettings*.json seen as "A:B" keys (like .NET configuration, with array
+/// indexes). Writing changes only the set's keys; the file's comments do not survive.
 /// </summary>
 public sealed class AppSettingsEnvAdapter : IEnvAdapter
 {

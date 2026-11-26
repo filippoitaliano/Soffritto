@@ -3,22 +3,22 @@ namespace Soffritto.Core;
 public static class MigrationApplier
 {
     /// <summary>
-    /// Esegue <c>dotnet ef database update</c> sul context indicato: fino a
-    /// <paramref name="targetMigrationId"/> (anche all'indietro), o tutte le pendenti se null.
+    /// Runs <c>dotnet ef database update</c> on the given context: up to
+    /// <paramref name="targetMigrationId"/> (backwards too), or all pending ones if null.
     /// </summary>
     /// <remarks>
-    /// ASPNETCORE_ENVIRONMENT viene forzato a Development perche' e' cio' che determina QUALE
-    /// database viene toccato: senza, EF leggerebbe appsettings.json invece di
-    /// appsettings.Development.json e migrerebbe un database diverso da quello che il pannello
-    /// mostra. I profili di launchSettings.json oggi impostano Development, ma dipendere dal loro
-    /// ordine per un'operazione distruttiva non e' accettabile.
+    /// ASPNETCORE_ENVIRONMENT is forced to Development because it decides WHICH
+    /// database gets touched: without it, EF would read appsettings.json instead of
+    /// appsettings.Development.json and migrate a different database from the one the panel
+    /// shows. The launchSettings.json profiles set Development today, but relying on their
+    /// order for a destructive operation is not acceptable.
     ///
-    /// Il build non viene saltato (nessun --no-build): applicare migrazioni compilate da sorgenti
-    /// non aggiornati e' peggio che attendere qualche decina di secondi.
+    /// The build is not skipped (no --no-build): applying migrations compiled from stale
+    /// sources is worse than waiting a few tens of seconds.
     ///
-    /// Con <paramref name="connection"/> il database e' quello indicato (--connection, e la
-    /// variabile ConnectionStrings__&lt;nome&gt; del processo se <paramref name="connectionStringName"/>
-    /// c'e'), non quello dei file del clone: serve al seed, il cui container non e' nei file.
+    /// With <paramref name="connection"/> the database is the given one (--connection, plus the
+    /// process variable ConnectionStrings__&lt;name&gt; if <paramref name="connectionStringName"/>
+    /// is set), not the one in the clone's files: the seed needs this, since its container is not in the files.
     /// </remarks>
     public static Task<ProcessOutcome> UpdateDatabaseAsync(
         string solutionRoot,
@@ -51,14 +51,14 @@ public static class MigrationApplier
     }
 
     /// <summary>
-    /// Il motivo leggibile di un <see cref="UpdateDatabaseAsync"/> fallito: le righe di errore di
-    /// <c>dotnet build</c> sullo startup project quando EF si e' fermato in compilazione,
-    /// altrimenti le righe di errore dell'output di EF.
+    /// The readable reason for a failed <see cref="UpdateDatabaseAsync"/>: the error lines of
+    /// <c>dotnet build</c> on the startup project when EF stopped at compilation,
+    /// otherwise the error lines of EF's output.
     /// </summary>
     /// <remarks>
-    /// Quando il build fallisce, <c>dotnet ef</c> stampa solo «Build failed. Use dotnet build to see
-    /// the errors.»: in fondo all'output restano gli avvisi di NuGet. Il secondo build trova gli
-    /// stessi errori del primo, perche' i sorgenti non sono cambiati.
+    /// When the build fails, <c>dotnet ef</c> only prints "Build failed. Use dotnet build to see
+    /// the errors.": the end of the output is left with NuGet warnings. The second build finds the
+    /// same errors as the first, because the sources have not changed.
     /// </remarks>
     public static async Task<string> FailureReasonAsync(
         string solutionRoot,
@@ -79,20 +79,20 @@ public static class MigrationApplier
             cancellationToken: cancellationToken).ConfigureAwait(false);
 
         return build.Success
-            ? $"{update.BuildError(4)} (un secondo dotnet build riesce: riprova)"
-            : $"build non riuscito: {build.BuildError(4)}";
+            ? $"{update.BuildError(4)} (a second dotnet build succeeds: try again)"
+            : $"build failed: {build.BuildError(4)}";
     }
 
     /// <summary>
-    /// Lo stesso comando del bottone, come riga pronta da incollare in un terminale:
-    /// <paramref name="targetMigrationId"/> ferma l'aggiornamento a quella migrazione (o ci torna
-    /// indietro), null applica tutte le pendenti.
+    /// The same command as the button, as a line ready to paste into a terminal:
+    /// <paramref name="targetMigrationId"/> stops the update at that migration (or rolls back
+    /// to it), null applies all pending ones.
     /// </summary>
     /// <remarks>
-    /// Le due variabili d'ambiente viaggiano con la riga per la stessa ragione per cui il bottone
-    /// le forza: senza, EF legge appsettings.json e migra un database diverso da quello mostrato
-    /// nel pannello. La sintassi del prefisso e' PowerShell, il terminale predefinito di Visual
-    /// Studio; i percorsi sono assoluti, quindi la riga funziona da qualunque cartella.
+    /// The two environment variables travel with the line for the same reason the button
+    /// forces them: without them, EF reads appsettings.json and migrates a different database from the
+    /// one shown in the panel. The prefix syntax is PowerShell, Visual Studio's default
+    /// terminal; paths are absolute, so the line works from any folder.
     /// </remarks>
     public static string BuildUpdateCommandLine(
         string solutionRoot,
@@ -106,15 +106,15 @@ public static class MigrationApplier
 
     private static string BuildArguments(string solutionRoot, ContextDefinition context, string? targetMigrationId, string? connection)
     {
-        // La riga non passa da una shell che sappia fare l'escape: una virgoletta la spezzerebbe.
+        // The line does not go through a shell that can escape it: a quote would break it.
         if (connection is not null && connection.Contains('"'))
         {
-            throw new ArgumentException("La connection string non puo' contenere virgolette doppie.", nameof(connection));
+            throw new ArgumentException("The connection string cannot contain double quotes.", nameof(connection));
         }
 
         var parts = new List<string> { "ef", "database", "update" };
 
-        // EF vuole il target subito dopo "update", prima delle opzioni.
+        // EF wants the target right after "update", before the options.
         if (!string.IsNullOrWhiteSpace(targetMigrationId))
         {
             parts.Add(targetMigrationId);

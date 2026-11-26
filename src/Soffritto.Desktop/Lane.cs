@@ -7,18 +7,18 @@ using System.Windows.Media;
 
 namespace Soffritto.Desktop;
 
-/// <summary>Colori dei tag delle lane: rosso per cio' che e' rotto, grigio per le altre anomalie.</summary>
+/// <summary>Lane tag colours: red for what is broken, grey for other anomalies.</summary>
 public static class LaneTags
 {
     public const string Error = "#C42B1C";
     public const string Neutral = "#5F6368";
 
-    /// <summary>Etichette di tag e bottoni con l'iniziale maiuscola e il resto com'e'.</summary>
+    /// <summary>Tag and button labels with the first letter capitalised and the rest as is.</summary>
     public static string Capitalize(string text)
         => text.Length == 0 ? text : char.ToUpperInvariant(text[0]) + text[1..];
 }
 
-/// <summary>Un'azione di una <see cref="Lane"/>: glifo Segoe Fluent Icons, comando, tooltip e abilitazione.</summary>
+/// <summary>An action of a <see cref="Lane"/>: Segoe Fluent Icons glyph, command, tooltip and enabled state.</summary>
 public sealed class LaneAction : Freezable
 {
     public static readonly DependencyProperty GlyphProperty = DependencyProperty.Register(
@@ -45,13 +45,13 @@ public sealed class LaneAction : Freezable
 }
 
 /// <summary>
-/// Riga di una <see cref="LaneGrid"/> (stile in App.xaml): solo il testo e' obbligatorio; pallino
-/// di stato, badge grigio, nota colorata e azioni compaiono quando ci sono. Ogni azione ha il suo
-/// bottone a destra (LaneActionButton); la riga in se' non si clicca.
+/// Row of a <see cref="LaneGrid"/> (style in App.xaml): only the text is required; status dot,
+/// grey badge, coloured note and actions appear when present. Each action has its own button
+/// on the right (LaneActionButton); the row itself is not clickable.
 /// </summary>
 /// <remarks>
-/// Le azioni stanno in una FreezableCollection: cosi' ereditano il DataContext della lane e i loro
-/// binding si scrivono in XAML come quelli di qualunque altro elemento.
+/// The actions live in a FreezableCollection: this way they inherit the lane's DataContext and their
+/// bindings are written in XAML like those of any other element.
 /// </remarks>
 [ContentProperty(nameof(Actions))]
 public sealed class Lane : Button
@@ -86,17 +86,17 @@ public sealed class Lane : Button
         SetValue(ActionsProperty, actions);
     }
 
-    /// <summary>Testo del badge grigio a sinistra (numero di porta, posizione della migrazione); vuoto lo nasconde.</summary>
+    /// <summary>Text of the grey badge on the left (port number, migration position); empty hides it.</summary>
     public string Badge { get => (string)GetValue(BadgeProperty); set => SetValue(BadgeProperty, value); }
 
     public string Text { get => (string)GetValue(TextProperty); set => SetValue(TextProperty, value); }
 
-    /// <summary>Etichetta breve a destra del testo (stato, feedback); vuota la nasconde.</summary>
+    /// <summary>Short label to the right of the text (status, feedback); empty hides it.</summary>
     public string Note { get => (string)GetValue(NoteProperty); set => SetValue(NoteProperty, value); }
 
     public Brush NoteBrush { get => (Brush)GetValue(NoteBrushProperty); set => SetValue(NoteBrushProperty, value); }
 
-    /// <summary>Colore del pallino di stato a sinistra (tunnel dell'account); null lo nasconde.</summary>
+    /// <summary>Colour of the status dot on the left (account tunnels); null hides it.</summary>
     public Brush? Dot { get => (Brush?)GetValue(DotProperty); set => SetValue(DotProperty, value); }
 
     public FreezableCollection<LaneAction> Actions => (FreezableCollection<LaneAction>)GetValue(ActionsProperty);

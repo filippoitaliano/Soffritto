@@ -12,7 +12,7 @@ public sealed record ProcessOutcome(
 {
     public bool Success => StartError is null && !TimedOut && ExitCode == 0;
 
-    /// <summary>Ultime righe non vuote di stderr e stdout, per un messaggio d'errore leggibile.</summary>
+    /// <summary>The last non-empty lines of stderr and stdout, for a readable error message.</summary>
     public string Tail(int maxLines = 6)
     {
         var lines = (StandardError + "\n" + StandardOutput)
@@ -28,7 +28,7 @@ public sealed record ProcessOutcome(
 
         if (TimedOut)
         {
-            return "Timeout: il comando non e' terminato entro il limite.";
+            return "Timeout: the command did not finish within the time limit.";
         }
 
         return lines.Count <= maxLines
@@ -37,9 +37,9 @@ public sealed record ProcessOutcome(
     }
 
     /// <summary>
-    /// Righe <c>error:</c>/<c>fatal:</c> di git, che non stanno per forza in fondo: il fetch con
-    /// <c>--prune</c> stampa l'errore prima dell'elenco dei <c>[deleted]</c>. Senza righe del
-    /// genere ripiega su <see cref="Tail"/>.
+    /// git's <c>error:</c>/<c>fatal:</c> lines, which are not necessarily at the end: fetch with
+    /// <c>--prune</c> prints the error before the list of <c>[deleted]</c> refs. Without such
+    /// lines it falls back to <see cref="Tail"/>.
     /// </summary>
     public string GitError(int maxLines = 2)
     {
@@ -60,10 +60,10 @@ public sealed record ProcessOutcome(
     }
 
     /// <summary>
-    /// Righe <c>error</c> di MSBuild e di dotnet (<c>file(riga,col): error CS1002: …</c>, <c>error NU1101: …</c>)
-    /// e righe di eccezione (<c>Microsoft.Data.SqlClient.SqlException (0x80131904): …</c>), senza
-    /// doppioni: in fondo all'output ci sono avvisi, riepilogo o stack, non l'errore. Senza righe
-    /// del genere ripiega su <see cref="Tail"/>.
+    /// MSBuild and dotnet <c>error</c> lines (<c>file(line,col): error CS1002: …</c>, <c>error NU1101: …</c>)
+    /// and exception lines (<c>Microsoft.Data.SqlClient.SqlException (0x80131904): …</c>), without
+    /// duplicates: the end of the output holds warnings, a summary or a stack, not the error. Without such
+    /// lines it falls back to <see cref="Tail"/>.
     /// </summary>
     public string BuildError(int maxLines = 4)
     {
@@ -101,8 +101,8 @@ public static class ProcessRunner
         var startInfo = new ProcessStartInfo(fileName, arguments)
         {
             WorkingDirectory = workingDirectory,
-            // Uno stdin proprio, chiuso subito: ereditato da un host che lo sta leggendo (il server
-            // MCP, che ci riceve JSON-RPC) blocca git all'avvio fino al timeout.
+            // A stdin of its own, closed immediately: inherited from a host that is reading it (the MCP
+            // server, which receives JSON-RPC on it) it blocks git at startup until the timeout.
             RedirectStandardInput = true,
             RedirectStandardOutput = true,
             RedirectStandardError = true,
@@ -132,7 +132,7 @@ public static class ProcessRunner
 
             if (!process.Start())
             {
-                return new ProcessOutcome(-1, string.Empty, string.Empty, false, $"Impossibile avviare {fileName}.");
+                return new ProcessOutcome(-1, string.Empty, string.Empty, false, $"Could not start {fileName}.");
             }
 
             process.StandardInput.Close();
@@ -148,8 +148,8 @@ public static class ProcessRunner
             }
             catch (OperationCanceledException)
             {
-                // Anche su cancellazione esterna il processo non deve restare orfano: senza kill
-                // un devtunnel o un fetch continuerebbero in background a finestra chiusa.
+                // Even on external cancellation the process must not be orphaned: without the kill
+                // a devtunnel or a fetch would keep running in the background after the window closes.
                 TryKill(process);
 
                 if (cancellationToken.IsCancellationRequested)
@@ -198,7 +198,7 @@ public static class ProcessRunner
         }
         catch
         {
-            // Il processo puo' essere gia' terminato tra il timeout e la kill.
+            // The process may already have exited between the timeout and the kill.
         }
     }
 }

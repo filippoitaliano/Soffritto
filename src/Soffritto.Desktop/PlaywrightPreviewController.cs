@@ -7,30 +7,29 @@ using Soffritto.Desktop.ViewModels;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Tiene le anteprime delle card del frontend allineate ai browser di playwright-cli: accende la
-/// dashboard quando ne compare uno, apre una connessione per ogni ambiente e spegne tutto quando
-/// non ne resta nessuno.
+/// Keeps the frontend card previews in step with the playwright-cli browsers: starts the dashboard
+/// when one appears, opens a connection per environment and shuts everything down when none is left.
 /// </summary>
 public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewViewModel> initialPreviews)
 {
-    // Sostituita quando una colonna Docker entra o esce; ogni giro ne prende una copia all'inizio.
+    // Replaced when a Docker column comes or goes; each round takes a copy at the start.
     private volatile IReadOnlyList<FrontendPreviewViewModel> previews = initialPreviews;
     private readonly PlaywrightDashboard dashboard = new();
     private readonly SemaphoreSlim wake = new(0);
     private CancellationTokenSource? streams;
 
-    // La dashboard di playwright-cli e' una per macchina: se ne gira gia' una (un "show" lanciato
-    // a mano o da Claude) la nostra esce subito, e si riprova solo quando quella si chiude.
+    // There is one playwright-cli dashboard per machine: if one is already running (a "show" started
+    // by hand or by Claude) ours exits immediately, and we retry only once that one closes.
     private Process? otherDashboard;
 
-    // Dopo un avvio fallito (CLI non installata, errore di node) non si rilancia a ogni giro.
+    // After a failed start (CLI not installed, node error) we do not relaunch on every round.
     private DateTime retryAfter = DateTime.MinValue;
 
-    // Le connessioni della dashboard condividono lo stesso lettore delle sessioni e chiuderne una
-    // lo smonta per tutte: se una cade si riparte da capo con dashboard e connessioni nuove.
+    // The dashboard connections share the same session reader, and closing one tears it down for
+    // all of them: if one drops we start over with a fresh dashboard and fresh connections.
     private volatile bool restartRequested;
 
-    // Vero finche' le card mostrano un motivo del controller: con zero sessioni va tolto una volta.
+    // True while the cards show a reason from the controller: with zero sessions it is cleared once.
     private bool reasonShown;
 
     private string? dashboardLocalAppData;
@@ -41,9 +40,8 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
         {
             while (!cancellationToken.IsCancellationRequested)
             {
-                // Un errore in un giro non deve spegnere il ciclo: senza ciclo le anteprime restano
-                // ferme finche' non si riavvia l'exe. Per questo anche la pulizia qui sotto non
-                // puo' lanciare.
+                // An error in one round must not kill the loop: without the loop the previews stay
+                // frozen until the exe restarts. That is also why the cleanup below must not throw.
                 try
                 {
                     await TickAsync(cancellationToken).ConfigureAwait(false);
@@ -52,7 +50,7 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
                 {
                     retryAfter = DateTime.UtcNow.AddMinutes(1);
                     StopAll();
-                    ShowReason($"Errore nel controllo dei browser di playwright-cli: {OneLine(ex.Message)}. Nuovo tentativo alle {RetryTime()}.", isProblem: true);
+                    ShowReason($"Error checking the playwright-cli browsers: {OneLine(ex.Message)}. Retrying at {RetryTime()}.", isProblem: true);
                 }
 
                 await wake.WaitAsync(TimeSpan.FromSeconds(3), cancellationToken).ConfigureAwait(false);
@@ -87,8 +85,8 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
             return;
         }
 
-        // La dashboard legge un registro solo: con browser in piu' registri (Claude desktop e un
-        // terminale normale) vince quello del browser aperto per ultimo.
+        // The dashboard reads a single registry: with browsers in several registries (Claude desktop
+        // and a regular terminal) the one with the most recently opened browser wins.
         var localAppData = sessions.MaxBy(s => s.RegisteredAt)!.LocalAppData;
         if (dashboard.IsRunning && !string.Equals(dashboardLocalAppData, localAppData, StringComparison.OrdinalIgnoreCase))
         {
@@ -103,21 +101,21 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
 
     private async Task StartAsync(string localAppData, CancellationToken cancellationToken)
     {
-        ShowReason("Avvio della dashboard di playwright-cli...");
+        ShowReason("Starting the playwright-cli dashboard...");
         dashboardLocalAppData = localAppData;
         var start = await dashboard.StartAsync(localAppData, RequestRestart, cancellationToken).ConfigureAwait(false);
 
         if (start.OtherPid is { } pid)
         {
             otherDashboard = OpenOtherDashboard(pid);
-            ShowReason($"La dashboard di playwright-cli e' gia' aperta da un altro processo (pid {pid}), di solito un «playwright-cli show» o un secondo exe: l'anteprima parte quando si chiude.", isProblem: true);
+            ShowReason($"The playwright-cli dashboard is already open in another process (pid {pid}), usually a \"playwright-cli show\" or a second app instance: the preview starts when it closes.", isProblem: true);
             return;
         }
 
         if (start.Url is not { } url)
         {
             retryAfter = DateTime.UtcNow.AddMinutes(1);
-            ShowReason($"La dashboard di playwright-cli non si e' avviata: {OneLine(start.Error)}. Nuovo tentativo alle {RetryTime()}.", isProblem: true);
+            ShowReason($"The playwright-cli dashboard did not start: {OneLine(start.Error)}. Retrying at {RetryTime()}.", isProblem: true);
             return;
         }
 
@@ -125,11 +123,11 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
         {
             retryAfter = DateTime.UtcNow.AddMinutes(1);
             dashboard.Stop();
-            ShowReason($"La dashboard di playwright-cli su {url} non ha dato l'indirizzo del collegamento. Nuovo tentativo alle {RetryTime()}.", isProblem: true);
+            ShowReason($"The playwright-cli dashboard at {url} did not provide the connection address. Retrying at {RetryTime()}.", isProblem: true);
             return;
         }
 
-        ShowReason("Collegamento alla dashboard di playwright-cli...");
+        ShowReason("Connecting to the playwright-cli dashboard...");
         streams = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         var current = previews;
         foreach (var preview in current.Where(p => p.Visibility == "Visible"))
@@ -146,7 +144,7 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
         }
         catch
         {
-            // Connessione rifiutata o caduta: sotto si decide se ripartire.
+            // Connection refused or dropped: below we decide whether to restart.
         }
 
         if (!cancellationToken.IsCancellationRequested)
@@ -162,8 +160,8 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
     }
 
     /// <summary>
-    /// Le anteprime dopo l'arrivo o l'uscita di una colonna. Con le connessioni gia' aperte si
-    /// riparte da capo, perche' ogni anteprima ha la sua connessione aperta solo all'avvio.
+    /// The previews after a column comes or goes. With connections already open we start over,
+    /// because each preview gets its connection only at startup.
     /// </summary>
     public void Replace(IReadOnlyList<FrontendPreviewViewModel> list)
     {
@@ -177,7 +175,7 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
         wake.Release();
     }
 
-    // Chiamata anche dal catch del ciclo: un'eccezione qui lo ucciderebbe in silenzio.
+    // Also called from the loop's catch: an exception here would silently kill it.
     private void StopAll()
     {
         var running = streams;
@@ -189,7 +187,7 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
         }
         catch (AggregateException)
         {
-            // Una callback di cancellazione degli stream ha lanciato: gli stream si chiudono comunque.
+            // A stream cancellation callback threw: the streams close anyway.
         }
 
         running?.Dispose();
@@ -219,7 +217,7 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
         }
         catch (Exception)
         {
-            // Le card non si aggiornano a questo giro: il ciclo deve restare vivo.
+            // The cards miss this round's update: the loop must stay alive.
         }
     }
 
@@ -230,13 +228,13 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
         var line = string.Join(' ', (text ?? "").Split((char[])['\r', '\n', ' ', '\t'], StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
         return line.Length switch
         {
-            0 => "motivo sconosciuto",
+            0 => "unknown reason",
             > 200 => line[..200] + "...",
             _ => line,
         };
     }
 
-    // La radice della dashboard rimanda a /index.html?ws=<guid>, e il websocket vive su /<guid>.
+    // The dashboard root redirects to /index.html?ws=<guid>, and the websocket lives at /<guid>.
     private static async Task<Uri?> ResolveSocketAsync(Uri dashboardUrl, CancellationToken cancellationToken)
     {
         try
@@ -256,14 +254,14 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
         {
-            // Timeout di HttpClient: e' un avvio fallito, non la chiusura dell'exe.
+            // HttpClient timeout: a failed start, not the exe shutting down.
             return null;
         }
     }
 
-    // Un pid da solo non basta: chiusa la dashboard, Windows lo riassegna e un altro processo
-    // la terrebbe "viva" per sempre. Finche' qualcuno tiene aperto l'handle il pid non si riusa,
-    // quindi l'handle va aperto subito e tenuto fino alla chiusura.
+    // A pid alone is not enough: once the dashboard closes, Windows reassigns it and another
+    // process would keep it "alive" forever. While someone holds the handle open the pid is not
+    // reused, so the handle is opened right away and kept until the process exits.
     private static Process? OpenOtherDashboard(int pid)
     {
         Process? other = null;
@@ -275,7 +273,7 @@ public sealed class PlaywrightPreviewController(IReadOnlyList<FrontendPreviewVie
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or Win32Exception)
         {
-            // Gia' uscita, o accesso negato: si ritenta l'avvio al giro dopo.
+            // Already exited, or access denied: the start is retried next round.
             other?.Dispose();
             return null;
         }

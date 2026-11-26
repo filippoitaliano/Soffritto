@@ -5,8 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Righe di comando dei processi (WMI): servono a riconoscere Kestrel, dev server, app e
-         host del tunnel, anche avviati prima dell'host o da Visual Studio. -->
+    <!-- Process command lines (WMI): used to recognise Kestrel, dev server, app and
+         tunnel host, even when started before the host or from Visual Studio. -->
     <PackageReference Include="System.Management" Version="11.0.0" />
   </ItemGroup>
 

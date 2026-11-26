@@ -4,13 +4,13 @@ using System.Text.Json;
 
 namespace Soffritto.Core;
 
-/// <summary>Voto di un reviewer: 10 approvata, 5 con suggerimenti, 0 nessuno, -5 in attesa dell'autore, -10 rifiutata.</summary>
+/// <summary>A reviewer's vote: 10 approved, 5 approved with suggestions, 0 no vote, -5 waiting for author, -10 rejected.</summary>
 public sealed record PullRequestVote(string Id, string Name, int Vote, bool IsRequired, bool IsGroup);
 
-/// <summary>Discussione ancora aperta: chi ha scritto l'ultimo commento e chi vi ha partecipato.</summary>
+/// <summary>A thread that is still open: who wrote the last comment and who took part in it.</summary>
 public sealed record PullRequestThread(string LastAuthorId, IReadOnlyList<string> AuthorIds);
 
-/// <summary>Il work item a cui la PR appartiene: la storia o il bug, non l'attivita' figlia.</summary>
+/// <summary>The work item the PR belongs to: the story or the bug, not the child task.</summary>
 public sealed record PullRequestWorkItem(int Id, string Type, string Title);
 
 public sealed record PullRequestSummary(
@@ -27,13 +27,13 @@ public sealed record PullRequestSummary(
 {
     public IReadOnlyList<PullRequestThread> ActiveThreads { get; init; } = [];
 
-    /// <summary>Id dei work item collegati alla PR, prima della risoluzione in <see cref="WorkItem"/>.</summary>
+    /// <summary>Ids of the work items linked to the PR, before resolution into <see cref="WorkItem"/>.</summary>
     public IReadOnlyList<int> LinkedWorkItemIds { get; init; } = [];
 
     public PullRequestWorkItem? WorkItem { get; init; }
 }
 
-/// <summary>Le PR attive che riguardano l'utente: quelle che ha aperto e quelle in cui e' reviewer.</summary>
+/// <summary>The active PRs involving the user: the ones they opened and the ones where they are a reviewer.</summary>
 public sealed record MyPullRequests(
     IReadOnlyList<PullRequestSummary> Created,
     IReadOnlyList<PullRequestSummary> ToReview,
@@ -41,7 +41,7 @@ public sealed record MyPullRequests(
     string? Error = null);
 
 /// <summary>
-/// Legge le pull request del progetto configurato su Azure DevOps (vedi <see cref="AzureDevOpsConnection"/>).
+/// Reads the pull requests of the configured Azure DevOps project (see <see cref="AzureDevOpsConnection"/>).
 /// </summary>
 public sealed class PullRequestReader(AzureDevOpsConnection connection)
 {
@@ -62,7 +62,7 @@ public sealed class PullRequestReader(AzureDevOpsConnection connection)
             var created = await QueryAsync("creatorId", myId, cancellationToken).ConfigureAwait(false);
             var toReview = await QueryAsync("reviewerId", myId, cancellationToken).ConfigureAwait(false);
 
-            // Chi apre una PR puo' comparire anche tra i suoi reviewer: resta solo tra le sue.
+            // Whoever opens a PR can also appear among its reviewers: it stays only among their own PRs.
             var mine = created.Select(pr => pr.Id).ToHashSet();
             toReview = toReview.Where(pr => !mine.Contains(pr.Id)).ToList();
 
@@ -71,11 +71,11 @@ public sealed class PullRequestReader(AzureDevOpsConnection connection)
         }
         catch (Exception ex)
         {
-            return new MyPullRequests([], [], Error: ex is TaskCanceledException ? "Azure DevOps non ha risposto entro 30 secondi." : ex.Message);
+            return new MyPullRequests([], [], Error: ex is TaskCanceledException ? "Azure DevOps did not respond within 30 seconds." : ex.Message);
         }
     }
 
-    // Solo le attive: completate e abbandonate non chiedono piu' lavoro. Le bozze restano.
+    // Active ones only: completed and abandoned PRs need no more work. Drafts stay.
     private async Task<List<PullRequestSummary>> QueryAsync(string criterion, string myId, CancellationToken cancellationToken)
     {
         var url = $"{CollectionUrl}/{Project}/_apis/git/pullrequests"
@@ -114,8 +114,8 @@ public sealed class PullRequestReader(AzureDevOpsConnection connection)
             .ToList();
     }
 
-    // Se la PR e' collegata a un'attivita', il gruppo e' la storia o il bug padre: le PR di
-    // backend, frontend e app dello stesso lavoro finiscono insieme anche se linkano attivita' diverse.
+    // If the PR is linked to a task, the group is the parent story or bug: the backend, frontend
+    // and app PRs of the same work end up together even if they link different tasks.
     private async Task<Dictionary<int, PullRequestWorkItem>> ResolveWorkItemsAsync(IEnumerable<PullRequestSummary> prs, CancellationToken cancellationToken)
     {
         var linked = prs.SelectMany(pr => pr.LinkedWorkItemIds).Distinct().ToList();
@@ -144,7 +144,7 @@ public sealed class PullRequestReader(AzureDevOpsConnection connection)
     {
         var result = new Dictionary<int, (PullRequestWorkItem, int?)>();
 
-        // L'API accetta al massimo 200 id per chiamata.
+        // The API accepts at most 200 ids per call.
         foreach (var chunk in ids.Chunk(200))
         {
             var url = $"{CollectionUrl}/_apis/wit/workitems?ids={string.Join(',', chunk)}&$expand=relations&api-version=5.0";
@@ -182,8 +182,8 @@ public sealed class PullRequestReader(AzureDevOpsConnection connection)
             })
             .ToList();
 
-    // Attive o in sospeso, senza i thread di sistema (push, voti, cambi di reviewer) e senza i
-    // commenti cancellati, che non chiedono risposta.
+    // Active or pending, without system threads (pushes, votes, reviewer changes) and without
+    // deleted comments, which need no reply.
     private async Task<IReadOnlyList<PullRequestThread>> ReadActiveThreadsAsync(PullRequestSummary pr, CancellationToken cancellationToken)
     {
         var url = $"{CollectionUrl}/{Project}/_apis/git/repositories/{pr.RepositoryId}/pullRequests/{pr.Id}/threads?api-version=5.0";

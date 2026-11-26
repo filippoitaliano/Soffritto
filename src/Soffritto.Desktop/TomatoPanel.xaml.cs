@@ -10,19 +10,19 @@ using Soffritto.Presentation;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Il tomato timer del giardino in una WebView2. La pagina nasce alla prima apertura e poi resta
-/// viva: il pannello chiuso la nasconde senza scaricarla, cosi' il timer continua a correre.
+/// The garden's tomato timer in a WebView2. The page is created on first open and then stays
+/// alive: closing the panel hides it without unloading it, so the timer keeps running.
 /// </summary>
 /// <remarks>
-/// E' la WebView2CompositionControl e non la WebView2 classica: quella e' una finestra nativa,
-/// che non segue opacita', scala e ritaglio del pannello e si disegnerebbe sopra tutto.
+/// It is the WebView2CompositionControl and not the classic WebView2: that one is a native window,
+/// which ignores the panel's opacity, scale and clipping and would draw on top of everything.
 /// </remarks>
 public partial class TomatoPanel : UserControl
 {
     private static readonly Uri Address = new("https://garden.filippoitaliano.com/tomato-timer/");
 
-    // Il profilo accanto all'exe finirebbe nella cartella di publish: va nel profilo utente, dove
-    // la pagina ritrova anche le durate scelte l'ultima volta.
+    // A profile next to the exe would end up in the publish folder: it goes in the user profile,
+    // where the page also finds the durations chosen last time.
     private static readonly string ProfileFolder = Path.Combine(ConfigurationFiles.DataFolder, "WebView2");
 
     private WebView2CompositionControl? view;
@@ -34,10 +34,10 @@ public partial class TomatoPanel : UserControl
             PageHost.Clip = new RectangleGeometry(new Rect(PageHost.RenderSize), 16, 16);
     }
 
-    /// <summary>La X del pannello: chi lo ospita decide come nasconderlo.</summary>
+    /// <summary>The panel's X: the host decides how to hide it.</summary>
     public event Action? CloseRequested;
 
-    /// <summary>Crea la pagina alla prima apertura; le successive la ritrovano com'era.</summary>
+    /// <summary>Creates the page on first open; later opens find it as it was.</summary>
     public async void EnsurePage()
     {
         if (view is not null)
@@ -60,11 +60,11 @@ public partial class TomatoPanel : UserControl
         {
             PageHost.Children.Remove(created);
             view = null;
-            Message.Text = $"Il tomato timer non si apre: {exception.Message}";
+            Message.Text = $"The tomato timer won't open: {exception.Message}";
             return;
         }
 
-        // I link che aprirebbero una finestra nuova vanno nel browser predefinito.
+        // Links that would open a new window go to the default browser.
         created.CoreWebView2.NewWindowRequested += (_, e) =>
         {
             e.Handled = true;
@@ -77,8 +77,8 @@ public partial class TomatoPanel : UserControl
 
     private void OpenInBrowser_Click(object sender, RoutedEventArgs e) => OpenExternally(Address.ToString());
 
-    // Come DevToolsController.OpenInBrowser: rundll32 parte fuori dal job dell'exe, cosi' il
-    // browser non si chiude insieme all'app.
+    // Like DevToolsController.OpenInBrowser: rundll32 starts outside the exe's job, so the
+    // browser does not close together with the app.
     private static void OpenExternally(string url) =>
         DetachedLauncher.Start($"rundll32.exe url.dll,FileProtocolHandler {url}", Path.GetTempPath(), newConsole: false);
 }

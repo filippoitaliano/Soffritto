@@ -1,14 +1,14 @@
-<!-- Pannello delle notifiche, a scomparsa sul lato destro: i lavori nuovi sulle pull request che
-     l'utente non ha ancora consumato. Il clic su una notifica porta al pannello delle PR, sulla
-     card del suo work item, e la lascia dov'e'; solo il tick la toglie. Quelle il cui lavoro non c'e' piu' su Azure DevOps restano, sbiadite
-     e marcate «risolta». -->
+<!-- Notifications panel, sliding in from the right: new work on pull requests the user has not
+     dealt with yet. Clicking a notification goes to the PR panel, on its work item's card, and
+     leaves the notification where it is; only the tick removes it. Those whose work is gone from
+     Azure DevOps stay, faded and marked “resolved”. -->
 <UserControl x:Class="Soffritto.Desktop.NotificationsPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Soffritto.Desktop"
              Background="Transparent">
   <UserControl.Resources>
-    <!-- Il blu delle azioni da fare del pannello delle PR. -->
+    <!-- The blue of the PR panel's to-do actions. -->
 
     <DataTemplate x:Key="NotificationTemplate">
       <Border x:Name="Card"
@@ -18,7 +18,7 @@
               CornerRadius="18"
               Margin="0,0,0,8"
               Cursor="Hand"
-              ToolTip="Mostra la PR nel pannello delle pull request; la notifica resta finché non la segni letta">
+              ToolTip="Show the PR in the pull requests panel; the notification stays until you mark it as read">
         <Border.InputBindings>
           <MouseBinding Gesture="LeftClick" Command="{Binding OpenCommand}" />
         </Border.InputBindings>
@@ -41,15 +41,15 @@
                       Background="#1A6BB36B"
                       BorderBrush="#4D6BB36B"
                       Padding="5,0"
-                      ToolTip="Su Azure DevOps questo lavoro non c'è più">
-                <TextBlock Text="Risolta" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.SuccessText}" FontSize="11" />
+                      ToolTip="This work is no longer on Azure DevOps">
+                <TextBlock Text="Resolved" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.SuccessText}" FontSize="11" />
               </Border>
             </StackPanel>
           </StackPanel>
 
           <Button Grid.Column="2"
                   Command="{Binding DismissCommand}"
-                  ToolTip="Segna come letta: la notifica sparisce"
+                  ToolTip="Mark as read: the notification goes away"
                   Style="{StaticResource IconButton}"
                   VerticalAlignment="Top"
                   Margin="0,8,10,0"
@@ -65,7 +65,7 @@
     </DataTemplate>
   </UserControl.Resources>
 
-  <!-- Lo stesso sfondo e la stessa ombra del pannello delle PR (PullRequestsPanel.xaml). -->
+  <!-- Same background and shadow as the PR panel (PullRequestsPanel.xaml). -->
   <Grid>
     <Border CornerRadius="22">
       <Border.Effect>
@@ -101,27 +101,27 @@
       <DockPanel DockPanel.Dock="Top" Margin="22,18,16,12">
         <Button DockPanel.Dock="Right"
                 Click="Close_Click"
-                ToolTip="Chiudi il pannello (Esc)"
+                ToolTip="Close the panel (Esc)"
                 Style="{StaticResource IconButton}"
                 Content="&#xE711;" />
         <Button DockPanel.Dock="Right"
                 Command="{Binding DismissAllCommand}"
                 Visibility="{Binding DismissAllVisibility}"
-                ToolTip="Segna come lette tutte le notifiche, senza aprire le PR"
+                ToolTip="Mark all notifications as read, without opening the PRs"
                 Style="{StaticResource AppButton}"
                 Tag="#6BB36B"
                 Content="&#xE73E;"
-                local:AppButton.Label="Segna tutte lette" />
+                local:AppButton.Label="Mark all as read" />
         <StackPanel VerticalAlignment="Center">
-          <TextBlock Text="Notifiche" FontWeight="ExtraBold" FontSize="21" Foreground="{DynamicResource Theme.TextStrong}" />
+          <TextBlock Text="Notifications" FontWeight="ExtraBold" FontSize="21" Foreground="{DynamicResource Theme.TextStrong}" />
           <TextBlock Text="{Binding Summary}" FontSize="12" Opacity="0.55" Margin="1,1,0,0" />
         </StackPanel>
       </DockPanel>
 
-      <!-- La barra sta sopra il margine destro del contenuto: 4 + 12 = i 16 di sinistra. -->
+      <!-- The scrollbar sits over the content's right margin: 4 + 12 = the 16 on the left. -->
       <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,4,0">
         <StackPanel Margin="16,0,12,4">
-          <TextBlock Text="Nessun lavoro nuovo sulle pull request"
+          <TextBlock Text="No new work on pull requests"
                      Visibility="{Binding EmptyVisibility}"
                      Opacity="0.5"
                      FontSize="12"

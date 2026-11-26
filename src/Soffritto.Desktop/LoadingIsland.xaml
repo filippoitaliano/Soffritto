@@ -1,9 +1,9 @@
-<!-- Indicatore delle letture in corso, come una dynamic island: una pillola azzurra semitrasparente con bordo
-     luminoso, alone che respira, riflesso che scorre e tre puntini che ondeggiano. Compare quando
-     IsLoading del DataContext diventa vero, allargandosi come una goccia, e si richiude quando
-     torna falso; le animazioni stanno in LoadingIsland.xaml.cs. Non intercetta il mouse. Con
-     FromBottom entra dal basso, con DodgesMouse si sposta sul lato opposto della finestra quando
-     il mouse le passa sopra. L'ombra sta su un bordo dietro, per non toccare la resa del testo. -->
+<!-- Indicator of reads in progress, like a dynamic island: a semi-transparent light-blue pill with a
+     glowing border, a breathing halo, a sliding sheen and three bobbing dots. It appears when the
+     DataContext's IsLoading turns true, spreading out like a drop, and closes again when it turns
+     false; the animations live in LoadingIsland.xaml.cs. It does not catch the mouse. With
+     FromBottom it comes in from the bottom; with DodgesMouse it moves to the opposite side of the
+     window when the mouse passes over it. The shadow sits on a border behind, so text rendering is untouched. -->
 <UserControl x:Class="Soffritto.Desktop.LoadingIsland"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -36,7 +36,7 @@
       </TransformGroup>
     </Grid.RenderTransform>
 
-    <!-- Alone azzurro sfocato dietro la pillola: respira mentre l'isola e' accesa. -->
+    <!-- Blurred light-blue halo behind the pill: it breathes while the island is on. -->
     <Border x:Name="Halo" CornerRadius="22" Margin="-3" Background="#5AA9E6" Opacity="0.25">
       <Border.Effect>
         <BlurEffect Radius="14" />
@@ -62,7 +62,7 @@
       </Border.Effect>
     </Border>
 
-    <!-- Riflesso che attraversa la pillola: lo sfondo di un bordo arrotondato resta dentro gli angoli. -->
+    <!-- Sheen sweeping across the pill: a rounded border's background stays inside the corners. -->
     <Border CornerRadius="20" Margin="1">
       <Border.Background>
         <LinearGradientBrush StartPoint="0,0.5" EndPoint="1,0.5">

@@ -1,4 +1,4 @@
-<!-- Tema scuro di tutta l'exe (ThemeManager), su toni caldi scuri. Le chiavi sono le stesse nei due file di tema. -->
+<!-- Dark theme for the whole app (ThemeManager), in warm dark tones. Both theme files share the same keys. -->
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
   <LinearGradientBrush x:Key="Theme.CardBackground" StartPoint="0,0" EndPoint="0,1">

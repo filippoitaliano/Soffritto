@@ -12,20 +12,20 @@ public partial class SetupPanel : UserControl
     {
         InitializeComponent();
 
-        // I campi legati direttamente alla configurazione non avvisano il ViewModel: la
-        // validazione si rifa' a ogni tasto, da qualunque casella.
+        // Fields bound directly to the configuration don't notify the ViewModel: validation
+        // runs again on every keystroke, from any box.
         AddHandler(TextBoxBase.TextChangedEvent, new TextChangedEventHandler((_, _) => (DataContext as SetupViewModel)?.Revalidate()));
         DataContextChanged += (_, _) =>
         {
             PatBox.Clear();
 
-            // Ogni apertura riparte dalla prima scheda.
+            // Every opening starts again from the first tab.
             FirstTab.IsChecked = true;
             ShowTab((string)FirstTab.Tag);
             ApplyDemo();
         };
 
-        // La demo si accende e si spegne anche dalla scheda Preferenze, con il pannello aperto.
+        // The demo can also be turned on and off from the Preferences tab, with the panel open.
         AppSettings.Current.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(AppSettings.IsDemo))
@@ -35,8 +35,8 @@ public partial class SetupPanel : UserControl
         };
     }
 
-    // In demo il setup cambia solo le preferenze: le altre schede hanno azioni che toccano davvero
-    // configurazione, Docker e tunnel (Salva, Allinea seed, Pulisci, Elimina tunnel, Rilascia).
+    // In demo the setup changes only preferences: the other tabs have actions that really touch
+    // configuration, Docker and tunnels (Save, Align seed, Clean up, Delete tunnel, Release).
     private void ApplyDemo()
     {
         var isDemo = AppSettings.Current.IsDemo;
@@ -57,8 +57,8 @@ public partial class SetupPanel : UserControl
         }
     }
 
-    // Una scheda mostra le sezioni che portano il suo Tag; le altre restano nell'albero, con i
-    // loro campi e la loro validazione, ma nascoste.
+    // A tab shows the sections carrying its Tag; the others stay in the tree, with their
+    // fields and their validation, but hidden.
     private void Tab_Checked(object sender, RoutedEventArgs e)
     {
         if (sender is RadioButton { Tag: string tab })
@@ -69,7 +69,7 @@ public partial class SetupPanel : UserControl
 
     private void ShowTab(string tab)
     {
-        // Durante InitializeComponent la prima scheda si spunta prima che le sezioni esistano.
+        // During InitializeComponent the first tab gets checked before the sections exist.
         if (Sections is null)
         {
             return;
@@ -86,26 +86,26 @@ public partial class SetupPanel : UserControl
             return;
         }
 
-        // Il pool si rilegge da devtunnel quando si apre la sua scheda.
+        // The pool is reloaded from devtunnel when its tab opens.
         if (tab == "Tunnel" && DataContext is SetupViewModel { Pool: { } pool })
         {
             _ = pool.RefreshPoolAsync();
         }
 
-        // vswhere e la ricerca nel PATH costano poco, ma solo chi apre la scheda li paga.
+        // vswhere and the PATH search are cheap, but only whoever opens the tab pays for them.
         if (tab == "Componenti" && DataContext is SetupViewModel { Components: { } components })
         {
             components.Refresh();
         }
 
-        // Seed (con la fetch del clone sorgente) e spazio di Docker si rileggono all'apertura della loro scheda.
+        // Seed (with the source clone fetch) and Docker disk space are reloaded when their tab opens.
         if (tab == "Docker" && DataContext is SetupViewModel { Pool: { } docker })
         {
             _ = docker.RefreshMaintenanceAsync();
         }
     }
 
-    /// <summary>Prima apertura dopo il Setup.exe: si parte dai componenti invece che dai repository.</summary>
+    /// <summary>First opening after Setup.exe: start from the components instead of the repositories.</summary>
     public void ShowComponents()
     {
         if (!AppSettings.Current.IsDemo)
@@ -114,10 +114,10 @@ public partial class SetupPanel : UserControl
         }
     }
 
-    /// <summary>La X e Annulla: chi lo ospita decide come nasconderlo.</summary>
+    /// <summary>The X and Cancel: the host decides how to hide it.</summary>
     public event Action? CloseRequested;
 
-    /// <summary>Falso finche' non c'e' una configurazione valida: senza, dietro il pannello non c'e' niente da vedere.</summary>
+    /// <summary>False until there is a valid configuration: without one, there is nothing to see behind the panel.</summary>
     public bool CanClose
     {
         set
@@ -129,7 +129,7 @@ public partial class SetupPanel : UserControl
 
     private void Close_Click(object sender, RoutedEventArgs e) => CloseRequested?.Invoke();
 
-    // La PasswordBox non si lega: il PAT passa al ViewModel a ogni tasto e non resta nello XAML.
+    // The PasswordBox is not bound: the PAT goes to the ViewModel on every keystroke and never sits in the XAML.
     private void Pat_Changed(object sender, RoutedEventArgs e)
     {
         if (DataContext is SetupViewModel vm)
@@ -147,7 +147,7 @@ public partial class SetupPanel : UserControl
 
         var dialog = new OpenFolderDialog
         {
-            Title = "Cartella che contiene i cloni degli ambienti",
+            Title = "Folder containing the environment clones",
             InitialDirectory = System.IO.Directory.Exists(vm.Root) ? vm.Root : string.Empty,
         };
 
@@ -166,7 +166,7 @@ public partial class SetupPanel : UserControl
 
         var dialog = new OpenFolderDialog
         {
-            Title = $"Checkout con i file Docker di {editor.Id}",
+            Title = $"Checkout with the Docker files of {editor.Id}",
             InitialDirectory = System.IO.Directory.Exists(editor.DockerFilesFallback) ? editor.DockerFilesFallback : string.Empty,
         };
 
@@ -186,7 +186,7 @@ public partial class SetupPanel : UserControl
         var folder = System.IO.Path.GetDirectoryName(editor.SeedPath);
         var dialog = new OpenFileDialog
         {
-            Title = $"Seed del database di {editor.Id}",
+            Title = $"Database seed of {editor.Id}",
             Filter = "Seed (*.bak;*.7z)|*.bak;*.7z",
             InitialDirectory = folder is { Length: > 0 } && System.IO.Directory.Exists(folder) ? folder : string.Empty,
         };
@@ -206,8 +206,8 @@ public partial class SetupPanel : UserControl
 
         var dialog = new OpenFileDialog
         {
-            Title = "Configurazione da caricare",
-            Filter = "Configurazione (*.json)|*.json",
+            Title = "Configuration to load",
+            Filter = "Configuration (*.json)|*.json",
             InitialDirectory = AppContext.BaseDirectory,
         };
 

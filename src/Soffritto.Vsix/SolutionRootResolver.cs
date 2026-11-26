@@ -24,7 +24,7 @@ internal static class SolutionRootResolver
         }
         catch (Exception)
         {
-            // Nessuna soluzione aperta, o query non disponibile in questo contesto.
+            // No solution open, or the query is not available in this context.
         }
 
         return null;

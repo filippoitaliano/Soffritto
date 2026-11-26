@@ -2,24 +2,24 @@ using Soffritto.Core.Configuration;
 
 namespace Soffritto.Core.Docker.Seed;
 
-/// <summary>Esito di «Verifica seed»: compatibile se il seed non ha migrazioni che il codice non conosce.</summary>
+/// <summary>Outcome of "Verify seed": compatible if the seed has no migrations the code does not know.</summary>
 public sealed record SeedVerification(bool Compatible, IReadOnlyList<ContextSeedResult> Contexts, string? Error);
 
 /// <summary>
-/// Per un context: l'ultima migrazione applicata dal seed, le sconosciute (righe della history che
-/// nessun context del codice conosce: la tabella e' condivisa, quindi sono le stesse per ogni
-/// context) e quante migrazioni del codice mancano al seed.
+/// For one context: the last migration the seed applied, the unknown ones (history rows that
+/// no context in the code knows: the table is shared, so they are the same for every
+/// context) and how many of the code's migrations the seed is missing.
 /// </summary>
 public sealed record ContextSeedResult(string Context, string? LastApplied, IReadOnlyList<string> Unknown, int MissingOnDev);
 
-/// <summary>«Verifica seed»: ripristina il seed in un container temporaneo e lo confronta con le migrazioni del codice.</summary>
+/// <summary>"Verify seed": restores the seed into a temporary container and compares it with the code's migrations.</summary>
 public static class SeedVerifier
 {
     public static async Task<SeedVerification> VerifyAsync(AppConfiguration c, Action<string> log, CancellationToken ct = default)
     {
         if (c.PrimarySeed() is not { Seed: { } seed } backend)
         {
-            return Failed("nessun backend ha un seed configurato");
+            return Failed("no backend has a seed configured");
         }
 
         var (seedLock, lockError) = SeedLock.Acquire();
@@ -58,7 +58,7 @@ public static class SeedVerifier
             var history = await provider.ReadAppliedMigrationsAsync(slot.HostConnectionString, ct).ConfigureAwait(false);
             if (history.Error is not null)
             {
-                return Failed($"history del seed: {history.Error}");
+                return Failed($"seed history: {history.Error}");
             }
 
             var (code, source, devCommit, codeError) = await CodeMigrationsAsync(c, backend, log, ct).ConfigureAwait(false);
@@ -82,16 +82,16 @@ public static class SeedVerifier
 
                 var missing = SeedMigrations.After(ids, lastApplied).Count;
                 results.Add(new ContextSeedResult(context, lastApplied, unknown, missing));
-                log($"{context}: ultima del seed {lastApplied ?? "nessuna"}, {missing} mancanti rispetto a {source}");
+                log($"{context}: last in seed {lastApplied ?? "none"}, {missing} missing compared to {source}");
             }
 
             if (unknown.Count > 0)
             {
-                log($"migrazioni del seed che {source} non conosce: {string.Join(", ", unknown)}");
+                log($"seed migrations unknown to {source}: {string.Join(", ", unknown)}");
             }
 
             SeedInfo.Write(new SeedInfo(seed.Path, await SeedInfo.HashAsync(seed.Path, ct).ConfigureAwait(false), DateTimeOffset.Now, source, devCommit, last, unknown));
-            log(unknown.Count == 0 ? "seed compatibile" : "seed non compatibile");
+            log(unknown.Count == 0 ? "seed compatible" : "seed not compatible");
             return new SeedVerification(unknown.Count == 0, results, null);
         }
         finally
@@ -105,8 +105,8 @@ public static class SeedVerifier
         }
     }
 
-    // Il codice con cui confrontare: origin/dev del clone sorgente (dopo un fetch), oppure il
-    // backend dell'ambiente modello se il clone sorgente non c'e'.
+    // The code to compare against: origin/dev of the source clone (after a fetch), or the
+    // template environment's backend if there is no source clone.
     private static async Task<(IReadOnlyDictionary<string, IReadOnlyList<string>>? Code, string Source, string? DevCommit, string? Error)> CodeMigrationsAsync(
         AppConfiguration c,
         BackendConfiguration backend,
@@ -117,7 +117,7 @@ public static class SeedVerifier
         {
             if (await SourceCloneRepository.FetchAsync(bare, ct: ct).ConfigureAwait(false) is { } fetchError)
             {
-                log($"fetch del clone sorgente non riuscito, confronto con l'ultimo {GitConventions.RemoteDevelopmentBranch} letto: {fetchError}");
+                log($"source clone fetch failed, comparing with the last {GitConventions.RemoteDevelopmentBranch} read: {fetchError}");
             }
 
             var (dev, error) = await SeedMigrations.DevMigrationsAsync(backend, ct).ConfigureAwait(false);
@@ -127,7 +127,7 @@ public static class SeedVerifier
 
         if (c.TemplateNumber() is not { } template || c.Environment(template) is not { } environment)
         {
-            return (null, string.Empty, null, "nessun clone sorgente e nessun ambiente modello da cui leggere le migrazioni");
+            return (null, string.Empty, null, "no source clone and no template environment to read the migrations from");
         }
 
         var root = c.FolderOf(backend, environment);
@@ -135,7 +135,7 @@ public static class SeedVerifier
             ctx => ctx.Name,
             ctx => (IReadOnlyList<string>)MigrationScanner.Scan(Path.Combine(root, ctx.Migrations)).Select(m => m.MigrationId).ToList(),
             StringComparer.Ordinal);
-        return (code, $"ambiente modello {template}", null, null);
+        return (code, $"template environment {template}", null, null);
     }
 
     private static SeedVerification Failed(string error) => new(false, [], error);

@@ -1,8 +1,8 @@
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// Buffer per ricomporre la riga degli errori man mano che le sezioni arrivano, senza che
-/// l'errore di una sezione gia' applicata venga perso da quella successiva.
+/// Buffer that rebuilds the error line as the sections arrive, so that the error of a section
+/// already applied is not lost when the next one comes in.
 /// </summary>
 public sealed class ProblemBuffer
 {
@@ -10,7 +10,7 @@ public sealed class ProblemBuffer
 
     public string Git { get; set; } = string.Empty;
 
-    /// <summary>Esito negativo dell'ultima azione; azzerato dal refresh successivo.</summary>
+    /// <summary>Failure of the last action; cleared by the next refresh.</summary>
     public string Action { get; set; } = string.Empty;
 
     public string Compose() => string.Join(

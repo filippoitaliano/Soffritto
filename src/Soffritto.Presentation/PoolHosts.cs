@@ -4,24 +4,24 @@ using Soffritto.Core.Docker;
 
 namespace Soffritto.Presentation;
 
-/// <summary>Gli host dei tunnel del pool: una console per tunnel, nella cartella dati.</summary>
+/// <summary>The hosts of the pool tunnels: one console per tunnel, in the data folder.</summary>
 public static class PoolHosts
 {
-    private const string ExternalHost = "da un host che non e' tra i processi di questa macchina";
+    private const string ExternalHost = "from a host that is not among this machine's processes";
 
-    /// <summary>Il marcatore della console dell'host del tunnel con quella Description: "AMBIENTI tunnel-pool-pool-1".</summary>
+    /// <summary>The console marker of the host of the tunnel with that Description: "AMBIENTI tunnel-pool-pool-1".</summary>
     public static string Marker(string description)
     {
         var (service, key) = TunnelPool.HostKey(description);
         return ConsoleServices.Marker(service, key);
     }
 
-    /// <summary>Stato, avvio e stop dell'host del tunnel con quella Description, con la console nella cartella dati.</summary>
+    /// <summary>State, start and stop of the host of the tunnel with that Description, with the console in the data folder.</summary>
     public static TunnelHostTools Tools(string description) => new(ConfigurationFiles.DataFolder, Marker(description), ExternalHost);
 
     /// <summary>
-    /// Accende l'host del tunnel <paramref name="index"/> del pool, o lo riavvia se la sua console
-    /// e' accesa (un host acceso non ospita le porte aggiunte dopo il suo avvio): vero se l'ha riavviato.
+    /// Turns on the host of pool tunnel <paramref name="index"/>, or restarts it if its console
+    /// is running (a running host does not serve ports added after it started): true if it restarted it.
     /// </summary>
     public static bool Ensure(AppConfiguration c, int index)
     {
@@ -45,7 +45,7 @@ public static class PoolHosts
         return consoles.Count > 0;
     }
 
-    /// <summary>Accende l'host del tunnel con quella Description se e' spento: l'esito, o null se c'era gia'.</summary>
+    /// <summary>Turns on the host of the tunnel with that Description if it is off: the outcome, or null if it was already there.</summary>
     public static string? StartIfStopped(string description, string tunnelId)
     {
         var tools = Tools(description);
@@ -55,7 +55,7 @@ public static class PoolHosts
             : null;
     }
 
-    /// <summary>Chiude l'host del tunnel se nessun ambiente ha piu' porte su quel tunnel: l'esito, o null se resta acceso.</summary>
+    /// <summary>Closes the tunnel host if no environment has ports on that tunnel any more: the outcome, or null if it stays on.</summary>
     public static string? StopIfUnused(string description)
     {
         if (TunnelPool.Read().Any(a => a.TunnelDescription == description))
@@ -64,6 +64,6 @@ public static class PoolHosts
         }
 
         ConsoleServices.Stop(ConsoleServices.Pids(ProcessTable.Read([]), Marker(description), _ => false));
-        return $"host del tunnel {description} fermato: nessuna porta assegnata";
+        return $"host of tunnel {description} stopped: no ports assigned";
     }
 }

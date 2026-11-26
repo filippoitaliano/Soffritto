@@ -3,8 +3,8 @@ using Soffritto.Desktop.ViewModels;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// I log delle operazioni degli ambienti Docker, per numero. Vivono fuori dalle colonne perche' la
-/// creazione scrive prima che la colonna esista, e la colonna li ritrova quando nasce. Sul thread della UI.
+/// The operation logs of the Docker environments, by number. They live outside the columns because
+/// creation writes before the column exists, and the column picks them up when it is born. On the UI thread.
 /// </summary>
 public static class OperationLogs
 {
@@ -14,14 +14,14 @@ public static class OperationLogs
     {
         if (!logs.TryGetValue(number, out var log))
         {
-            log = new LogSectionViewModel("Operazioni");
+            log = new LogSectionViewModel("Operations");
             logs[number] = log;
         }
 
         return log;
     }
 
-    /// <summary>Un ambiente nuovo con quel numero parte da un log vuoto.</summary>
+    /// <summary>A new environment with that number starts from an empty log.</summary>
     public static LogSectionViewModel Reset(int number)
     {
         logs.Remove(number);

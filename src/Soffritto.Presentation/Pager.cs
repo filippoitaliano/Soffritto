@@ -1,9 +1,9 @@
 namespace Soffritto.Presentation;
 
-/// <summary>Finestra di una pagina sulle migrazioni di un context, gia' ordinate dalla piu' recente.</summary>
+/// <summary>A one-page window over a context's migrations, already sorted newest first.</summary>
 public static class Pager
 {
-    /// <summary>Migrazioni mostrate per pagina: oltre questa soglia compare il pager.</summary>
+    /// <summary>Migrations shown per page: above this threshold the pager appears.</summary>
     public const int PageSize = 8;
 
     public readonly record struct PageWindow(int Page, int Start, int Count, string Label, bool CanGoPrevious, bool CanGoNext);
@@ -16,7 +16,7 @@ public static class Pager
         var count = Math.Max(0, Math.Min(PageSize, total - start));
 
         var label = total > 0
-            ? $"{start + 1}-{start + count} di {total}"
+            ? $"{start + 1}-{start + count} of {total}"
             : string.Empty;
 
         return new PageWindow(page, start, count, label, page > 0, page < lastPage);

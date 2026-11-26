@@ -5,11 +5,11 @@ using Soffritto.Desktop.Infrastructure;
 
 namespace Soffritto.Desktop.ViewModels;
 
-/// <summary>Un'anteprima del pannello «Sfondi» del setup: un clic mette o toglie la scena dalla rotazione.</summary>
+/// <summary>A preview in the setup's “Backgrounds” panel: a click adds the scene to the rotation or removes it.</summary>
 public sealed class SceneryChoiceViewModel : ObservableObject
 {
-    // Griglia dell'anteprima in pixel del paesaggio: come una finestra di 1200x700 DIP, abbastanza
-    // larga perche' la centrale e il lungomare mostrino palco, tavoli e strada.
+    // Preview grid in landscape pixels: like a 1200x700 DIP window, wide enough for the power
+    // station and the seafront to show stage, tables and street.
     private const int PreviewCols = 300;
     private const int PreviewRows = 175;
 
@@ -35,7 +35,7 @@ public sealed class SceneryChoiceViewModel : ObservableObject
 
     public string Label { get; }
 
-    // Disegnata alla prima richiesta del binding, cioe' quando la scheda Preferenze si apre.
+    // Drawn on the binding's first request, that is when the Preferences tab opens.
     public ImageSource Preview => preview ??= PixelScenery.RenderPreview(Index, PreviewCols, PreviewRows);
 
     public bool IsSelected => settings.Sceneries.Contains(Key);
@@ -43,8 +43,8 @@ public sealed class SceneryChoiceViewModel : ObservableObject
     public bool IsOnlySelected => IsSelected && settings.Sceneries.Count == 1;
 
     public string ToolTip => IsOnlySelected
-        ? "È l'unico sfondo in rotazione: per non avere sfondi spegni l'interruttore «Sfondo»"
-        : IsSelected ? "In rotazione · clic per toglierlo" : "Fuori rotazione · clic per aggiungerlo";
+        ? "It's the only background in rotation: to have no background, turn off the “Background” switch"
+        : IsSelected ? "In rotation · click to remove" : "Not in rotation · click to add";
 
     public ICommand ToggleCommand { get; }
 

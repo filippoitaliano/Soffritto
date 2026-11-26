@@ -4,7 +4,7 @@ using Soffritto.Presentation;
 
 namespace Soffritto.Desktop.ViewModels;
 
-/// <summary>Gli strumenti di un servizio, accanto al nome nella sua card: apri, stato, avvia, ferma.</summary>
+/// <summary>A service's tools, next to its name on its card: open, status, start, stop.</summary>
 public sealed class ToolGroupViewModel : ObservableObject
 {
     private string stateColor = ConsoleServices.ColorOf(ServiceState.Stopped);
@@ -16,7 +16,7 @@ public sealed class ToolGroupViewModel : ObservableObject
     private bool sideEnabled;
     private string sideToolTip = string.Empty;
 
-    // Glifi Segoe Fluent Icons di avvia (Play) e ferma (Stop).
+    // Segoe Fluent Icons glyphs for start (Play) and stop (Stop).
     private const string PlayGlyph = "";
     private const string StopGlyph = "";
 
@@ -25,7 +25,7 @@ public sealed class ToolGroupViewModel : ObservableObject
         OpenText = openText;
         OpenToolTip = openToolTip;
 
-        // Un solo bottone: ferma cio' che c'e' di acceso, altrimenti avvia.
+        // A single button: stops whatever is running, otherwise starts.
         ToggleCommand = new AsyncCommand(() =>
         {
             (canStop ? StopCommand : StartCommand)?.Execute(null);
@@ -43,12 +43,12 @@ public sealed class ToolGroupViewModel : ObservableObject
 
     public ICommand? StopCommand { get; set; }
 
-    /// <summary>Falso per i repository che non avviano niente (generici): il bottone avvia/ferma non c'e'.</summary>
+    /// <summary>False for repositories that start nothing (generic ones): there is no start/stop button.</summary>
     public bool HasToggle { get; set; } = true;
 
     public string ToggleVisibility => HasToggle ? "Visible" : "Collapsed";
 
-    /// <summary>Un comando in piu' del repository (genapi nel frontend): il bottone c'e' solo se e' impostato.</summary>
+    /// <summary>An extra command of the repository (genapi in the frontend): the button is there only when it is set.</summary>
     public ICommand? ExtraCommand { get; set; }
 
     public string ExtraText { get; set; } = string.Empty;
@@ -58,8 +58,8 @@ public sealed class ToolGroupViewModel : ObservableObject
     public string ExtraVisibility => ExtraCommand is null ? "Collapsed" : "Visible";
 
     /// <summary>
-    /// Un'azione in piu' (localhost nel frontend, il bundler Metro nell'app): il bottone c'e' solo
-    /// se e' impostata, a icona con <see cref="SideGlyph"/> o a testo con <see cref="SideText"/>.
+    /// An extra action (localhost in the frontend, the Metro bundler in the app): the button is there only
+    /// when it is set, as an icon with <see cref="SideGlyph"/> or as text with <see cref="SideText"/>.
     /// </summary>
     public ICommand? SideCommand { get; set; }
 
@@ -93,16 +93,16 @@ public sealed class ToolGroupViewModel : ObservableObject
 
     public string ToggleToolTip { get => toggleToolTip; private set => SetProperty(ref toggleToolTip, value); }
 
-    /// <summary>Il bottone ora ferma: e' rosso, cosi' cio' che e' acceso si vede a colpo d'occhio.</summary>
+    /// <summary>The button now stops: it is red, so whatever is running stands out at a glance.</summary>
     public bool IsStop { get => canStop; private set => SetProperty(ref canStop, value); }
 
-    /// <summary>Il bottone avvia/ferma: ferma se c'e' qualcosa di acceso, altrimenti avvia se e' ammesso.</summary>
+    /// <summary>The start/stop button: stops if something is running, otherwise starts if allowed.</summary>
     public void SetActions(bool canStart, bool canStop, string startToolTip, string? stopToolTip = null)
     {
         IsStop = canStop;
         ToggleEnabled = canStop || canStart;
         ToggleGlyph = canStop ? StopGlyph : PlayGlyph;
-        ToggleToolTip = canStop ? stopToolTip ?? "Ferma (chiude la console e tutti i processi figli)" : startToolTip;
+        ToggleToolTip = canStop ? stopToolTip ?? "Stop (closes the console and all child processes)" : startToolTip;
     }
 
     public void SetState(ServiceState state, string name)
@@ -111,7 +111,7 @@ public sealed class ToolGroupViewModel : ObservableObject
         StateToolTip = $"{name}: {ConsoleServices.Describe(state)}";
     }
 
-    /// <summary>Stato con un tooltip gia' composto (l'host del tunnel dice anche da dove lo sa).</summary>
+    /// <summary>Status with a ready-made tooltip (the tunnel host also says where it got it from).</summary>
     public void SetDescribedState(ServiceState state, string toolTip)
     {
         StateColor = ConsoleServices.ColorOf(state);

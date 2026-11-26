@@ -3,8 +3,8 @@ using System.Windows;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// L'etichetta dei bottoni della riga delle app nella testata (stile AppButton): il Content del
-/// bottone e' il glifo, il colore della pillola sta nel Tag.
+/// The label of the buttons in the header's app row (AppButton style): the button's Content is
+/// the glyph, and the pill colour lives in the Tag.
 /// </summary>
 public static class AppButton
 {
@@ -15,7 +15,7 @@ public static class AppButton
 
     public static void SetLabel(DependencyObject element, string value) => element.SetValue(LabelProperty, value);
 
-    /// <summary>Il numero nel pallino rosso sull'icona; vuoto, niente pallino.</summary>
+    /// <summary>The number in the red badge on the icon; empty means no badge.</summary>
     public static readonly DependencyProperty BadgeProperty = DependencyProperty.RegisterAttached(
         "Badge", typeof(string), typeof(AppButton), new PropertyMetadata(string.Empty));
 

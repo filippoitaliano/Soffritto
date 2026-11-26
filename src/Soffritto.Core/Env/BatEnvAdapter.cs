@@ -4,21 +4,21 @@ using Soffritto.Core.Configuration;
 namespace Soffritto.Core.Env;
 
 /// <summary>
-/// Righe "@set NOME=valore" (o "set", o "NOME=valore") di un .bat. In lettura @REM e @CALL non
-/// sono variabili; in scrittura i segreti possono restare nel loro file, richiamato con @CALL.
+/// "@set NAME=value" lines (or "set", or "NAME=value") of a .bat. When reading, @REM and @CALL are not
+/// variables; when writing, secrets can stay in their own file, invoked with @CALL.
 /// </summary>
 public sealed class BatEnvAdapter : IEnvAdapter
 {
     /// <summary>
-    /// La riga di una variabile: gruppo "quoted" la virgoletta prima del nome (forma set "NOME=valore"),
-    /// "name" il nome, "value" il testo dopo l'uguale, virgolette comprese; il valore come lo legge
-    /// cmd lo da' ReadLines.
+    /// A variable line: group "quoted" is the quote before the name (the set "NAME=value" form),
+    /// "name" the name, "value" the text after the equals sign, quotes included; ReadLines gives
+    /// the value as cmd reads it.
     /// </summary>
     public static readonly Regex Line = new(@"^\s*(@?set\s+)?(?<quoted>"")?(?<name>[A-Za-z_][A-Za-z0-9_]*)\s*=\s*(?<value>.*?)\s*$", RegexOptions.IgnoreCase);
 
     public EnvAdapterKind Kind => EnvAdapterKind.Bat;
 
-    /// <summary>Le coppie nome e valore del file, nell'ordine e con i doppioni; vuoto se il file non c'e'.</summary>
+    /// <summary>The file's name/value pairs, in order and including duplicates; empty if the file does not exist.</summary>
     public static IEnumerable<(string Name, string Value)> ReadLines(string path)
     {
         if (!File.Exists(path))
@@ -35,8 +35,8 @@ public sealed class BatEnvAdapter : IEnvAdapter
         }
     }
 
-    // Come cmd: set "NOME=v" resto -> v (fino all'ultima virgoletta, caret letterale); nelle altre
-    // forme le virgolette restano e un ^ fuori dalle virgolette rende letterale il carattere dopo.
+    // Like cmd: set "NAME=v" rest -> v (up to the last quote, caret taken literally); in the other
+    // forms the quotes stay and a ^ outside quotes makes the next character literal.
     private static string ValueOf(Match match)
     {
         var value = match.Groups["value"].Value;
@@ -82,19 +82,19 @@ public sealed class BatEnvAdapter : IEnvAdapter
             defaultNewLine: "\r\n");
     }
 
-    // Un valore che inizia con " torna nella forma nuda, identico all'originale: le sue virgolette
-    // proteggono gia' i metacaratteri. La porta del dev server (solo cifre) resta nuda perche'
-    // FrontendEnv.ReadDevServerPort legge solo quella forma.
+    // A value starting with " goes back in the bare form, identical to the original: its quotes
+    // already protect the metacharacters. The dev server port (digits only) stays bare because
+    // FrontendEnv.ReadDevServerPort reads only that form.
     private static bool NeedsQuotedForm(string value)
         => !value.StartsWith('"') && value.IndexOfAny(['&', '|', '<', '>', '^']) >= 0;
 }
 
-/// <summary>Riscrittura di un file di env a righe: tocca solo le righe delle variabili del set.</summary>
+/// <summary>Rewrites a line-based env file: touches only the lines of the set's variables.</summary>
 internal static class EnvLineFile
 {
     /// <summary>
-    /// La prima riga di ogni variabile del set prende il valore nuovo, i doppioni non commentati
-    /// spariscono (vincerebbero sul valore nuovo), le variabili mancanti si aggiungono in fondo.
+    /// The first line of each variable in the set gets the new value, uncommented duplicates
+    /// are dropped (they would override the new value), missing variables are appended at the end.
     /// </summary>
     public static void Write(string path, EnvSet set, Func<string, string?> nameOf, Func<EnvVariable, string> format, string? requiredLine, string defaultNewLine)
     {

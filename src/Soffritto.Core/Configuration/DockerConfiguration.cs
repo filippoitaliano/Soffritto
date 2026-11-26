@@ -1,41 +1,41 @@
 namespace Soffritto.Core.Configuration;
 
-/// <summary>Le impostazioni comuni degli ambienti Docker: dove nascono i worktree, le porte dei database, l'ambiente modello.</summary>
+/// <summary>Settings shared by Docker environments: where worktrees are created, database ports, the template environment.</summary>
 public sealed class DockerConfiguration
 {
-    /// <summary>La cartella dei worktree e dei cloni sorgente; vuota = &lt;root&gt;\ambienti-docker.</summary>
+    /// <summary>The folder for worktrees and source clones; empty = &lt;root&gt;\ambienti-docker.</summary>
     public string WorktreeRoot { get; set; } = string.Empty;
 
-    /// <summary>Base delle porte host dei database: lo slot N usa base + N, il container del seed la base.</summary>
+    /// <summary>Base of the databases' host ports: slot N uses base + N, the seed container uses the base itself.</summary>
     public int DatabasePortBase { get; set; } = DockerDefaults.DatabasePortBase;
 
-    /// <summary>L'ambiente locale da cui si leggono costanti, segreti e file locali; null = il primo locale.</summary>
+    /// <summary>The local environment constants, secrets and local files are read from; null = the first local one.</summary>
     public int? TemplateEnvironment { get; set; }
 }
 
-/// <summary>Un servizio di un repository in un ambiente Docker; i campi vuoti valgono i default del tipo (<see cref="DockerDefaults"/>).</summary>
+/// <summary>A repository's service in a Docker environment; empty fields take the type's defaults (<see cref="DockerDefaults"/>).</summary>
 public sealed class DockerServiceConfiguration
 {
-    /// <summary>Porte "base:porta del container": lo slot N pubblica base + N.</summary>
+    /// <summary>Ports as "base:container port": slot N publishes base + N.</summary>
     public List<string> PublishedPorts { get; set; } = [];
 
-    /// <summary>Il compose dello slot, relativo alla radice del repository (solo backend).</summary>
+    /// <summary>The slot's compose file, relative to the repository root (backend only).</summary>
     public string Compose { get; set; } = string.Empty;
 
-    /// <summary>Il Dockerfile, relativo alla radice del repository: e' anche il percorso relativo al contesto.</summary>
+    /// <summary>The Dockerfile, relative to the repository root: it is also the path relative to the build context.</summary>
     public string Dockerfile { get; set; } = string.Empty;
 
-    /// <summary>Cartella assoluta di un checkout con i file Docker, copiati nel worktree quando il branch non li ha.</summary>
+    /// <summary>Absolute folder of a checkout with the Docker files, copied into the worktree when the branch lacks them.</summary>
     public string FilesFallback { get; set; } = string.Empty;
 
-    /// <summary>Il nome del servizio nel compose.</summary>
+    /// <summary>The service name in the compose file.</summary>
     public string Service { get; set; } = string.Empty;
 
-    /// <summary>File copiati dall'ambiente modello al worktree, relativi alla radice del repository.</summary>
+    /// <summary>Files copied from the template environment to the worktree, relative to the repository root.</summary>
     public List<string> LocalFiles { get; set; } = [];
 }
 
-/// <summary>Una porta pubblicata: lo slot N la espone sull'host a <see cref="Base"/> + N.</summary>
+/// <summary>A published port: slot N exposes it on the host at <see cref="Base"/> + N.</summary>
 public readonly record struct PortMapping(int Base, int Container)
 {
     public int HostPort(int number) => Base + number;
@@ -60,10 +60,10 @@ public readonly record struct PortMapping(int Base, int Container)
     }
 }
 
-/// <summary>Una porta host di un ambiente Docker, con il servizio del compose che la pubblica.</summary>
+/// <summary>A host port of a Docker environment, with the compose service that publishes it.</summary>
 public sealed record SlotPort(string Service, int Host, int Container);
 
-/// <summary>I valori proposti per gli ambienti Docker: li usano i campi vuoti della configurazione e i "Valori proposti" del setup.</summary>
+/// <summary>The suggested values for Docker environments: used by empty configuration fields and by the setup's "Suggested values".</summary>
 public static class DockerDefaults
 {
     public const int DatabasePortBase = 14000;

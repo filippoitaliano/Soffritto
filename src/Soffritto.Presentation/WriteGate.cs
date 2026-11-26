@@ -1,8 +1,8 @@
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// Una sola azione di scrittura alla volta (pull, switch, pulizia branch, database update). La
-/// portata la decide chi possiede il gate: la finestra nella VSIX, l'ambiente nell'exe.
+/// Only one write action at a time (pull, switch, branch cleanup, database update). The
+/// scope is decided by whoever owns the gate: the window in the VSIX, the environment in the app.
 /// </summary>
 public sealed class WriteGate
 {

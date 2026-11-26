@@ -2,8 +2,8 @@ using System.Windows.Input;
 
 namespace Soffritto.Desktop.Infrastructure;
 
-// L'abilitazione dei bottoni passa dal binding IsEnabled, come nella VSIX: il comando e' sempre
-// eseguibile e le guardie vere stanno nella sessione.
+// Button enabling goes through the IsEnabled binding, as in the VSIX: the command can always
+// execute and the real guards live in the session.
 public sealed class AsyncCommand(Func<Task> execute) : ICommand
 {
     public event EventHandler? CanExecuteChanged
@@ -24,8 +24,8 @@ public sealed class AsyncCommand(Func<Task> execute) : ICommand
         }
         catch
         {
-            // La sessione riporta i propri errori nel pannello: un'eccezione sfuggita non deve
-            // abbattere l'applicazione.
+            // The session reports its own errors in the panel: an escaped exception must not
+            // bring down the application.
         }
     }
 }

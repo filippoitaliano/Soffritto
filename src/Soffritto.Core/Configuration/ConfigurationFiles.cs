@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 namespace Soffritto.Core.Configuration;
 
 /// <summary>
-/// Dove vivono i dati del prodotto e come si legge la configurazione. La copia di lavoro sta in
-/// %LOCALAPPDATA%\Soffritto\config.json; l'exe la alimenta dal setup o da un file di
-/// provisioning accanto a se' (vedi <c>ConfigurationStore</c> nell'exe).
+/// Where the product's data lives and how the configuration is read. The working copy is in
+/// %LOCALAPPDATA%\Soffritto\config.json; the app feeds it from setup or from a
+/// provisioning file next to itself (see <c>ConfigurationStore</c> in the app).
 /// </summary>
 public static class ConfigurationFiles
 {
@@ -20,7 +20,7 @@ public static class ConfigurationFiles
         Converters = { new JsonStringEnumConverter(JsonNamingPolicy.CamelCase), new RepositoryConfigurationConverter() },
     };
 
-    /// <summary>Cartella dati alternativa, per provare una build senza toccare quella di lavoro.</summary>
+    /// <summary>An alternative data folder, to try a build without touching the working one.</summary>
     public const string DataFolderVariable = "SOFFRITTO_DATA";
 
     private static readonly string? dataFolder;
@@ -29,8 +29,8 @@ public static class ConfigurationFiles
     {
         var value = Environment.GetEnvironmentVariable(DataFolderVariable);
 
-        // PowerShell cancella la variabile quando la si imposta a vuoto: vuota e assente sono lo
-        // stesso caso. Un valore di soli spazi invece non e' vuoto e cade nel ramo dell'errore.
+        // PowerShell deletes the variable when it is set to empty: empty and missing are the
+        // same case. A whitespace-only value, however, is not empty and falls into the error branch.
         if (string.IsNullOrEmpty(value))
         {
             dataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Soffritto");
@@ -42,22 +42,22 @@ public static class ConfigurationFiles
         }
         else
         {
-            // Una variabile sbagliata non deve mai ricadere sui dati di lavoro.
-            DataFolderProblem = $"{DataFolderVariable} vale '{value}': serve un percorso completo (es. C:\\Dati\\Soffritto-prova). Nessun dato viene letto o scritto.";
+            // A wrong variable must never fall back to the working data.
+            DataFolderProblem = $"{DataFolderVariable} is '{value}': a full path is required (e.g. C:\\Data\\Soffritto-test). No data is read or written.";
         }
     }
 
-    /// <summary>Vero quando la cartella dati viene da <see cref="DataFolderVariable"/>.</summary>
+    /// <summary>True when the data folder comes from <see cref="DataFolderVariable"/>.</summary>
     public static bool IsDataFolderOverridden { get; }
 
-    /// <summary>Il motivo per cui <see cref="DataFolderVariable"/> non e' usabile; null se va bene o non c'e'.</summary>
+    /// <summary>Why <see cref="DataFolderVariable"/> is unusable; null if it is fine or not set.</summary>
     public static string? DataFolderProblem { get; }
 
     public static string DataFolder => dataFolder ?? throw new InvalidOperationException(DataFolderProblem);
 
     public static string ConfigPath => Path.Combine(DataFolder, "config.json");
 
-    /// <summary>La configurazione salvata; null se non c'e' ancora (primo avvio) o non e' leggibile.</summary>
+    /// <summary>The saved configuration; null if there is none yet (first run) or it is unreadable.</summary>
     public static AppConfiguration? TryLoad(out string? error) => TryRead(ConfigPath, out error);
 
     public static AppConfiguration? TryRead(string path, out string? error)
@@ -79,18 +79,18 @@ public static class ConfigurationFiles
         }
     }
 
-    /// <summary>La configurazione di un testo json; un formato precedente si rifiuta con un messaggio.</summary>
+    /// <summary>The configuration from a JSON text; an older format is refused with a message.</summary>
     public static AppConfiguration Parse(string json)
     {
-        var configuration = JsonSerializer.Deserialize<AppConfiguration>(json, Json) ?? throw new JsonException("Il file e' vuoto.");
+        var configuration = JsonSerializer.Deserialize<AppConfiguration>(json, Json) ?? throw new JsonException("The file is empty.");
 
-        // Un formato precedente si leggerebbe come un catalogo vuoto, e il setup lo riscriverebbe
-        // perdendo repository e ambienti.
+        // An older format would be read as an empty catalog, and setup would rewrite it,
+        // losing repositories and environments.
         if (configuration.SchemaVersion < AppConfiguration.CurrentSchemaVersion)
         {
             throw new JsonException(
-                $"il file e' nel formato schemaVersion {configuration.SchemaVersion}, non supportato: "
-                + $"questa versione legge solo schemaVersion {AppConfiguration.CurrentSchemaVersion}.");
+                $"the file uses format schemaVersion {configuration.SchemaVersion}, which is not supported: "
+                + $"this version only reads schemaVersion {AppConfiguration.CurrentSchemaVersion}.");
         }
 
         return configuration;
@@ -106,16 +106,16 @@ public static class ConfigurationFiles
 
     public static string UnreadableCopyPath => Path.Combine(DataFolder, "config.illeggibile.json");
 
-    /// <summary>Il lock fra processi di config.json: lo prende <see cref="Update"/>, in exe, VSIX, CLI e MCP.</summary>
+    /// <summary>The cross-process lock of config.json: taken by <see cref="Update"/>, in the app, VSIX, CLI and MCP.</summary>
     public static string LockPath => Path.Combine(DataFolder, "config.lock");
 
     /// <summary>
-    /// L'unico modo di scrivere config.json mentre l'exe gira: serializza setup, ambienti Docker e
-    /// seed. Rilegge il file, applica <paramref name="mutate"/> (che restituisce un errore o null),
-    /// valida e scrive. Replace solo per il Salva del setup.
+    /// The only way to write config.json while the app is running: serializes setup, Docker environments and
+    /// seed. Rereads the file, applies <paramref name="mutate"/> (which returns an error or null),
+    /// validates and writes. Replace only for the setup's Save.
     /// </summary>
-    /// <param name="notice">Riceve cosa e' successo a un file illeggibile con Replace (dove sta la copia).</param>
-    /// <returns>L'errore, o null se il file e' stato scritto.</returns>
+    /// <param name="notice">Receives what happened to an unreadable file with Replace (where the copy is).</param>
+    /// <returns>The error, or null if the file was written.</returns>
     public static string? Update(Func<AppConfiguration, string?> mutate, ConfigurationFileFallback fallback, Action<string>? notice = null)
     {
         updateLock.Wait();
@@ -126,16 +126,16 @@ public static class ConfigurationFiles
             var current = TryLoad(out var readError);
             if (current is null)
             {
-                var reason = readError ?? "il file non esiste";
+                var reason = readError ?? "the file does not exist";
                 if (fallback == ConfigurationFileFallback.Refuse)
                 {
-                    return $"config.json manca o non si legge ({reason}): salva prima dal setup";
+                    return $"config.json is missing or unreadable ({reason}): save from setup first";
                 }
 
                 if (readError is not null)
                 {
                     File.Copy(ConfigPath, UnreadableCopyPath, overwrite: true);
-                    notice?.Invoke($"config.json non si leggeva ({readError}): la copia e' in {UnreadableCopyPath}.");
+                    notice?.Invoke($"config.json was unreadable ({readError}): a copy is in {UnreadableCopyPath}.");
                 }
 
                 current = new AppConfiguration();
@@ -156,7 +156,7 @@ public static class ConfigurationFiles
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TimeoutException)
         {
-            return $"config.json non scritto: {ex.Message}";
+            return $"config.json not written: {ex.Message}";
         }
         finally
         {
@@ -165,7 +165,7 @@ public static class ConfigurationFiles
         }
     }
 
-    /// <summary>Scrive la copia di lavoro (tmp + move).</summary>
+    /// <summary>Writes the working copy (tmp + move).</summary>
     public static void Write(AppConfiguration configuration)
     {
         Directory.CreateDirectory(DataFolder);
@@ -176,12 +176,12 @@ public static class ConfigurationFiles
     }
 }
 
-/// <summary>Cosa fa <see cref="ConfigurationFiles.Update"/> quando config.json manca o non si legge.</summary>
+/// <summary>What <see cref="ConfigurationFiles.Update"/> does when config.json is missing or unreadable.</summary>
 public enum ConfigurationFileFallback
 {
-    /// <summary>Nessuna scrittura, con un errore: per chi modifica una voce di un file che deve esistere.</summary>
+    /// <summary>No write, with an error: for callers changing one entry of a file that must exist.</summary>
     Refuse,
 
-    /// <summary>Si parte da una configurazione nuova (con la copia del file illeggibile): solo per il Salva del setup.</summary>
+    /// <summary>Start from a new configuration (keeping a copy of the unreadable file): only for the setup's Save.</summary>
     Replace,
 }

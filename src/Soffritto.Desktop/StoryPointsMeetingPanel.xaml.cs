@@ -16,7 +16,7 @@ public partial class StoryPointsMeetingPanel : UserControl
         DataContextChanged += OnDataContextChanged;
     }
 
-    /// <summary>La X del pannello: chi lo ospita decide come nasconderlo.</summary>
+    /// <summary>The panel's X: the host decides how to hide it.</summary>
     public event Action? CloseRequested;
 
     private void Close_Click(object sender, RoutedEventArgs e) => CloseRequested?.Invoke();
@@ -43,15 +43,15 @@ public partial class StoryPointsMeetingPanel : UserControl
         }
     }
 
-    // Le risorse dinamiche del pannello: fondi e testi neutri qui, accenti dalla palette del
-    // ViewModel, che li usa anche per il colore della fase.
+    // The panel's dynamic resources: neutral backgrounds and texts here, accents from the
+    // ViewModel's palette, which also uses them for the phase color.
     private void ApplyTheme(StoryPointsMeetingViewModel meeting)
     {
         var light = meeting.IsLight;
         var palette = meeting.Palette;
 
-        // Contrasti WCAG: bottoni e bordi di caselle e pillole almeno 3:1 su card e sfondo, testo
-        // almeno 4.5:1 sul suo fondo.
+        // WCAG contrast: buttons and the borders of boxes and pills at least 3:1 on card and
+        // background, text at least 4.5:1 on its own background.
         Set("Bg", light ? "#EEF1F8" : "#111827");
         Set("Card", light ? "#FFFFFF" : "#1B2338");
         Set("CardLine", light ? "#DCE2EE" : "#1B2338");
@@ -80,8 +80,8 @@ public partial class StoryPointsMeetingPanel : UserControl
 }
 
 /// <summary>
-/// Raggio di meta' altezza per i bottoni a pillola, come ButtonRadius in App.xaml: un raggio piu'
-/// grande WPF lo riduce separatamente in larghezza e altezza e la pillola diventa un ovale.
+/// Half-height radius for pill buttons, like ButtonRadius in App.xaml: WPF shrinks a larger
+/// radius separately in width and height, and the pill turns into an oval.
 /// </summary>
 public sealed class HalfHeightRadius : IValueConverter
 {

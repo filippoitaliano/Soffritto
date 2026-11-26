@@ -3,13 +3,13 @@ using System.Text.RegularExpressions;
 
 namespace Soffritto.Core.Docker;
 
-/// <summary>Lo stato di un container per i pallini: il Desktop lo porta su ServiceState.</summary>
+/// <summary>A container's state for the status dots: the Desktop maps it to ServiceState.</summary>
 public enum ContainerRunState
 {
-    /// <summary>exited, dead, paused, removing, created e mai partito, o container assente.</summary>
+    /// <summary>exited, dead, paused, removing, created and never started, or no container.</summary>
     Stopped,
 
-    /// <summary>created da poco, restarting, o running con l'healthcheck ancora in partenza: arancio.</summary>
+    /// <summary>recently created, restarting, or running with the healthcheck still starting: orange.</summary>
     Starting,
 
     Running,
@@ -17,7 +17,7 @@ public enum ContainerRunState
 
 public sealed record DockerContainer(string Id, string Name, string Project, string Service, string State, string Status, ContainerRunState RunState);
 
-/// <summary>I container della cartella dati, o l'errore se Docker non risponde.</summary>
+/// <summary>The data folder's containers, or the error if Docker does not respond.</summary>
 public sealed record DockerStatus(IReadOnlyList<DockerContainer> Containers, string? Error = null)
 {
     public bool IsReachable => Error is null;
@@ -25,15 +25,15 @@ public sealed record DockerStatus(IReadOnlyList<DockerContainer> Containers, str
     public IEnumerable<DockerContainer> OfProject(string project)
         => Containers.Where(c => string.Equals(c.Project, project, StringComparison.Ordinal));
 
-    /// <summary>Lo stato del servizio del progetto; Stopped se il container non c'e'.</summary>
+    /// <summary>The state of the project's service; Stopped if there is no container.</summary>
     public ContainerRunState StateOf(string project, string service)
         => OfProject(project).FirstOrDefault(c => string.Equals(c.Service, service, StringComparison.Ordinal))?.RunState ?? ContainerRunState.Stopped;
 }
 
-/// <summary>Legge i container della cartella dati (etichetta di <see cref="DockerNames"/>) con docker ps.</summary>
+/// <summary>Reads the data folder's containers (label from <see cref="DockerNames"/>) with docker ps.</summary>
 public static class DockerStatusReader
 {
-    public const string Unreachable = "Docker non raggiungibile";
+    public const string Unreachable = "Docker unreachable";
 
     public static async Task<DockerStatus> ReadAsync(CancellationToken ct = default)
     {
@@ -70,18 +70,18 @@ public static class DockerStatusReader
             }
             catch (JsonException)
             {
-                // Una riga non json (avviso del client) non e' un container.
+                // A non-JSON line (a client warning) is not a container.
             }
         }
 
         return new DockerStatus(containers);
     }
 
-    // compose up lascia un container in «created» per pochi secondi, o finche' aspetta una
-    // dipendenza. Oltre questo tempo il container non parte piu' da solo: e' spento.
+    // compose up leaves a container "created" for a few seconds, or while it waits for a
+    // dependency. Past this time the container will not start on its own anymore: it is stopped.
     private static readonly TimeSpan CreatedLimit = TimeSpan.FromMinutes(2);
 
-    /// <param name="createdAt">Il campo CreatedAt di docker ps, es. "2026-11-18 10:05:30 +0100 CET".</param>
+    /// <param name="createdAt">The CreatedAt field of docker ps, e.g. "2026-11-18 10:05:30 +0100 CET".</param>
     public static ContainerRunState RunStateOf(string state, string status, string createdAt, DateTimeOffset now) => state switch
     {
         "running" when status.Contains("(health: starting)", StringComparison.Ordinal) => ContainerRunState.Starting,
@@ -91,7 +91,7 @@ public static class DockerStatusReader
         _ => ContainerRunState.Stopped,
     };
 
-    // Data, ora e offset; il nome del fuso in coda non si legge.
+    // Date, time and offset; the trailing time zone name is ignored.
     private static DateTimeOffset? CreatedOf(string createdAt)
     {
         var parts = createdAt.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -109,8 +109,8 @@ public static class DockerStatusReader
     private static string Text(JsonElement root, string name)
         => root.TryGetProperty(name, out var value) && value.ValueKind == JsonValueKind.String ? value.GetString() ?? string.Empty : string.Empty;
 
-    // Le etichette arrivano come "k=v,k=v", e alcuni valori di compose contengono virgole
-    // (config_files): si cerca la chiave esatta a inizio stringa o dopo una virgola.
+    // Labels arrive as "k=v,k=v", and some compose values contain commas
+    // (config_files): look for the exact key at the start of the string or after a comma.
     private static string LabelValue(string labels, string key)
     {
         var match = Regex.Match(labels, $@"(?:^|,){Regex.Escape(key)}=([^,]*)");

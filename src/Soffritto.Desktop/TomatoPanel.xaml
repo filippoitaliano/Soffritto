@@ -1,5 +1,5 @@
-<!-- Pannello del pomodoro: la stessa card galleggiante dei pannelli PR e notifiche, con dentro il
-     tomato timer del giardino (garden.filippoitaliano.com) in una cornice arrotondata. -->
+<!-- Pomodoro panel: the same floating card as the PR and notifications panels, holding the
+     garden's tomato timer (garden.filippoitaliano.com) in a rounded frame. -->
 <UserControl x:Class="Soffritto.Desktop.TomatoPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -39,12 +39,12 @@
       <DockPanel DockPanel.Dock="Top" Margin="22,18,16,12">
         <Button DockPanel.Dock="Right"
                 Click="Close_Click"
-                ToolTip="Chiudi il pannello (Esc): il timer continua a correre"
+                ToolTip="Close the panel (Esc): the timer keeps running"
                 Style="{StaticResource IconButton}"
                 Content="&#xE711;" />
         <Button DockPanel.Dock="Right"
                 Click="OpenInBrowser_Click"
-                ToolTip="Apri il tomato timer nel browser predefinito"
+                ToolTip="Open the tomato timer in the default browser"
                 Style="{StaticResource IconButton}"
                 Content="&#xE8A7;" />
         <StackPanel VerticalAlignment="Center">
@@ -53,12 +53,12 @@
         </StackPanel>
       </DockPanel>
 
-      <!-- Cornice della pagina: bordo crema col labbro come le card; la WebView e' ritagliata
-           sugli angoli da Clip (TomatoPanel.xaml.cs), perche' Border non ritaglia i figli. -->
+      <!-- Page frame: cream border with a lip like the cards; the WebView's corners are clipped
+           by Clip (TomatoPanel.xaml.cs), because Border does not clip its children. -->
       <Border Margin="16,0" CornerRadius="18" BorderBrush="{DynamicResource Theme.CardBorder}" BorderThickness="1,1,1,3" Background="{DynamicResource Theme.Surface}">
         <Grid x:Name="PageHost">
           <TextBlock x:Name="Message"
-                     Text="Carico il tomato timer…"
+                     Text="Loading the tomato timer…"
                      FontSize="12"
                      Opacity="0.65"
                      TextAlignment="Center"

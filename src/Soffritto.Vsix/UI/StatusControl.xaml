@@ -1,35 +1,35 @@
-<!-- Gli stessi componenti dell'exe Desktop (App.xaml e MainWindow.xaml) rifatti per il Remote UI,
-     nei colori del tema di Visual Studio: fondo, card, campi, testo e scrollbar prendono i pennelli
-     di VS (EnvironmentColors), quindi il pannello e' chiaro o scuro come l'IDE. Gli accenti (tag,
-     pallini, pastiglie, rosso degli errori) sono tinte medie che reggono entrambi i temi.
+<!-- The same components as the Desktop app (App.xaml and MainWindow.xaml) rebuilt for Remote UI,
+     in the Visual Studio theme colors: background, cards, fields, text and scrollbar take VS
+     brushes (EnvironmentColors), so the panel is light or dark like the IDE. The accents (tags,
+     dots, pills, error red) are mid tints that work on both themes.
 
-     Componenti dell'exe e loro corrispondenti qui:
-     - Section: la card, angoli a 20 e labbro di 3 px in basso; il backend e' una card sola con
-       dentro tendina, tunnel, migrazioni sconosciute e context, ognuno con la sua intestazione
-       separata da un filo (CardSeparator), come nella colonna dell'exe;
-     - LaneGrid e Lane: riquadro stondato (LaneFrame) con le righe separate da un filo, badge grigio,
-       pastiglia colorata e azioni dietro un filo verticale (LaneActionButton);
-     - BranchComboBox: tendina editabile stondata con il menu arrotondato;
-     - IconButton e ServiceToggle: pulsanti tondi col labbro, che rimbalzano al passaggio del mouse;
-     - StatusDot: pallino sul bordo destro dell'intestazione, con stato e ora nel tooltip;
-     - Switch, Tag e NoteBox come nell'exe.
+     App components and their counterparts here:
+     - Section: the card, 20 corners and a 3 px lip at the bottom; the backend is a single card
+       holding drop-down, tunnel, unknown migrations and contexts, each with its own header
+       separated by a rule (CardSeparator), as in the app's column;
+     - LaneGrid and Lane: rounded frame (LaneFrame) with rows separated by a rule, grey badge,
+       colored pill and actions behind a vertical rule (LaneActionButton);
+     - BranchComboBox: rounded editable drop-down with a rounded menu;
+     - IconButton and ServiceToggle: round buttons with a lip, which bounce on mouse hover;
+     - StatusDot: dot on the right edge of the header, with state and time in the tooltip;
+     - Switch, Tag and NoteBox as in the app.
 
-     Cosa cambia per i limiti del Remote UI (niente codice dietro ne' controlli propri): le
-     intestazioni si aprono con un bottone trasparente che sta sotto, non con un MouseBinding; il
-     filo tra le righe nasce da AlternationIndex letto nel DataTemplate, non da LaneGridRow; il
-     pollice della scrollbar compare col mouse sopra il pannello (ScrollBarFade e' codice); il font
-     e' Segoe UI, perche' Nunito e Codicons dell'exe non si caricano nel processo di VS, e le icone
-     sono glifi Segoe Fluent Icons e non <vs:Image> (il perche' e' in UI/StatusViewModel.cs). Gli
-     stili si raggiungono con DynamicResource anche dai template annidati, dove StaticResource nel
-     dialetto del Remote UI e' fragile. -->
+     What changes because of Remote UI limits (no code-behind or custom controls): the
+     headers expand through a transparent button underneath, not a MouseBinding; the
+     rule between rows comes from AlternationIndex read in the DataTemplate, not from LaneGridRow; the
+     scrollbar thumb appears with the mouse over the panel (ScrollBarFade is code); the font
+     is Segoe UI, because the app's Nunito and Codicons do not load in the VS process, and the icons
+     are Segoe Fluent Icons glyphs and not <vs:Image> (the reason is in UI/StatusViewModel.cs). The
+     styles are reached with DynamicResource even from nested templates, where StaticResource in the
+     Remote UI dialect is fragile. -->
 <DataTemplate xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vs="clr-namespace:Microsoft.VisualStudio.PlatformUI;assembly=Microsoft.VisualStudio.Shell.15.0">
   <Grid TextElement.Foreground="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" TextElement.FontFamily="Segoe UI" TextElement.FontSize="13">
   <Grid.Resources>
-    <!-- IconButton dell'exe: cerchio di 26 px col labbro scuro in basso e il filo chiaro in alto;
-         al passaggio del mouse si schiarisce e rimbalza un po' piu' grande, alla pressione si
-         scurisce e si schiaccia. -->
+    <!-- The app's IconButton: 26 px circle with a dark lip at the bottom and a light rule at the top;
+         on mouse hover it lightens and bounces a little bigger, when pressed it
+         darkens and squashes. -->
     <Style x:Key="IconButton" TargetType="Button">
       <Setter Property="Background" Value="#26808080" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
@@ -96,8 +96,8 @@
                   </BeginStoryboard>
                 </Trigger.EnterActions>
               </Trigger>
-              <!-- Il rilascio col mouse fuori (barra spaziatrice, mouse uscito prima) riporta la
-                   scala a 1: dichiarato per ultimo perche' il suo storyboard vinca. -->
+              <!-- Releasing with the mouse outside (space bar, mouse left earlier) brings the
+                   scale back to 1: declared last so that its storyboard wins. -->
               <MultiTrigger>
                 <MultiTrigger.Conditions>
                   <Condition Property="IsMouseOver" Value="False" />
@@ -123,8 +123,8 @@
       </Style.Triggers>
     </Style>
 
-    <!-- Avvia/ferma dei servizi (ServiceToggle dell'exe, Tag = il bottone ferma): rosso pieno
-         con il glifo bianco quando ferma. -->
+    <!-- Service start/stop (the app's ServiceToggle, Tag = the button stops): solid red
+         with a white glyph when it stops. -->
     <Style x:Key="ServiceToggle" TargetType="Button" BasedOn="{StaticResource IconButton}">
       <Style.Triggers>
         <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
@@ -134,8 +134,8 @@
       </Style.Triggers>
     </Style>
 
-    <!-- LaneActionButton dell'exe: solo il glifo, che al passaggio del mouse prende una
-         pastiglia grigia. -->
+    <!-- The app's LaneActionButton: just the glyph, which gets a grey pill on
+         mouse hover. -->
     <Style x:Key="LaneActionButton" TargetType="Button">
       <Setter Property="Width" Value="28" />
       <Setter Property="Height" Value="26" />
@@ -170,9 +170,9 @@
       </Setter>
     </Style>
 
-    <!-- Il bottone che apre e chiude una sezione: trasparente e largo quanto l'intestazione,
-         sotto i suoi contenuti. Freccia, icona e titolo lasciano passare il clic; i pulsanti delle
-         azioni lo gestiscono da se'. -->
+    <!-- The button that expands and collapses a section: transparent and as wide as the header,
+         underneath its contents. Arrow, icon and title let the click through; the action
+         buttons handle it themselves. -->
     <Style x:Key="HeaderToggle" TargetType="Button">
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="Focusable" Value="False" />
@@ -185,8 +185,8 @@
       </Setter>
     </Style>
 
-    <!-- Section dell'exe: la card. Il fondo e' quello delle finestre degli strumenti di VS, sul
-         fondo dell'ambiente: nel tema scuro le due tinte sono vicine e parlano bordo e labbro. -->
+    <!-- The app's Section: the card. Its background is that of VS tool windows, on the
+         environment background: in the dark theme the two tints are close, so border and lip do the talking. -->
     <Style x:Key="Section" TargetType="Border">
       <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
       <Setter Property="BorderBrush" Value="#33808080" />
@@ -196,8 +196,8 @@
       <Setter Property="Margin" Value="0,0,0,8" />
     </Style>
 
-    <!-- Filo tra le sezioni di una card, da bordo a bordo: i margini negativi annullano il
-         padding laterale della card. -->
+    <!-- Rule between the sections of a card, edge to edge: the negative margins cancel the
+         card's side padding. -->
     <Style x:Key="CardSeparator" TargetType="Border">
       <Setter Property="Height" Value="1" />
       <Setter Property="Background" Value="#26808080" />
@@ -209,7 +209,7 @@
       <Setter Property="MinHeight" Value="26" />
     </Style>
 
-    <!-- Intestazione di una sezione dentro la card: stessa aria sopra e sotto del filo. -->
+    <!-- Header of a section inside the card: same breathing room above and below the rule. -->
     <Style x:Key="SectionHeader" TargetType="Grid">
       <Setter Property="Margin" Value="0,8,0,0" />
     </Style>
@@ -235,7 +235,7 @@
       <Setter Property="Margin" Value="0,0,8,0" />
     </Style>
 
-    <!-- In Segoe UI il corpo delle minuscole sta sotto il centro della riga: si alza di 1 px. -->
+    <!-- In Segoe UI the lowercase x-height sits below the line's center: raise it by 1 px. -->
     <Style x:Key="CardTitle" TargetType="TextBlock">
       <Setter Property="IsHitTestVisible" Value="False" />
       <Setter Property="FontWeight" Value="Bold" />
@@ -248,7 +248,7 @@
       </Setter>
     </Style>
 
-    <!-- Microtesto grigio centrato delle card (dettagli, note dei context). -->
+    <!-- Centered grey microcopy of the cards (details, context notes). -->
     <Style x:Key="Hint" TargetType="TextBlock">
       <Setter Property="Opacity" Value="0.65" />
       <Setter Property="FontSize" Value="12" />
@@ -257,8 +257,8 @@
       <Setter Property="Margin" Value="0,8,0,0" />
     </Style>
 
-    <!-- StatusDot dell'exe: 8 px, primo elemento ancorato a destra, quindi sul bordo della card
-         dopo i bottoni. Il tooltip dice stato e ora dell'ultima lettura. -->
+    <!-- The app's StatusDot: 8 px, first element docked right, hence on the card edge
+         after the buttons. The tooltip gives the state and the time of the last read. -->
     <Style x:Key="ToolDot" TargetType="Ellipse">
       <Setter Property="Width" Value="8" />
       <Setter Property="Height" Value="8" />
@@ -267,7 +267,7 @@
       <Setter Property="DockPanel.Dock" Value="Right" />
     </Style>
 
-    <!-- Il pallino dell'ambiente: mentre si legge e' l'azzurro di StatusBadge.InfoColor che pulsa. -->
+    <!-- The environment dot: while reading it is the StatusBadge.InfoColor blue, pulsing. -->
     <Style x:Key="EnvironmentDot" TargetType="Ellipse" BasedOn="{StaticResource ToolDot}">
       <Setter Property="Fill" Value="{Binding EnvironmentStatusColor}" />
       <Style.Triggers>
@@ -293,8 +293,8 @@
       <Setter Property="Margin" Value="0,2,0,0" />
     </Style>
 
-    <!-- Tag stondati dell'exe: tinta al 15% e bordo al 45% dello stesso colore. Azzurro per
-         database e server, rosso per il database protetto, viola per Docker. -->
+    <!-- The app's rounded tags: fill at 15% and border at 45% of the same color. Blue for
+         database and server, red for the protected database, purple for Docker. -->
     <Style x:Key="Tag" TargetType="Border">
       <Setter Property="Background" Value="#263B8FD9" />
       <Setter Property="BorderBrush" Value="#733B8FD9" />
@@ -324,7 +324,7 @@
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
-    <!-- Switch dell'exe: binario a capsula, verde acqua da acceso, pomello bianco che scorre. -->
+    <!-- The app's Switch: capsule track, teal when on, sliding white knob. -->
     <Style x:Key="Switch" TargetType="CheckBox">
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="VerticalAlignment" Value="Center" />
@@ -368,8 +368,8 @@
       </Setter>
     </Style>
 
-    <!-- NoteBox dell'exe: bordo leggero che diventa verde acqua mentre si scrive, fino a quattro
-         righe e poi scroll. Fondo trasparente perche' sotto c'e' il segnaposto. -->
+    <!-- The app's NoteBox: light border that turns teal while typing, up to four
+         lines and then scroll. Transparent background because the placeholder sits underneath. -->
     <Style x:Key="NoteBox" TargetType="TextBox">
       <Setter Property="FontSize" Value="12" />
       <Setter Property="Foreground" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowTextBrushKey}}" />
@@ -382,7 +382,7 @@
       <Setter Property="BorderBrush" Value="#40808080" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Padding" Value="6,3" />
-      <Setter Property="ToolTip" Value="Nota dell'ambiente: si salva da sola ed e' la stessa nell'exe Desktop" />
+      <Setter Property="ToolTip" Value="Environment note: it saves itself and is the same one shown in the Desktop app" />
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="TextBox">
@@ -410,8 +410,8 @@
       <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
-    <!-- LaneFrame dell'exe: il riquadro stondato degli elenchi, bordo spesso tutto attorno come la
-         tendina dei branch. -->
+    <!-- The app's LaneFrame: the rounded frame of the lists, thick border all around like the
+         branch drop-down. -->
     <Style x:Key="LaneFrame" TargetType="Border">
       <Setter Property="CornerRadius" Value="14" />
       <Setter Property="Background" Value="{DynamicResource {x:Static vs:EnvironmentColors.ToolWindowBackgroundBrushKey}}" />
@@ -420,8 +420,8 @@
       <Setter Property="Margin" Value="0,8,0,0" />
     </Style>
 
-    <!-- Il filo in cima a ogni riga di una lista tranne la prima (LaneGridRow dell'exe): la riga
-         lo sa da AlternationIndex del suo contenitore. Le liste hanno AlternationCount alto. -->
+    <!-- The rule on top of every list row except the first (the app's LaneGridRow): the row
+         knows from its container's AlternationIndex. The lists have a high AlternationCount. -->
     <Style x:Key="LaneSeparator" TargetType="Border">
       <Setter Property="Height" Value="1" />
       <Setter Property="Background" Value="#26808080" />
@@ -433,15 +433,15 @@
       </Style.Triggers>
     </Style>
 
-    <!-- La riga di una lista (Lane dell'exe): alta 26 px, senza bordo proprio. -->
+    <!-- A list row (the app's Lane): 26 px high, with no border of its own. -->
     <Style x:Key="LaneRow" TargetType="DockPanel">
       <Setter Property="LastChildFill" Value="True" />
       <Setter Property="MinHeight" Value="26" />
       <Setter Property="Margin" Value="5,0,0,0" />
     </Style>
 
-    <!-- Badge grigio a sinistra (numero di porta, posizione della migrazione), largo almeno 38
-         px perche' i testi restino allineati da una riga all'altra. -->
+    <!-- Grey badge on the left (port number, migration position), at least 38
+         px wide so the texts stay aligned from one row to the next. -->
     <Style x:Key="LaneBadge" TargetType="Border">
       <Setter Property="DockPanel.Dock" Value="Left" />
       <Setter Property="Background" Value="#1A808080" />
@@ -461,7 +461,7 @@
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <!-- Il gruppo delle azioni di una riga, separato dal testo da un filo verticale. -->
+    <!-- The action group of a row, separated from the text by a vertical rule. -->
     <Style x:Key="LaneActions" TargetType="Border">
       <Setter Property="DockPanel.Dock" Value="Right" />
       <Setter Property="BorderBrush" Value="#26808080" />
@@ -470,8 +470,8 @@
       <Setter Property="Margin" Value="6,5,0,5" />
     </Style>
 
-    <!-- BranchComboBox dell'exe: casella stondata col bordo spesso, verde acqua col focus; menu
-         arrotondato, voce selezionata in grassetto con la spunta. -->
+    <!-- The app's BranchComboBox: rounded box with a thick border, teal on focus; rounded
+         menu, selected item in bold with a check mark. -->
     <Style x:Key="BranchComboText" TargetType="TextBox">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
@@ -578,8 +578,8 @@
       </Setter>
     </Style>
 
-    <!-- Scrollbar dell'exe: binario trasparente largo 10, pollice a capsula largo 4 nel colore del
-         tema di VS. Compare col mouse sul pannello. -->
+    <!-- The app's Scrollbar: transparent track 10 wide, capsule thumb 4 wide in the VS theme
+         color. It appears with the mouse over the panel. -->
     <Style x:Key="ScrollBarPage" TargetType="RepeatButton">
       <Setter Property="Focusable" Value="False" />
       <Setter Property="IsTabStop" Value="False" />
@@ -636,7 +636,7 @@
       </Setter>
     </Style>
 
-    <!-- La barra sta sopra il contenuto, non accanto: i margini restano quelli delle card. -->
+    <!-- The bar sits over the content, not beside it: the margins stay those of the cards. -->
     <Style TargetType="ScrollViewer">
       <Setter Property="Template">
         <Setter.Value>
@@ -668,7 +668,7 @@
     <RowDefinition Height="Auto" />
   </Grid.RowDefinitions>
 
-  <!-- Sfondo del pannello: il fondo dell'ambiente di Visual Studio, sotto le card. -->
+  <!-- Panel background: the Visual Studio environment background, under the cards. -->
   <Border Grid.Row="0" Grid.RowSpan="3" Background="{DynamicResource {x:Static vs:EnvironmentColors.EnvironmentBackgroundBrushKey}}" />
 
   <ScrollViewer Grid.Row="1"
@@ -677,9 +677,9 @@
                 Visibility="{Binding MainVisibility}">
     <StackPanel Margin="8,8,8,3">
 
-      <!-- L'ambiente, come la testata di colonna dell'exe: nome, tag, attivita', Aggiorna e
-           pallino; sotto la nota e le azioni secondarie. Le righe di stato hanno sempre il loro
-           spazio e sono a riga singola con ellissi, cosi' il resto non scatta su e giu'. -->
+      <!-- The environment, like the app's column header: name, tags, activity, Refresh and
+           dot; below, the note and the secondary actions. Status lines always keep their
+           space and are single-line with ellipsis, so the rest does not jump up and down. -->
       <Border Style="{DynamicResource Section}">
         <StackPanel>
           <DockPanel Style="{DynamicResource CardHeader}">
@@ -687,7 +687,7 @@
             <Button DockPanel.Dock="Right"
                     Command="{Binding RefreshCommand}"
                     IsEnabled="{Binding IsNotBusy}"
-                    ToolTip="Rilegge configurazione e stato, esegue git fetch e interroga il dev tunnel"
+                    ToolTip="Rereads configuration and status, runs git fetch and queries the dev tunnel"
                     Style="{DynamicResource IconButton}"
                     Content="&#xE72C;" />
             <TextBlock DockPanel.Dock="Left"
@@ -695,15 +695,15 @@
                        FontWeight="Bold"
                        FontSize="15"
                        VerticalAlignment="Center" />
-            <!-- Tag dell'ambiente come nell'exe: database protetto per primo, poi Docker,
-                 database e server del backend (il server non in Docker, dove e' sempre il
-                 container dello slot). -->
+            <!-- Environment tags as in the app: protected database first, then Docker,
+                 the backend's database and server (the server not in Docker, where it is always the
+                 slot's container). -->
             <StackPanel DockPanel.Dock="Left" Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
               <Border Style="{DynamicResource ProtectedTag}" Visibility="{Binding ProtectedDatabaseVisibility}" ToolTip="{Binding ProtectedDatabaseToolTip}">
                 <TextBlock Text="{Binding ProtectedDatabaseTag}" Style="{DynamicResource TagText}" />
               </Border>
               <Border Style="{DynamicResource DockerTag}" Visibility="{Binding DockerVisibility}"
-                      ToolTip="Ambiente Docker: worktree dai cloni sorgente, api, web e database nei container dello slot">
+                      ToolTip="Docker environment: worktrees from the source clones, api, web and database in the slot containers">
                 <TextBlock Text="Docker" Style="{DynamicResource TagText}" />
               </Border>
               <Border Style="{DynamicResource Tag}" ToolTip="{Binding Database}">
@@ -721,7 +721,7 @@
                        VerticalAlignment="Center"
                        Margin="8,0,6,0" />
           </DockPanel>
-          <!-- Nota libera dell'ambiente, la stessa dell'exe: si scrive qui e si salva da sola. -->
+          <!-- The environment's free-text note, the same as in the app: type here and it saves itself. -->
           <Grid Margin="0,8,0,0" Visibility="{Binding NoteVisibility}">
             <TextBlock Text="{Binding NotePlaceholder}"
                        Visibility="{Binding NotePlaceholderVisibility}"
@@ -729,7 +729,7 @@
             <TextBox Text="{Binding Note, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                      Style="{DynamicResource NoteBox}" />
           </Grid>
-          <!-- Azioni secondarie sotto la nota, come nell'exe: l'interruttore del tunnel del pool. -->
+          <!-- Secondary actions below the note, as in the app: the pool tunnel switch. -->
           <StackPanel Orientation="Horizontal" Margin="0,8,0,0" Visibility="{Binding TunnelSwitchVisibility}">
             <TextBlock Text="Tunnel" FontWeight="Bold" VerticalAlignment="Center" ToolTip="{Binding TunnelSwitchToolTip}" />
             <CheckBox Style="{DynamicResource Switch}"
@@ -742,16 +742,16 @@
         </StackPanel>
       </Border>
 
-      <!-- Il backend, come la sua card nell'exe: intestazione con le azioni di git e avvia/ferma;
-           nel corpo la tendina dei branch, lo stato git e una sezione ciascuno per tunnel,
-           migrazioni sconosciute e context. Pull resta fast-forward only: e' git a rifiutare. -->
+      <!-- The backend, like its card in the app: header with the git actions and start/stop;
+           in the body the branch drop-down, the git status and one section each for tunnel,
+           unknown migrations and contexts. Pull stays fast-forward only: git is the one that refuses. -->
       <Border Style="{DynamicResource Section}">
         <StackPanel>
           <Grid>
             <Button Command="{Binding RepoExpander.ToggleCommand}" ToolTip="{Binding RepoToolTip}" Style="{DynamicResource HeaderToggle}" />
             <DockPanel Style="{DynamicResource CardHeader}">
-              <!-- Stato di Kestrel (o del container dell'api): verde acceso, arancio solo
-                   console aperta o in avvio, grigio spento. -->
+              <!-- State of Kestrel (or of the api container): green running, orange console only
+                   or starting, grey stopped. -->
               <Ellipse Fill="{Binding KestrelColor}" Style="{DynamicResource ToolDot}">
                 <Ellipse.ToolTip>
                   <StackPanel>
@@ -770,14 +770,14 @@
               <Button DockPanel.Dock="Right"
                       Command="{Binding FetchCommand}"
                       Visibility="{Binding GitActionsVisibility}"
-                      ToolTip="git fetch — aggiorna i remote-tracking ref e rilegge lo stato del repository"
+                      ToolTip="git fetch — updates the remote-tracking refs and rereads the repository status"
                       IsEnabled="{Binding IsNotBusy}"
                       Style="{DynamicResource IconButton}"
                       Content="&#xE895;" />
               <Button DockPanel.Dock="Right"
                       Command="{Binding PruneCommand}"
                       Visibility="{Binding GitActionsVisibility}"
-                      ToolTip="Elimina i branch locali il cui branch remoto non esiste piu' (chiede conferma)"
+                      ToolTip="Deletes the local branches whose remote branch no longer exists (asks for confirmation)"
                       IsEnabled="{Binding IsNotBusy}"
                       Style="{DynamicResource IconButton}"
                       Content="&#xE74D;" />
@@ -797,9 +797,9 @@
 
           <StackPanel Visibility="{Binding RepoExpander.BodyVisibility}">
             <Border Style="{DynamicResource CardSeparator}" />
-            <!-- Tendina editabile con ricerca integrata, sul modello della BranchComboBox
-                 dell'exe: scrivendo le voci si filtrano per sottostringa e il menu si apre da
-                 solo; una scelta esegue git switch. -->
+            <!-- Editable drop-down with built-in search, modelled on the app's
+                 BranchComboBox: typing filters the items by substring and the menu opens by
+                 itself; a choice runs git switch. -->
             <ComboBox ItemsSource="{Binding Branches}"
                       SelectedItem="{Binding SelectedBranch, Mode=TwoWay}"
                       Text="{Binding BranchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
@@ -809,13 +809,13 @@
                       StaysOpenOnEdit="True"
                       Visibility="{Binding GitActionsVisibility}"
                       IsEnabled="{Binding IsNotBusy}"
-                      ToolTip="Scrivi per cercare, scegli una voce per cambiare branch (git switch)"
+                      ToolTip="Type to search, pick an item to switch branch (git switch)"
                       Style="{DynamicResource BranchCombo}"
                       FontFamily="Consolas"
                       FontSize="13"
                       Margin="0,8,0,0" />
 
-            <!-- Stato git e avviso sulla stessa riga, centrati. -->
+            <!-- Git status and warning on the same line, centered. -->
             <DockPanel HorizontalAlignment="Center" Margin="0,6,0,0">
               <TextBlock DockPanel.Dock="Right"
                          Text="{Binding UpstreamWarning}"
@@ -836,8 +836,8 @@
                          TextTrimming="CharacterEllipsis" />
             </DockPanel>
 
-            <!-- Dev tunnel: sezione con la sua intestazione. Il pallino e' lo stato dell'host,
-                 che si accende e si spegne con l'interruttore Tunnel dell'ambiente. -->
+            <!-- Dev tunnel: section with its own header. The dot is the state of the host,
+                 which is turned on and off with the environment's Tunnel switch. -->
             <Border Style="{DynamicResource CardSeparator}" />
             <Grid Style="{DynamicResource SectionHeader}">
               <Button Command="{Binding TunnelExpander.ToggleCommand}" ToolTip="{Binding TunnelLine}" Style="{DynamicResource HeaderToggle}" />
@@ -858,8 +858,8 @@
             <StackPanel Visibility="{Binding TunnelExpander.BodyVisibility}">
               <TextBlock Text="{Binding TunnelDetail}" Visibility="{Binding TunnelDetailVisibility}" Style="{DynamicResource Hint}" />
 
-              <!-- Una riga per porta: numero nel badge, host senza schema, copia e apertura nel
-                   browser. La pastiglia compare per una porta che non risponde o per la copia. -->
+              <!-- One row per port: number in the badge, host without scheme, copy and open in the
+                   browser. The pill appears for a port that does not respond or for the copy. -->
               <Border Style="{DynamicResource LaneFrame}" Visibility="{Binding TunnelPortsVisibility}">
                 <ItemsControl ItemsSource="{Binding TunnelPorts}" AlternationCount="1000">
                   <ItemsControl.ItemTemplate>
@@ -889,8 +889,8 @@
                 </ItemsControl>
               </Border>
 
-              <!-- Nessun tunnel corrisponde al clone: tunnel dell'account con pallino di stato e,
-                   nella pastiglia grigia, host e porte. -->
+              <!-- No tunnel matches the clone: the account's tunnels with a status dot and,
+                   in the grey pill, host and ports. -->
               <Border Style="{DynamicResource LaneFrame}" Visibility="{Binding TunnelListVisibility}">
                 <ItemsControl ItemsSource="{Binding TunnelList}" AlternationCount="1000">
                   <ItemsControl.ItemTemplate>
@@ -913,8 +913,8 @@
               </Border>
             </StackPanel>
 
-            <!-- Migrazioni applicate che il codice non conosce: prima dei context, perche' vanno
-                 viste prima di leggere i loro contatori. -->
+            <!-- Applied migrations the code does not know: before the contexts, because they must
+                 be seen before reading their counters. -->
             <StackPanel Visibility="{Binding UnknownVisibility}">
               <Border Style="{DynamicResource CardSeparator}" />
               <Grid Style="{DynamicResource SectionHeader}">
@@ -942,10 +942,10 @@
               </Border>
             </StackPanel>
 
-            <!-- Una sezione per context: intestazione con nome e pallino (contatori e ora nel
-                 tooltip); nel corpo le ultime migrazioni, con la posizione nel badge, lo stato
-                 nella pastiglia, l'update fino a quella riga (Play avanti, Undo per un rollback,
-                 con conferma) e la copia del comando. -->
+            <!-- One section per context: header with name and dot (counters and time in the
+                 tooltip); in the body the latest migrations, with the position in the badge, the state
+                 in the pill, the update up to that row (Play forward, Undo for a rollback,
+                 with confirmation) and the command copy. -->
             <ItemsControl ItemsSource="{Binding Contexts}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
@@ -1007,18 +1007,18 @@
                         </ItemsControl>
                       </Border>
 
-                      <!-- Pager delle recenti, centrato: compare solo se non stanno in una pagina. -->
+                      <!-- Pager of the recent migrations, centered: appears only if they do not fit in one page. -->
                       <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Visibility="{Binding PagerVisibility}" Margin="0,8,0,0">
                         <Button Command="{Binding PreviousPageCommand}"
                                 IsEnabled="{Binding CanGoPrevious}"
-                                ToolTip="Migrazioni più recenti"
+                                ToolTip="Newer migrations"
                                 Style="{DynamicResource IconButton}"
                                 Margin="0"
                                 Content="&#xE76B;" />
                         <TextBlock Text="{Binding PageLabel}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" Margin="8,0,4,0" />
                         <Button Command="{Binding NextPageCommand}"
                                 IsEnabled="{Binding CanGoNext}"
-                                ToolTip="Migrazioni più vecchie"
+                                ToolTip="Older migrations"
                                 Style="{DynamicResource IconButton}"
                                 Content="&#xE76C;" />
                       </StackPanel>
@@ -1029,8 +1029,8 @@
             </ItemsControl>
           </StackPanel>
 
-          <!-- Errori di configurazione, database, git o azioni: visibili anche a card chiusa,
-               perche' sono la premessa per leggere il resto. Rosso ad alfa bassa. -->
+          <!-- Configuration, database, git or action errors: visible even with the card collapsed,
+               because they are the premise for reading the rest. Low-alpha red. -->
           <Border CornerRadius="12"
                   Background="#1FE5484D"
                   BorderBrush="#59E5484D"
@@ -1051,17 +1051,17 @@
     </StackPanel>
   </ScrollViewer>
 
-  <!-- Footer minimale come nell'exe: la versione, sul fondo dell'ambiente di VS. -->
+  <!-- Minimal footer as in the app: the version, on the VS environment background. -->
   <Border Grid.Row="2" Visibility="{Binding MainVisibility}">
     <TextBlock HorizontalAlignment="Center" Margin="0,2,0,5" FontSize="10" Opacity="0.6">
       <Run Text="{Binding AppVersion, Mode=OneWay}" />
     </TextBlock>
   </Border>
 
-  <!-- Splash: visibile dall'apertura finche' non parte la prima lettura vera (soluzione
-       risolta). Tutto vettoriale, niente bitmap: il Remote UI non le carica in modo affidabile
-       e un disegno in XAML segue il DPI. Il logo e' l'icona dell'exe (app.ico) ridisegnata in
-       XAML: va tenuto allineato a mano. -->
+  <!-- Splash: visible from opening until the first real read starts (solution
+       resolved). All vector, no bitmaps: Remote UI does not load them reliably
+       and a XAML drawing follows the DPI. The logo is the app icon (app.ico) redrawn in
+       XAML: it must be kept in sync by hand. -->
   <Grid Grid.Row="1" Visibility="{Binding SplashVisibility}">
     <Ellipse Width="460" Height="460" Stroke="#1A808080" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
     <Ellipse Width="330" Height="330" Stroke="#22808080" StrokeThickness="1" HorizontalAlignment="Center" VerticalAlignment="Center" />
@@ -1104,7 +1104,7 @@
 
       <Button Command="{Binding RefreshCommand}"
               IsEnabled="{Binding IsNotBusy}"
-              ToolTip="Rilegge lo stato, esegue git fetch e interroga il dev tunnel"
+              ToolTip="Rereads the status, runs git fetch and queries the dev tunnel"
               Style="{DynamicResource IconButton}"
               Width="NaN"
               Padding="12,0"
@@ -1112,15 +1112,15 @@
               Margin="0,14,0,0">
         <StackPanel Orientation="Horizontal">
           <TextBlock Text="&#xE72C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets" FontSize="13" VerticalAlignment="Center" />
-          <TextBlock Text="Aggiorna" FontFamily="Segoe UI" FontWeight="Bold" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
+          <TextBlock Text="Refresh" FontFamily="Segoe UI" FontWeight="Bold" FontSize="12" Margin="6,0,0,0" VerticalAlignment="Center" />
         </StackPanel>
       </Button>
     </StackPanel>
   </Grid>
 
-  <!-- Barra di attivita' fissa sul bordo superiore, fuori dallo scroll e sopra anche allo
-       splash: 3 px sempre presenti, trasparenti da ferma, animata in modo indeterminato finche'
-       almeno una lettura, un'azione o l'attesa iniziale e' in corso. -->
+  <!-- Activity bar fixed on the top edge, outside the scroll and above even the
+       splash: 3 px always present, transparent when idle, animated indeterminately while
+       at least one read, action or the initial wait is in progress. -->
   <ProgressBar Grid.Row="0"
                Height="3"
                IsIndeterminate="{Binding IsLoading}"

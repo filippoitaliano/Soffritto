@@ -8,10 +8,10 @@ using Soffritto.Core.Configuration;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Salvataggio e provisioning della configurazione. La copia di lavoro sta in %LOCALAPPDATA%;
-/// il provisioning e' un soffritto.json accanto all'exe (o il file di --config): all'avvio,
-/// se il suo contenuto e' cambiato dall'ultimo import, sostituisce la copia di lavoro. Il
-/// programma non lo scrive mai, quindi le modifiche dal setup restano finche' il file non cambia.
+/// Saving and provisioning of the configuration. The working copy lives in %LOCALAPPDATA%;
+/// provisioning is a soffritto.json next to the exe (or the --config file): at startup, if its
+/// content changed since the last import, it replaces the working copy. The program never
+/// writes it, so changes made in the setup stay until the file changes.
 /// </summary>
 public static class ConfigurationStore
 {
@@ -19,15 +19,15 @@ public static class ConfigurationStore
 
     public static string ProvisioningFile { get; } = Path.Combine(AppContext.BaseDirectory, ProvisioningFileName);
 
-    // L'impronta dell'ultimo file importato: lo stesso file non si reimporta a ogni avvio.
+    // The hash of the last imported file: the same file is not reimported at every startup.
     private static readonly string ImportedHashPath = Path.Combine(ConfigurationFiles.DataFolder, "ultimo-import.txt");
 
     /// <summary>
-    /// La configurazione con cui partire: importa <paramref name="importPath"/> (o il file di
-    /// provisioning accanto all'exe) se e' cambiato, poi legge la copia di lavoro. Null al primo
-    /// avvio senza provisioning.
+    /// The configuration to start with: imports <paramref name="importPath"/> (or the provisioning
+    /// file next to the exe) if it changed, then reads the working copy. Null on the first start
+    /// without provisioning.
     /// </summary>
-    /// <param name="notice">Cosa e' successo all'avvio, da mostrare nel pannello di setup; null se niente da dire.</param>
+    /// <param name="notice">What happened at startup, to show in the setup panel; null if there is nothing to say.</param>
     public static AppConfiguration? LoadAtStartup(string? importPath, out string? notice)
     {
         notice = null;
@@ -44,7 +44,7 @@ public static class ConfigurationStore
                     var imported = ConfigurationFiles.Parse(text);
                     var lostDocker = DockerEnvironmentsLost(imported);
 
-                    // Un import sostituisce la copia di lavoro: questa copia la conserva.
+                    // An import replaces the working copy: this copy keeps it.
                     if (File.Exists(ConfigurationFiles.ConfigPath))
                     {
                         File.Copy(ConfigurationFiles.ConfigPath, Path.Combine(ConfigurationFiles.DataFolder, "config.prima-import.json"), overwrite: true);
@@ -52,13 +52,13 @@ public static class ConfigurationStore
 
                     Save(imported);
                     File.WriteAllText(ImportedHashPath, hash);
-                    notice = $"Configurazione importata da {source}. La configurazione precedente e' in config.prima-import.json.{lostDocker}";
+                    notice = $"Configuration imported from {source}. The previous configuration is in config.prima-import.json.{lostDocker}";
                 }
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
-            notice = $"{source} non e' stato importato: {ex.Message}";
+            notice = $"{source} was not imported: {ex.Message}";
         }
 
         var configuration = ConfigurationFiles.TryLoad(out var error);
@@ -70,8 +70,8 @@ public static class ConfigurationStore
         return configuration;
     }
 
-    // L'import sostituisce tutto, voci Docker comprese: un ambiente Docker della copia di lavoro che
-    // il file importato non ha perde la voce, ma container e worktree restano sul disco. Lo si dice.
+    // The import replaces everything, Docker entries included: a Docker environment in the working copy
+    // that the imported file lacks loses its entry, but containers and worktrees stay on disk. Say so.
     private static string DockerEnvironmentsLost(AppConfiguration imported)
     {
         if (ConfigurationFiles.TryLoad(out _) is not { } current)
@@ -87,26 +87,26 @@ public static class ConfigurationStore
                 {
                     var project = Soffritto.Core.Docker.DockerSlot.Of(current, e).Project;
                     var worktrees = string.Join(", ", current.RepositoriesOf(e).Select(r => r.Path));
-                    return $"{e.Number} (progetto {project}, worktree in {worktrees}). Container e worktree restano: ricrea la voce o distruggili con docker compose -p {project} down";
+                    return $"{e.Number} (project {project}, worktrees in {worktrees}). Containers and worktrees remain: recreate the entry or destroy them with docker compose -p {project} down";
                 }
                 catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or IOException)
                 {
-                    return $"{e.Number} (progetto e worktree non calcolabili: {ex.Message})";
+                    return $"{e.Number} (project and worktrees cannot be determined: {ex.Message})";
                 }
             })
             .ToList();
 
-        return lost.Count == 0 ? string.Empty : $" Ambienti Docker non piu' in configurazione: {string.Join("; ", lost)}.";
+        return lost.Count == 0 ? string.Empty : $" Docker environments no longer in the configuration: {string.Join("; ", lost)}.";
     }
 
-    /// <summary>Scrive la copia di lavoro. Un PAT in chiaro viene cifrato prima di toccare il disco.</summary>
+    /// <summary>Writes the working copy. A plain-text PAT is encrypted before it touches the disk.</summary>
     public static void Save(AppConfiguration configuration)
     {
         ProtectPat(configuration.AzureDevOps);
         ConfigurationFiles.Write(configuration);
     }
 
-    /// <summary>Cifra il PAT in chiaro con l'utente Windows (in PatProtected) e lo toglie: da chiamare prima di ogni scrittura.</summary>
+    /// <summary>Encrypts the plain-text PAT with the Windows user (into PatProtected) and clears it: call before every write.</summary>
     public static void ProtectPat(AzureDevOpsConfiguration azure)
     {
         if (!string.IsNullOrEmpty(azure.Pat))
@@ -117,7 +117,7 @@ public static class ConfigurationStore
         azure.Pat = null;
     }
 
-    /// <summary>Il PAT in chiaro per le chiamate ad Azure DevOps; null se manca o non si decifra (altro utente o altra macchina).</summary>
+    /// <summary>The plain-text PAT for Azure DevOps calls; null if missing or it cannot be decrypted (another user or another machine).</summary>
     public static string? PatOf(AzureDevOpsConfiguration azure)
     {
         if (!string.IsNullOrEmpty(azure.Pat))
@@ -156,8 +156,8 @@ public static class ConfigurationStore
 }
 
 /// <summary>
-/// Azure DevOps come lo descrive la configurazione attiva: le PR del pannello, le storie della
-/// riunione dei punti storia e i link ai work item.
+/// Azure DevOps as the active configuration describes it: the panel's PRs, the stories of the
+/// story points meeting and the work item links.
 /// </summary>
 public static class AzureDevOpsAccess
 {
@@ -197,11 +197,11 @@ public static class AzureDevOpsAccess
         var azure = ActiveConfiguration.Current.AzureDevOps;
         if (!azure.IsConfigured)
         {
-            return "Azure DevOps non e' configurato: compila la scheda DevOps nel setup.";
+            return "Azure DevOps is not configured: fill in the DevOps tab in the setup.";
         }
 
         return azure.Authentication == AzureAuthentication.Pat && ConfigurationStore.PatOf(azure) is null
-            ? "Il PAT di Azure DevOps manca o non si decifra su questa macchina: inseriscilo nel setup."
+            ? "The Azure DevOps PAT is missing or cannot be decrypted on this machine: enter it in the setup."
             : null;
     }
 

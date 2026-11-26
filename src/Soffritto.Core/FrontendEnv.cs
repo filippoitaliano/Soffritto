@@ -5,12 +5,12 @@ using Soffritto.Core.Env;
 namespace Soffritto.Core;
 
 /// <summary>
-/// Il file di env di un clone del frontend (righe "set NOME=valore" di un .bat o "NOME=valore" di
-/// un .env): si legge e basta, non si modifica.
+/// The env file of a frontend clone ("set NAME=value" lines of a .bat or "NAME=value" lines of
+/// a .env): read only, never modified.
 /// </summary>
 public static class FrontendEnv
 {
-    /// <summary>La porta del dev server dalla variabile configurata; il default configurato se manca.</summary>
+    /// <summary>The dev server port from the configured variable; the configured default if it is missing.</summary>
     public static int ReadDevServerPort(string frontendPath, FrontendConfiguration settings)
     {
         if (settings.EnvFile.Length > 0 && settings.DevServerPortVariable.Length > 0)
@@ -31,14 +31,14 @@ public static class FrontendEnv
             }
             catch
             {
-                // File di env assente o illeggibile: vale il default del dev server.
+                // Env file missing or unreadable: the dev server default applies.
             }
         }
 
         return settings.DevServerDefaultPort;
     }
 
-    /// <summary>Tutte le variabili del file di env, nell'ordine in cui compaiono; vuoto se il file non c'e'.</summary>
+    /// <summary>All the variables of the env file, in the order they appear; empty if the file does not exist.</summary>
     public static IReadOnlyDictionary<string, string> ReadVariables(string frontendPath, FrontendConfiguration settings)
     {
         var variables = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);

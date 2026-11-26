@@ -5,8 +5,8 @@ using Soffritto.Presentation;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Mostra una sessione su una card dell'exe. La sessione chiama da thread del pool: ogni
-/// scrittura sui ViewModel passa dal thread della UI.
+/// Shows a session on an app card. The session calls from thread-pool threads: every write
+/// to the ViewModels goes through the UI thread.
 /// </summary>
 public sealed class WpfRepoSink(
     EnvironmentViewModel environment,
@@ -15,11 +15,11 @@ public sealed class WpfRepoSink(
     TunnelViewModel? tunnel,
     CancellationToken lifetime) : IStatusSink
 {
-    /// <summary>La sessione servita: le righe ne ricavano i comandi di copia e di database update.</summary>
+    /// <summary>The session being shown: the rows derive their copy and database update commands from it.</summary>
     public RepoSession? Session { get; set; }
 
-    // Il busy arriva dal WriteGate del repository (vedi EnvironmentController), che lo porta
-    // anche sulle sezioni del backend: qui non c'e' niente da scrivere.
+    // Busy comes from the repository's WriteGate (see EnvironmentController), which also carries it
+    // to the backend sections: there is nothing to write here.
     public void SetBusy(bool busy)
     {
     }
@@ -90,7 +90,7 @@ public sealed class WpfRepoSink(
                 });
             }
 
-            // Migrazioni non lette (database spento o irraggiungibile): resta lo stato del context, senza griglia.
+            // Migrations not read (database off or unreachable): the context status stays, without a grid.
             row.SetRecent(context.Rows.All(r => r.State == MigrationLabels.NotRead) ? [] : recentRows);
             backend.Contexts.Add(row);
         }
@@ -163,7 +163,7 @@ public sealed class WpfRepoSink(
             {
                 CopyToolTip = port.CopyToolTip,
                 OpenToolTip = port.CanCopy
-                    ? $"Apre {port.Url} nel browser predefinito"
+                    ? $"Opens {port.Url} in the default browser"
                     : port.CopyToolTip,
             };
 

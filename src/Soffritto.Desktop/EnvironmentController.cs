@@ -7,14 +7,14 @@ using Soffritto.Presentation;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Compone una sessione per ogni card dell'ambiente: git per tutte, migrazioni per i backend, il
-/// dev tunnel per le card che ne hanno uno. Un gate di scrittura per repository: un'azione blocca
-/// solo i pulsanti del repository su cui agisce, gli altri restano liberi.
+/// Builds a session for each card of the environment: git for all of them, migrations for the
+/// backends, the dev tunnel for the cards that have one. One write gate per repository: an action
+/// locks only the buttons of the repository it works on, the others stay free.
 /// </summary>
 public sealed class EnvironmentController
 {
-    // La CLI devtunnel dei tunnel di backend e frontend di tutti gli ambienti viene interrogata
-    // da una lettura alla volta: non e' verificato che regga chiamate concorrenti sulla stessa login.
+    // The devtunnel CLI for the backend and frontend tunnels of all environments is queried one
+    // read at a time: it is not verified that it handles concurrent calls on the same login.
     private static readonly SemaphoreSlim TunnelGate = new(1, 1);
 
     private readonly EnvironmentViewModel vm;
@@ -42,13 +42,13 @@ public sealed class EnvironmentController
             {
                 card.IsNotBusy = gate.IsNotBusy;
 
-                // Il database update e' un'azione del backend: il suo bottone segue quel gate.
+                // Database update is a backend action: its button follows that gate.
                 if (card.Migrations is { } migrations)
                 {
                     migrations.IsNotBusy = gate.IsNotBusy;
                 }
 
-                // Per la conferma alla chiusura: c'e' una scrittura in corso nell'ambiente.
+                // For the confirmation on close: a write is in progress in the environment.
                 vm.IsNotBusy = repos.All(r => r.Gate.IsNotBusy);
             });
 
@@ -62,14 +62,14 @@ public sealed class EnvironmentController
                     ReadsMigrations: isBackend,
                     ReadsTunnel: tunnel is not null,
                     TunnelGate: tunnel is not null ? TunnelGate : null,
-                    EnvironmentLabel: $"ambiente {vm.Number}",
+                    EnvironmentLabel: $"environment {vm.Number}",
                     RootUnavailableHeadline: null,
                     RootUnavailableMessage: null,
-                    // Riletta a ogni lettura del tunnel: le porte si assegnano e si rilasciano a exe aperto.
+                    // Re-read on every tunnel read: ports are assigned and released while the app is open.
                     PoolAssignmentOf: _ => Soffritto.Core.Docker.TunnelPool.AssignmentOf(location.Entry.Number, location.Id),
                     DatabaseGuard: vm.Docker is { } docker ? GuardOf(docker, probe) : null,
-                    // Il database dello slot Docker (il proprio, o per un locale quello di uno slot a cui
-                    // punta la connessione): spento o in avvio non si tenta la connessione.
+                    // The Docker slot's database (its own, or for a local environment that of a slot the
+                    // connection points to): while it is stopped or starting, no connection is attempted.
                     DatabaseOffline: isBackend && card.IsPrimary ? () => DatabaseOffline?.Invoke() : null,
                     SchemaLock: isBackend && vm.SchemaLock is { } schemaLock ? _ => schemaLock : null),
                 sink,
@@ -101,7 +101,7 @@ public sealed class EnvironmentController
 
         vm.ResetCommand = new AsyncCommand(async () =>
         {
-            vm.Report("reset: spengo i servizi, controllo i repository e fetch…");
+            vm.Report("reset: stopping the services, checking the repositories and fetching…");
             var outcome = await CheckoutAsync([], alwaysStop: true).ConfigureAwait(false);
             vm.Report(outcome);
         });
@@ -109,10 +109,10 @@ public sealed class EnvironmentController
 
     private int aligning;
 
-    // Riallinea gli env senza chiedere: le sole variabili per slot che valgono {apiHostUrl}
-    // (l'api su Kestrel) o dipendono da {poolUrl}. Si scrive solo se qualcosa
-    // cambia; l'esito torna nella riga di attivita' dopo la rilettura, che la spegnerebbe, perche'
-    // dice di riavviare il dev server o Metro.
+    // Realigns the env files without asking: only the per-slot variables whose value is {apiHostUrl}
+    // (the api on Kestrel) or that depend on {poolUrl}. It writes only if something
+    // changes; the outcome goes to the activity line after the re-read, which would clear it,
+    // because it says to restart the dev server or Metro.
     private async Task AlignThenRefreshAsync()
     {
         var outcome = await AlignEnvAsync().ConfigureAwait(false);
@@ -130,7 +130,7 @@ public sealed class EnvironmentController
         }
     }
 
-    // L'esito da mostrare, o null se gli env erano gia' allineati.
+    // The outcome to show, or null if the env files were already aligned.
     private async Task<string?> AlignEnvAsync()
     {
         if (Interlocked.Exchange(ref aligning, 1) == 1)
@@ -153,7 +153,7 @@ public sealed class EnvironmentController
             await Task.Run(
                 () => Soffritto.Core.Env.EnvPoolSync.ApplyAsync(configuration, vm.Number, Soffritto.Core.Env.EnvSyncScope.All, lines.Add, ct: lifetime),
                 lifetime).ConfigureAwait(false);
-            return $"env allineati: {string.Join(" · ", lines)}";
+            return $"env files aligned: {string.Join(" · ", lines)}";
         }
         catch (OperationCanceledException)
         {
@@ -161,7 +161,7 @@ public sealed class EnvironmentController
         }
         catch (Exception ex)
         {
-            return $"allineamento degli env non riuscito: {ex.Message}";
+            return $"env file alignment failed: {ex.Message}";
         }
         finally
         {
@@ -170,24 +170,24 @@ public sealed class EnvironmentController
     }
 
     /// <summary>
-    /// Ferma tutti i servizi dell'ambiente: l'esito e se si e' fermato tutto (vedi
+    /// Stops all the environment's services: the outcome and whether everything stopped (see
     /// <see cref="DevToolsController.StopEverythingAsync"/>).
     /// </summary>
     public Func<Task<(string Outcome, bool AllStopped)>>? StopServices { get; set; }
 
-    /// <summary>Perche' il database dello slot non si legge ora (vedi <see cref="DevToolsController.DatabaseOffline"/>); per un locale, quello dello slot Docker a cui punta, se c'e'.</summary>
+    /// <summary>Why the slot's database cannot be read right now (see <see cref="DevToolsController.DatabaseOffline"/>); for a local environment, that of the Docker slot it points to, if any.</summary>
     public Func<string?>? DatabaseOffline { get; set; }
 
     private static readonly TimeSpan StopTimeout = TimeSpan.FromSeconds(120);
 
-    // Nelle sessioni di un ambiente Docker ogni lettura delle migrazioni, database update,
-    // rollback e copia del comando passa prima da qui: il worktree deve puntare al SQL Server dello slot.
+    // In the sessions of a Docker environment every migrations read, database update, rollback
+    // and command copy goes through here first: the worktree must point to the slot's SQL Server.
     private static Func<string, string?> GuardOf(DockerEnvironmentViewModel docker, ProbeOptions probe)
         => docker.Slot is { } slot
             ? root => Soffritto.Core.Docker.DatabaseGuard.Check(root, probe, slot.DatabasePort, slot.DatabaseName)
-            : _ => docker.SlotError ?? "slot non calcolabile";
+            : _ => docker.SlotError ?? "slot cannot be computed";
 
-    /// <summary>Rilegge il solo dev tunnel di un repository dell'ambiente, se la sua cartella c'e'.</summary>
+    /// <summary>Re-reads only the dev tunnel of one of the environment's repositories, if its folder exists.</summary>
     public void RefreshTunnel(RepoCardViewModel target)
     {
         var (card, session, _) = repos.First(r => ReferenceEquals(r.Card, target));
@@ -198,21 +198,21 @@ public sealed class EnvironmentController
     }
 
     /// <summary>
-    /// Spegne l'ambiente e porta ogni repository sul branch indicato in <paramref name="targets"/>
-    /// o, se non c'e', su <see cref="GitConventions.DevelopmentBranch"/>: il reset non indica niente, il pannello PR
-    /// indica i branch delle PR di un work item. Si controllano tutti i repository (fetch
-    /// compreso): se anche uno solo ha modifiche, un'operazione git a meta', un'azione in corso o
-    /// il branch non c'e' non si cambia niente. Solo a controlli superati si fermano tutti i
-    /// servizi (app compresa), poi git switch e, se il branch locale e' indietro, pull in
-    /// fast-forward. Con <paramref name="alwaysStop"/> (il Reset) i servizi si fermano prima dei
-    /// controlli, anche se poi i repository restano dove sono. Restituisce l'esito da mostrare
-    /// all'utente. I target sono per nome del repository sul server; i repository generici
-    /// seguono le stesse regole, quindi uno sporco o senza il branch blocca l'ambiente come gli altri.
+    /// Stops the environment and moves each repository onto the branch given in <paramref name="targets"/>
+    /// or, if there is none, onto <see cref="GitConventions.DevelopmentBranch"/>: the reset gives none, the PR panel
+    /// gives the branches of a work item's PRs. All repositories are checked (fetch included):
+    /// if even one has changes, a git operation halfway through, an action in progress, or the
+    /// branch does not exist, nothing changes. Only once the checks pass are all services stopped
+    /// (app included), then git switch and, if the local branch is behind, a fast-forward pull.
+    /// With <paramref name="alwaysStop"/> (the Reset) the services stop before the checks, even if
+    /// the repositories then stay where they are. Returns the outcome to show the user. Targets
+    /// are keyed by repository name on the server; generic repositories follow the same rules, so
+    /// a dirty one or one without the branch blocks the environment like the others.
     /// </summary>
     public async Task<string> CheckoutAsync(IReadOnlyList<(string Repository, string Branch)> targets, bool alwaysStop = false)
     {
         var problems = new List<string>();
-        var stopped = "niente fermato";
+        var stopped = "nothing stopped";
         if (alwaysStop)
         {
             var (outcome, stopProblem) = await StopForCheckoutAsync().ConfigureAwait(false);
@@ -225,8 +225,8 @@ public sealed class EnvironmentController
 
         var plan = await PlanCheckoutAsync(targets, problems).ConfigureAwait(false);
 
-        // «Apri in» spegne solo quando potra' cambiare tutti i branch: un rifiuto lascia
-        // l'ambiente acceso com'era.
+        // “Open in” stops services only when it can switch every branch: a refusal leaves the
+        // environment running as it was.
         if (!alwaysStop && problems.Count == 0)
         {
             var (outcome, stopProblem) = await StopForCheckoutAsync().ConfigureAwait(false);
@@ -239,7 +239,7 @@ public sealed class EnvironmentController
 
         if (problems.Count > 0)
         {
-            return $"Ambiente {vm.Number}: {stopped}. Repository non toccati: {string.Join("; ", problems)}";
+            return $"Environment {vm.Number}: {stopped}. Repositories left untouched: {string.Join("; ", problems)}";
         }
 
         var done = new List<string>();
@@ -247,30 +247,30 @@ public sealed class EnvironmentController
         {
             var (pulled, problem) = await session.SwitchAndPullAsync(branch, lifetime).ConfigureAwait(false);
             done.Add(problem is not null
-                ? $"{card.Clone}: {problem}, vedi la card"
-                : $"{card.Clone} su {branch}{(pulled ? " (aggiornato col pull)" : string.Empty)}");
+                ? $"{card.Clone}: {problem}, see the card"
+                : $"{card.Clone} on {branch}{(pulled ? " (updated with pull)" : string.Empty)}");
         }
 
-        return $"Ambiente {vm.Number}: {stopped}; {string.Join(", ", done)}";
+        return $"Environment {vm.Number}: {stopped}; {string.Join(", ", done)}";
     }
 
-    // Lo stop dei container di un ambiente Docker puo' fallire o non finire: in quel caso
-    // nessun repository cambia branch sotto un servizio ancora acceso.
+    // Stopping a Docker environment's containers can fail or never finish: in that case no
+    // repository switches branch under a service that is still running.
     private async Task<(string Outcome, string? Problem)> StopForCheckoutAsync()
     {
         if (StopServices is not { } stop)
         {
-            return ("servizi non fermati", null);
+            return ("services not stopped", null);
         }
 
         var stopping = Task.Run(stop);
         if (await Task.WhenAny(stopping, Task.Delay(StopTimeout, lifetime)).ConfigureAwait(false) != stopping)
         {
-            return ("servizi non fermati in tempo", "servizi non fermati in tempo");
+            return ("services not stopped in time", "services not stopped in time");
         }
 
         var (outcome, allStopped) = await stopping.ConfigureAwait(false);
-        return allStopped ? (outcome, null) : ("servizi non fermati", $"servizi non fermati: {outcome}");
+        return allStopped ? (outcome, null) : ("services not stopped", $"services not stopped: {outcome}");
     }
 
     private async Task<List<(RepoCardViewModel Card, RepoSession Session, string Branch, GitStatus Status)>> PlanCheckoutAsync(
@@ -288,12 +288,12 @@ public sealed class EnvironmentController
                 .FirstOrDefault();
             var branch = requested ?? GitConventions.DevelopmentBranch;
 
-            // Un clone che manca non blocca il reset; blocca solo se gli e' chiesto un branch.
+            // A missing clone does not block the reset; it blocks only if a branch is requested for it.
             if (!card.Location.Exists())
             {
                 if (requested is not null)
                 {
-                    problems.Add($"{card.Clone}: cartella non trovata");
+                    problems.Add($"{card.Clone}: folder not found");
                 }
 
                 continue;
@@ -301,17 +301,17 @@ public sealed class EnvironmentController
 
             if (!gate.IsNotBusy)
             {
-                problems.Add($"{card.Clone}: c'e' gia' un'azione in corso");
+                problems.Add($"{card.Clone}: an action is already in progress");
                 continue;
             }
 
             var status = await GitStatusReader.ReadAsync(card.Path, fetch: true, lifetime).ConfigureAwait(false);
             var problem = status.Error
-                ?? (status.FetchError is { } fetchError ? $"fetch non riuscito ({fetchError})" : null)
+                ?? (status.FetchError is { } fetchError ? $"fetch failed ({fetchError})" : null)
                 ?? GitStatusReader.ReadOperationInProgress(card.Path)
-                ?? (status.IsDetached ? "HEAD staccato" : null)
-                ?? (status.DirtyFiles > 0 ? $"{status.DirtyFiles} file modificati o non tracciati" : null)
-                ?? (!status.AllBranches.Contains(branch, StringComparer.OrdinalIgnoreCase) ? $"il branch {branch} non esiste" : null)
+                ?? (status.IsDetached ? "detached HEAD" : null)
+                ?? (status.DirtyFiles > 0 ? $"{status.DirtyFiles} modified or untracked files" : null)
+                ?? (!status.AllBranches.Contains(branch, StringComparer.OrdinalIgnoreCase) ? $"branch {branch} does not exist" : null)
                 ?? (card.Location.IsDocker ? await HeldElsewhereAsync(card, branch, worktreeBranches).ConfigureAwait(false) : null);
 
             if (problem is not null)
@@ -326,8 +326,8 @@ public sealed class EnvironmentController
         return plan;
     }
 
-    // Git porta un branch in un solo worktree dello stesso clone sorgente: se un altro worktree
-    // lo tiene, git switch fallirebbe a meta' del checkout. Una lettura per clone sorgente.
+    // Git checks out a branch in only one worktree of the same source clone: if another worktree
+    // holds it, git switch would fail halfway through the checkout. One read per source clone.
     private async Task<string?> HeldElsewhereAsync(
         RepoCardViewModel card,
         string branch,
@@ -346,11 +346,11 @@ public sealed class EnvironmentController
 
         if (held is null)
         {
-            return $"worktree del clone sorgente {sourceClone} non leggibili";
+            return $"worktrees of source clone {sourceClone} could not be read";
         }
 
         return held.TryGetValue(branch, out var path) && !SamePath(path, card.Path)
-            ? $"il branch {branch} e' gia' nel worktree {path}"
+            ? $"branch {branch} is already in worktree {path}"
             : null;
     }
 
@@ -361,16 +361,16 @@ public sealed class EnvironmentController
             StringComparison.OrdinalIgnoreCase);
 
     /// <summary>
-    /// Rilegge le card esistenti. Una cartella mancante non avvia letture: con il backend
-    /// mancante non partono ne' le migrazioni ne' il suo tunnel, con il frontend mancante non
-    /// parte il tunnel del frontend. Un repository con un'azione in
-    /// corso salta la rilettura (la sessione esce da sola) e si rilegge a fine azione.
+    /// Re-reads the existing cards. A missing folder starts no reads: with the backend missing
+    /// neither the migrations nor its tunnel are read, with the frontend missing the frontend
+    /// tunnel is not read. A repository with an action in
+    /// progress skips the re-read (the session bails out by itself) and is re-read when the action ends.
     /// </summary>
     public void Refresh(bool full)
     {
-        // Gli env di un ambiente locale si riallineano una volta sola, alla prima rilettura completa
-        // dopo l'avvio dell'exe: un valore cambiato a mano dopo (un altro Kestrel, IIS Express, il
-        // tunnel di un collega) resta fino al prossimo avvio.
+        // A local environment's env files are realigned only once, at the first full re-read after
+        // the app starts: a value changed by hand afterwards (another Kestrel, IIS Express, a
+        // colleague's tunnel) stays until the next start.
         if (full && !vm.IsDocker && Interlocked.Exchange(ref alignedAtStartup, 1) == 0)
         {
             _ = AlignThenRefreshAsync();
@@ -396,7 +396,7 @@ public sealed class EnvironmentController
                 }
             }
 
-            // Nessuna sessione partira': la riga di attivita' non deve restare su "avvio…".
+            // No session will start: the activity line must not stay stuck on "starting…".
             if (existing.Count == 0)
             {
                 vm.ActivityLine = StatusText.IdleActivity;
@@ -413,8 +413,8 @@ public sealed class EnvironmentController
         return Task.WhenAll(reads);
     }
 
-    // Gli avvisi degli env dello slot (come una variabile {poolUrl:<id>} senza porta del pool) e le porte
-    // del pool assegnate: letture di file e di tunnel-pool.json, nessuna scrittura.
+    // The warnings of the slot's env files (such as a {poolUrl:<id>} variable without a pool port) and
+    // the assigned pool ports: reads of files and of tunnel-pool.json, no writes.
     private async Task RefreshDockerAsync(DockerEnvironmentViewModel docker)
     {
         try
@@ -435,7 +435,7 @@ public sealed class EnvironmentController
         }
         catch (Exception ex)
         {
-            UiThread.Run(() => docker.EnvWarningText = $"avvisi degli env non letti: {ex.Message}");
+            UiThread.Run(() => docker.EnvWarningText = $"env file warnings not read: {ex.Message}");
         }
     }
 }

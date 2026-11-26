@@ -4,8 +4,8 @@ using Soffritto.Presentation;
 namespace Soffritto.Vsix;
 
 /// <summary>
-/// Clipboard via Win32 puro: l'host out-of-process dell'estensione non carica WPF ne'
-/// WinForms, quindi System.Windows.Clipboard non e' disponibile.
+/// Clipboard through plain Win32: the extension's out-of-process host loads neither WPF nor
+/// WinForms, so System.Windows.Clipboard is not available.
 /// </summary>
 internal static class ClipboardWriter
 {
@@ -14,8 +14,8 @@ internal static class ClipboardWriter
 
     public static bool TrySetText(string text)
     {
-        // La clipboard e' una risorsa globale contesa: un altro processo puo' tenerla
-        // aperta per qualche millisecondo, quindi si ritenta invece di fallire subito.
+        // The clipboard is a contended global resource: another process may keep it
+        // open for a few milliseconds, so retry instead of failing right away.
         for (var attempt = 0; attempt < 5; attempt++)
         {
             if (TryOnce(text))
@@ -72,7 +72,7 @@ internal static class ClipboardWriter
                 return false;
             }
 
-            // A SetClipboardData riuscita la memoria appartiene al sistema: niente free.
+            // Once SetClipboardData succeeds the memory belongs to the system: no free.
             return true;
         }
         finally

@@ -3,8 +3,8 @@ using Soffritto.Core.Configuration;
 namespace Soffritto.Core.Docker;
 
 /// <summary>
-/// Tutto quello che si calcola da un ambiente Docker N: progetto compose, cartella dello slot,
-/// porte, connessioni al database del suo SQL Server, repository nei container e worktree.
+/// Everything derived from a Docker environment N: compose project, slot folder,
+/// ports, connections to its SQL Server database, repositories in containers and worktrees.
 /// </summary>
 public sealed class DockerSlot
 {
@@ -18,14 +18,14 @@ public sealed class DockerSlot
     {
     }
 
-    /// <summary>N; 0 per il container temporaneo del seed.</summary>
+    /// <summary>N; 0 for the temporary seed container.</summary>
     public int Number { get; private init; }
 
     public bool IsSeed { get; private init; }
 
     public string Project { get; private init; } = string.Empty;
 
-    /// <summary>La cartella di slot.env, override ed env_file: anche la cartella di lavoro dei comandi compose.</summary>
+    /// <summary>The folder of slot.env, override and env_file: also the working folder of compose commands.</summary>
     public string ComposeFolder { get; private init; } = string.Empty;
 
     public string SlotEnvPath => Path.Combine(ComposeFolder, SlotEnvFile);
@@ -40,19 +40,19 @@ public sealed class DockerSlot
 
     public string HostConnectionString { get; private init; } = string.Empty;
 
-    /// <summary>La connessione vista dai container: il servizio del database sulla rete del progetto.</summary>
+    /// <summary>The connection as seen from containers: the database service on the project's network.</summary>
     public string ContainerConnectionString { get; private init; } = string.Empty;
 
-    /// <summary>Il backend predefinito, nel container dell'api; null se l'ambiente non lo include.</summary>
+    /// <summary>The primary backend, in the api container; null if the environment does not include it.</summary>
     public EnvironmentRepository? Backend { get; private init; }
 
-    /// <summary>Il frontend predefinito, nel container del web; null se l'ambiente non lo include.</summary>
+    /// <summary>The primary frontend, in the web container; null if the environment does not include it.</summary>
     public EnvironmentRepository? Frontend { get; private init; }
 
-    /// <summary>Le porte host dello slot (database e servizi pubblicati).</summary>
+    /// <summary>The slot's host ports (database and published services).</summary>
     public IReadOnlyList<SlotPort> Ports { get; private init; } = [];
 
-    /// <summary>I repository dell'ambiente con le cartelle dei loro worktree.</summary>
+    /// <summary>The environment's repositories with their worktree folders.</summary>
     public IReadOnlyList<EnvironmentRepository> Repositories { get; private init; } = [];
 
     public string? BackendWorktree => Backend?.Path;
@@ -65,7 +65,7 @@ public sealed class DockerSlot
 
     public string? WebService => Frontend?.Repository.DockerService;
 
-    /// <summary>La prima porta pubblicata del repository: host e container; null se non e' in un container.</summary>
+    /// <summary>The repository's first published port: host and container; null if it is not in a container.</summary>
     public (int Host, int Container)? PortOf(EnvironmentRepository repository)
     {
         if (!SameId(repository, Backend) && !SameId(repository, Frontend))
@@ -78,13 +78,13 @@ public sealed class DockerSlot
             : null;
     }
 
-    /// <summary>L'URL dell'api dall'host (http://127.0.0.1:&lt;porta&gt;): 127.0.0.1 perche' le porte dello slot sono legate li'.</summary>
+    /// <summary>The api URL from the host (http://127.0.0.1:&lt;port&gt;): 127.0.0.1 because the slot's ports are bound there.</summary>
     public string? ApiHostUrl => Backend is { } backend && PortOf(backend) is { } port ? $"http://127.0.0.1:{port.Host}" : null;
 
-    /// <summary>L'URL dell'api dagli altri container: il servizio sulla rete del progetto.</summary>
+    /// <summary>The api URL from the other containers: the service on the project's network.</summary>
     public string? ApiContainerUrl => Backend is { } backend && PortOf(backend) is { } port ? $"http://{backend.Repository.DockerService}:{port.Container}" : null;
 
-    /// <summary>Lo slot di un ambiente Docker; <paramref name="composeFolder"/> sostituisce &lt;cartella dati&gt;\docker\ambiente-N (prove).</summary>
+    /// <summary>A Docker environment's slot; <paramref name="composeFolder"/> replaces &lt;data folder&gt;\docker\ambiente-N (tests).</summary>
     public static DockerSlot Of(AppConfiguration c, EnvironmentDefinition environment, string? composeFolder = null)
     {
         var sql = c.PrimarySeed()?.Seed?.SqlServer ?? new SqlServerSeedConfiguration();
@@ -108,8 +108,8 @@ public sealed class DockerSlot
     }
 
     /// <summary>
-    /// Il container temporaneo del seed: porta databasePortBase, worktree del backend con {n} =
-    /// "seed" (es. backend-seed), nessun container dell'api.
+    /// The temporary seed container: port databasePortBase, backend worktree with {n} =
+    /// "seed" (e.g. backend-seed), no api container.
     /// </summary>
     public static DockerSlot Seed(AppConfiguration c)
     {

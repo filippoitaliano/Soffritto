@@ -5,16 +5,16 @@ using Soffritto.Core.Env;
 
 namespace Soffritto.Core.Docker;
 
-/// <summary>Cosa creare: il numero dell'ambiente Docker e il branch di ogni repository incluso.</summary>
-/// <param name="Branches">Id del repository → branch del suo worktree; le chiavi sono i repository inclusi.</param>
-/// <param name="PoolRepositories">Gli id dei repository a cui assegnare una porta del pool di tunnel.</param>
+/// <summary>What to create: the Docker environment number and the branch of each included repository.</summary>
+/// <param name="Branches">Repository id → branch of its worktree; the keys are the included repositories.</param>
+/// <param name="PoolRepositories">The ids of the repositories to assign a tunnel pool port to.</param>
 /// <param name="RestartHost">
-/// Riavvia l'host del tunnel del pool con quell'indice se e' acceso (le console sono del Desktop):
-/// vero se l'ha riavviato. Vedi <see cref="TunnelPool.AssignAsync"/>.
+/// Restarts the host of the pool tunnel with that index if it is running (the consoles belong to the Desktop):
+/// true if it restarted it. See <see cref="TunnelPool.AssignAsync"/>.
 /// </param>
 /// <param name="PoolOptional">
-/// Con il pool pieno (<see cref="TunnelPool.PoolFull"/>) l'ambiente si crea lo stesso, senza
-/// porte del pool; falso = la creazione si ferma con l'errore.
+/// With the pool full (<see cref="TunnelPool.PoolFull"/>) the environment is created anyway, without
+/// pool ports; false = creation stops with the error.
 /// </param>
 public sealed record DockerCreateRequest(
     int Number,
@@ -24,19 +24,19 @@ public sealed record DockerCreateRequest(
     bool PoolOptional = false);
 
 /// <summary>
-/// Il ciclo di vita di un ambiente Docker: creazione (voce in config.json, worktree dai cloni
-/// sorgente, env, database dal seed, container dal compose del backend), avvio e stop dei
-/// container, «Ripara env» e distruzione senza perdere codice. Ogni azione sul
-/// database o avvio dell'api passa dalle guardie di <see cref="DatabaseGuard"/>.
+/// The lifecycle of a Docker environment: creation (entry in config.json, worktrees from the source
+/// clones, env, database from the seed, containers from the backend's compose file), starting and stopping the
+/// containers, "Repair env" and destruction without losing code. Every action on the
+/// database or start of the api goes through the guards of <see cref="DatabaseGuard"/>.
 /// </summary>
 public static class DockerEnvironmentProvisioner
 {
     /// <summary>
-    /// Crea l'ambiente Docker: controlli senza effetti, registrazione della voce (poi
-    /// <paramref name="onRegistered"/>), worktree, file Docker, porte del pool, env, guardie,
-    /// database dal seed con le migrazioni del branch, container. Non apre la console del Compose
-    /// Watch: la apre chi chiama. Dopo la registrazione un errore lascia la voce, che si toglie con
-    /// la distruzione. Errore o null.
+    /// Creates the Docker environment: side-effect-free checks, registration of the entry (then
+    /// <paramref name="onRegistered"/>), worktrees, Docker files, pool ports, env, guards,
+    /// database from the seed with the branch's migrations, containers. It does not open the Compose
+    /// Watch console: the caller does. After registration an error leaves the entry, which is removed by
+    /// destroying the environment. Error or null.
     /// </summary>
     public static async Task<string?> CreateAsync(
         AppConfiguration c,
@@ -47,25 +47,25 @@ public static class DockerEnvironmentProvisioner
     {
         var number = request.Number;
 
-        // 1. Docker, numero e configurazione con la voce nuova in memoria.
+        // 1. Docker, number and configuration with the new entry in memory.
         if (await DockerCli.ServerVersionAsync(ct).ConfigureAwait(false) is null)
         {
-            return $"{DockerStatusReader.Unreachable}: ambiente {number} non creato";
+            return $"{DockerStatusReader.Unreachable}: environment {number} not created";
         }
 
         if (number is < 1 or > AppConfiguration.MaxEnvironmentNumber)
         {
-            return $"il numero {number} e' fuori intervallo: da 1 a {AppConfiguration.MaxEnvironmentNumber}";
+            return $"number {number} is out of range: from 1 to {AppConfiguration.MaxEnvironmentNumber}";
         }
 
         if (c.Environment(number) is not null)
         {
-            return $"l'ambiente {number} esiste gia'";
+            return $"environment {number} already exists";
         }
 
         if (request.Branches.FirstOrDefault(p => c.Repository(p.Key) is null || string.IsNullOrWhiteSpace(p.Value)) is { Key: not null } wrong)
         {
-            return c.Repository(wrong.Key) is null ? $"{wrong.Key} non e' nel catalogo" : $"manca il branch di {wrong.Key}";
+            return c.Repository(wrong.Key) is null ? $"{wrong.Key} is not in the catalog" : $"the branch of {wrong.Key} is missing";
         }
 
         var working = ConfigurationFiles.Parse(ConfigurationFiles.Serialize(c));
@@ -74,7 +74,7 @@ public static class DockerEnvironmentProvisioner
         working.Environments.Add(definition);
         if (working.Validate() is { Count: > 0 } invalid)
         {
-            return $"configurazione non valida per l'ambiente {number}: {string.Join(" ", invalid)}";
+            return $"invalid configuration for environment {number}: {string.Join(" ", invalid)}";
         }
 
         var slot = DockerSlot.Of(working, definition);
@@ -82,30 +82,30 @@ public static class DockerEnvironmentProvisioner
         var backend = (BackendConfiguration)slot.Backend!.Repository;
         var seed = working.PrimarySeed()!.Seed!;
 
-        // 2. Cloni sorgente, branch liberi, cartelle, seed, porte e progetto: tutto prima della voce.
+        // 2. Source clones, free branches, folders, seed, ports and project: all before the entry.
         foreach (var entry in entries)
         {
             var bare = entry.Repository.SourceClone!;
             if (!SourceCloneRepository.IsBare(bare))
             {
-                return $"il clone sorgente di {entry.Id} non c'e' ({bare}): si crea salvando il setup";
+                return $"the source clone of {entry.Id} does not exist ({bare}): saving the setup creates it";
             }
 
             var worktrees = await SourceCloneRepository.WorktreeBranchesAsync(bare, ct).ConfigureAwait(false);
             if (worktrees is null)
             {
-                return $"worktree di {bare} non leggibili";
+                return $"cannot read the worktrees of {bare}";
             }
 
             var branch = BranchOf(request, entry);
             if (worktrees.TryGetValue(branch, out var held))
             {
-                return $"il branch {branch} di {entry.Id} e' gia' {HolderOf(c, held)}";
+                return $"branch {branch} of {entry.Id} is already {HolderOf(c, held)}";
             }
 
             if (Directory.Exists(entry.Path))
             {
-                return $"la cartella {entry.Path} esiste gia': toglila o scegli un altro numero";
+                return $"folder {entry.Path} already exists: remove it or choose another number";
             }
         }
 
@@ -117,23 +117,23 @@ public static class DockerEnvironmentProvisioner
 
         if (BusyPorts(slot) is { Count: > 0 } busy)
         {
-            return $"porte gia' in ascolto: {string.Join(", ", busy.Select(p => $"{p.Host} ({p.Service})"))}: ambiente {number} non creato";
+            return $"ports already listening: {string.Join(", ", busy.Select(p => $"{p.Host} ({p.Service})"))}: environment {number} not created";
         }
 
         if (await ProjectResourcesAsync(slot.Project, ct).ConfigureAwait(false) is { } resources)
         {
             return resources.Length == 0
-                ? $"il progetto {slot.Project} ha gia' container o volumi: distruggilo prima di ricrearlo"
+                ? $"project {slot.Project} already has containers or volumes: destroy it before recreating it"
                 : resources;
         }
 
-        // 3. Registrazione: prima dei worktree, cosi' una creazione a meta' resta visibile e distruggibile.
+        // 3. Registration: before the worktrees, so a half-finished creation stays visible and destroyable.
         var registered = ConfigurationFiles.Update(
             file =>
             {
                 if (file.Environment(number) is not null)
                 {
-                    return $"l'ambiente {number} c'e' gia' in config.json";
+                    return $"environment {number} is already in config.json";
                 }
 
                 file.Environments.Add(new EnvironmentDefinition { Number = number, Kind = EnvironmentKind.Docker, Repositories = ids.ToList() });
@@ -142,41 +142,41 @@ public static class DockerEnvironmentProvisioner
             ConfigurationFileFallback.Refuse);
         if (registered is not null)
         {
-            return $"ambiente {number} non registrato: {registered}";
+            return $"environment {number} not registered: {registered}";
         }
 
-        log($"ambiente {number} registrato in config.json");
+        log($"environment {number} registered in config.json");
         onRegistered(definition);
-        var leftover = $"; la voce dell'ambiente {number} resta e si toglie con Distruggi";
+        var leftover = $"; the entry of environment {number} stays and is removed with Destroy environment";
 
-        // 4. Worktree.
+        // 4. Worktrees.
         foreach (var entry in entries)
         {
             var add = await SourceCloneRepository.AddWorktreeAsync(entry.Repository.SourceClone!, entry.Path, BranchOf(request, entry), log: log, ct: ct).ConfigureAwait(false);
             if (!add.Success)
             {
-                return $"worktree di {entry.Id} non creato: {add.GitError()}{leftover}";
+                return $"worktree of {entry.Id} not created: {add.GitError()}{leftover}";
             }
         }
 
-        // 4b. File Docker che il branch non ha, copiati dal fallback ed esclusi da git.
+        // 4b. Docker files the branch lacks, copied from the fallback and excluded from git.
         if (await ComposeRunner.EnsureSlotFilesAsync(working, slot, log, ct).ConfigureAwait(false) is { } filesError)
         {
             return filesError + leftover;
         }
 
-        // 5. Porte del pool.
+        // 5. Pool ports.
         foreach (var id in request.PoolRepositories ?? [])
         {
             if (entries.FirstOrDefault(e => SameId(e.Id, id)) is not { } entry)
             {
-                return $"{id} non e' nell'ambiente {number}: nessuna porta del pool{leftover}";
+                return $"{id} is not in environment {number}: no pool port{leftover}";
             }
 
             var (assignment, poolError) = await TunnelPool.AssignAsync(working, entry, log, ct, request.RestartHost).ConfigureAwait(false);
             if (poolError == TunnelPool.PoolFull && request.PoolOptional)
             {
-                log($"{poolError}: l'ambiente {number} parte senza porte del pool");
+                log($"{poolError}: environment {number} starts without pool ports");
                 break;
             }
 
@@ -185,38 +185,38 @@ public static class DockerEnvironmentProvisioner
                 return poolError + leftover;
             }
 
-            // Senza URL le variabili {poolUrl} restano non risolvibili (H-2) e l'env non le scrive.
+            // Without a URL the {poolUrl} variables stay unresolvable (H-2) and the env does not write them.
             log(await TunnelPool.WaitUrlAsync(assignment!, ct).ConfigureAwait(false) is not null
-                ? $"URL della porta {assignment!.Port} di {entry.Id} pubblicato"
-                : $"URL della porta {assignment!.Port} di {entry.Id} non ancora pubblicato: spegni e riaccendi «Tunnel» nell'intestazione dell'ambiente");
+                ? $"URL of port {assignment!.Port} of {entry.Id} published"
+                : $"URL of port {assignment!.Port} of {entry.Id} not published yet: turn \"Tunnel\" off and on again in the environment header");
         }
 
-        // 6. Env: file del worktree (solo alla creazione e con Ripara env) ed env_file dei container.
+        // 6. Env: the worktree file (only at creation and with Repair env) and the containers' env_file.
         if (await WriteEnvAsync(working, slot, local: true, log, ct).ConfigureAwait(false) is { } envError)
         {
             return envError + leftover;
         }
 
-        // 7. Il worktree del backend punta al database dello slot.
+        // 7. The backend worktree points to the slot database.
         var probe = AppConfiguration.ToProbeOptions(backend);
         if (DatabaseGuard.Check(slot.BackendWorktree!, probe, slot.DatabasePort, slot.DatabaseName) is { } worktreeGuard)
         {
             return worktreeGuard + leftover;
         }
 
-        log("guardia del worktree del backend: database dello slot");
+        log("backend worktree guard: slot database");
 
-        // 8. slot.env, override, config --quiet e guardia sull'ambiente dell'api risolto da compose.
+        // 8. slot.env, override, config --quiet and the guard on the api environment as resolved by compose.
         if (await PrepareComposeAsync(working, slot, log, ct).ConfigureAwait(false) is { } composeError)
         {
             return composeError + leftover;
         }
 
-        // 9. Database dal seed, poi le migrazioni del branch che il seed non ha.
+        // 9. Database from the seed, then the branch migrations the seed lacks.
         var db = await ComposeRunner.RunAsync(slot, $"up -d {slot.DatabaseService}", log: log, timeoutSeconds: 900, ct: ct).ConfigureAwait(false);
         if (!db.Success)
         {
-            return $"database dello slot non avviato: {db.Tail(3)}{leftover}";
+            return $"slot database not started: {db.Tail(3)}{leftover}";
         }
 
         var provider = SeedProviders.For(seed.Kind);
@@ -227,7 +227,7 @@ public static class DockerEnvironmentProvisioner
 
         if (await ServiceContainerAsync(slot, slot.DatabaseService, ct).ConfigureAwait(false) is not { } dbContainer)
         {
-            return $"container del servizio {slot.DatabaseService} non trovato{leftover}";
+            return $"container of service {slot.DatabaseService} not found{leftover}";
         }
 
         if (await provider.RestoreAsync(dbContainer, bak, slot.HostConnectionString, slot.DatabaseName, log, ct).ConfigureAwait(false) is { } restoreError)
@@ -240,26 +240,26 @@ public static class DockerEnvironmentProvisioner
             return migrationError + leftover;
         }
 
-        // 10. Container dell'api (e del web), con la build.
+        // 10. Api (and web) containers, with the build.
         var up = await ComposeRunner.RunAsync(slot, "up -d --build", slot.HasContainerizedFrontend, log, ct: ct).ConfigureAwait(false);
         if (!up.Success)
         {
-            return $"docker compose up non riuscito: {up.Tail(4)}{leftover}";
+            return $"docker compose up failed: {up.Tail(4)}{leftover}";
         }
 
-        log($"ambiente {number} pronto: api {slot.ApiHostUrl}{(slot.Frontend is { } web && slot.PortOf(web) is { } webPort ? $", web http://127.0.0.1:{webPort.Host}" : string.Empty)}, database 127.0.0.1,{slot.DatabasePort}");
+        log($"environment {number} ready: api {slot.ApiHostUrl}{(slot.Frontend is { } web && slot.PortOf(web) is { } webPort ? $", web http://127.0.0.1:{webPort.Host}" : string.Empty)}, database 127.0.0.1,{slot.DatabasePort}");
         return null;
     }
 
     /// <summary>
-    /// Cosa impedisce di distruggere l'ambiente senza perdere codice: file modificati o non
-    /// tracciati, un'operazione git a meta', commit che non stanno su nessun remoto. Non modifica nulla.
+    /// What prevents destroying the environment without losing code: modified or untracked
+    /// files, an unfinished git operation, commits that are on no remote. Changes nothing.
     /// </summary>
     public static async Task<(bool Ok, IReadOnlyList<string> Problems)> CheckDestroyableAsync(AppConfiguration c, int number, CancellationToken ct = default)
     {
         if (c.Environment(number) is not { Kind: EnvironmentKind.Docker } environment)
         {
-            return (false, [$"l'ambiente {number} non e' un ambiente Docker"]);
+            return (false, [$"environment {number} is not a Docker environment"]);
         }
 
         var problems = new List<string>();
@@ -272,21 +272,21 @@ public static class DockerEnvironmentProvisioner
                     continue;
                 }
 
-                problems.Add($"{entry.Id}: {entry.Path} non e' un worktree git, non lo tocco");
+                problems.Add($"{entry.Id}: {entry.Path} is not a git worktree, leaving it alone");
                 continue;
             }
 
             var status = await ProcessRunner.RunAsync("git", "status --porcelain", entry.Path, 30, cancellationToken: ct).ConfigureAwait(false);
             if (!status.Success)
             {
-                problems.Add($"{entry.Id}: stato git non leggibile ({status.GitError()})");
+                problems.Add($"{entry.Id}: cannot read git status ({status.GitError()})");
                 continue;
             }
 
             var dirty = status.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.TrimEnd('\r')).Where(l => l.Length > 3).Select(l => l[3..]).ToList();
             if (dirty.Count > 0)
             {
-                problems.Add($"{entry.Id}: {dirty.Count} file modificati o non tracciati in {entry.Path} ({string.Join(", ", dirty.Take(5))}{(dirty.Count > 5 ? ", ..." : string.Empty)})");
+                problems.Add($"{entry.Id}: {dirty.Count} modified or untracked files in {entry.Path} ({string.Join(", ", dirty.Take(5))}{(dirty.Count > 5 ? ", ..." : string.Empty)})");
             }
 
             if (GitStatusReader.ReadOperationInProgress(entry.Path) is { } operation)
@@ -297,11 +297,11 @@ public static class DockerEnvironmentProvisioner
             var (commits, error) = await SourceCloneRepository.UnpushedCommitsAsync(entry.Path, ct).ConfigureAwait(false);
             if (error is not null)
             {
-                problems.Add($"{entry.Id}: commit non verificabili ({error})");
+                problems.Add($"{entry.Id}: cannot check commits ({error})");
             }
             else if (commits.Count > 0)
             {
-                problems.Add($"{entry.Id}: {commits.Count} commit non su nessun remoto ({string.Join("; ", commits.Take(3))})");
+                problems.Add($"{entry.Id}: {commits.Count} commits not on any remote ({string.Join("; ", commits.Take(3))})");
             }
         }
 
@@ -309,17 +309,17 @@ public static class DockerEnvironmentProvisioner
     }
 
     /// <summary>
-    /// Distrugge l'ambiente se <see cref="CheckDestroyableAsync"/> non trova problemi: down -v del
-    /// solo suo progetto, immagini del suo compose tolte, worktree tolti senza --force, cartella
-    /// dello slot cancellata, porte del pool rilasciate, voce tolta per ultima (poi
-    /// <paramref name="onUnregistered"/>). Restano branch e note. Errore o null.
+    /// Destroys the environment if <see cref="CheckDestroyableAsync"/> finds no problems: down -v of
+    /// its own project only, its compose images removed, worktrees removed without --force, slot
+    /// folder deleted, pool ports released, entry removed last (then
+    /// <paramref name="onUnregistered"/>). Branches and notes stay. Error or null.
     /// </summary>
     public static async Task<string?> DestroyAsync(AppConfiguration c, int number, Action<int> onUnregistered, Action<string> log, CancellationToken ct = default)
     {
         var (ok, problems) = await CheckDestroyableAsync(c, number, ct).ConfigureAwait(false);
         if (!ok)
         {
-            return $"ambiente {number} non distrutto: {string.Join("; ", problems)}";
+            return $"environment {number} not destroyed: {string.Join("; ", problems)}";
         }
 
         var environment = c.Environment(number)!;
@@ -337,30 +337,30 @@ public static class DockerEnvironmentProvisioner
 
         if (resources is null)
         {
-            log($"il progetto {slot.Project} non ha container ne' volumi: down non serve");
+            log($"project {slot.Project} has no containers or volumes: no down needed");
         }
         else
         {
             if (await PrepareDownAsync(c, slot, log, ct).ConfigureAwait(false) is { } prepareError)
             {
-                return $"down non preparato: {prepareError}";
+                return $"down not prepared: {prepareError}";
             }
 
             var down = await ComposeRunner.RunAsync(slot, "down -v --remove-orphans", slot.HasContainerizedFrontend, log, 300, ct).ConfigureAwait(false);
             if (!down.Success)
             {
-                return $"docker compose down non riuscito: {down.Tail(3)}";
+                return $"docker compose down failed: {down.Tail(3)}";
             }
         }
 
-        // Le immagini dell'api e del web servono solo a questo ambiente: un ambiente nuovo con lo
-        // stesso numero le ricostruisce. Resterebbero a occupare il disco di Docker.
+        // The api and web images serve only this environment: a new environment with the
+        // same number rebuilds them. Otherwise they would keep taking up Docker's disk.
         var (images, imagesError) = await DockerMaintenance.ImagesOfProjectAsync(slot.Project, ct).ConfigureAwait(false);
-        log(imagesError is null ? await DockerMaintenance.RemoveImagesAsync(images, ct).ConfigureAwait(false) : $"immagini non lette, restano: {imagesError}");
+        log(imagesError is null ? await DockerMaintenance.RemoveImagesAsync(images, ct).ConfigureAwait(false) : $"images not read, they stay: {imagesError}");
 
         foreach (var entry in slot.Repositories.Where(r => Directory.Exists(r.Path)))
         {
-            // Resto di un Distruggi interrotto: git ha gia' tolto file e registrazione, non la cartella.
+            // Leftover of an interrupted Destroy environment: git already removed files and registration, not the folder.
             if (!GitDirectory.Exists(entry.Path) && IsEmptyFolder(entry.Path))
             {
                 try
@@ -369,21 +369,21 @@ public static class DockerEnvironmentProvisioner
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    return $"cartella vuota del worktree {entry.Path} non cancellata: {ex.Message}; la voce dell'ambiente {number} resta";
+                    return $"empty worktree folder {entry.Path} not deleted: {ex.Message}; the entry of environment {number} stays";
                 }
 
                 await SourceCloneRepository.PruneWorktreesAsync(entry.Repository.SourceClone!, ct).ConfigureAwait(false);
-                log($"cartella vuota del worktree {entry.Path} cancellata");
+                log($"empty worktree folder {entry.Path} deleted");
                 continue;
             }
 
             var remove = await SourceCloneRepository.RemoveWorktreeAsync(entry.Repository.SourceClone!, entry.Path, log, ct).ConfigureAwait(false);
             if (!remove.Success)
             {
-                return $"worktree {entry.Path} non tolto: {remove.GitError()}; la voce dell'ambiente {number} resta";
+                return $"worktree {entry.Path} not removed: {remove.GitError()}; the entry of environment {number} stays";
             }
 
-            log($"worktree {entry.Path} tolto");
+            log($"worktree {entry.Path} removed");
         }
 
         try
@@ -391,35 +391,35 @@ public static class DockerEnvironmentProvisioner
             if (Directory.Exists(slot.ComposeFolder))
             {
                 Directory.Delete(slot.ComposeFolder, recursive: true);
-                log($"cartella dello slot {slot.ComposeFolder} cancellata");
+                log($"slot folder {slot.ComposeFolder} deleted");
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return $"cartella dello slot {slot.ComposeFolder} non cancellata: {ex.Message}; la voce dell'ambiente {number} resta";
+            return $"slot folder {slot.ComposeFolder} not deleted: {ex.Message}; the entry of environment {number} stays";
         }
 
         if (await TunnelPool.ReleaseAsync(c, number, log, ct).ConfigureAwait(false) is { } poolError)
         {
-            log($"porte del pool non tutte rilasciate, restano nel pannello: {poolError}");
+            log($"not all pool ports were released, they stay in the panel: {poolError}");
         }
 
         var unregistered = ConfigurationFiles.Update(
-            file => file.Environments.RemoveAll(e => e.Number == number && e.Kind == EnvironmentKind.Docker) > 0 ? null : $"l'ambiente {number} non c'e' piu' in config.json",
+            file => file.Environments.RemoveAll(e => e.Number == number && e.Kind == EnvironmentKind.Docker) > 0 ? null : $"environment {number} is no longer in config.json",
             ConfigurationFileFallback.Refuse);
         if (unregistered is not null)
         {
-            return $"voce dell'ambiente {number} non tolta: {unregistered}";
+            return $"entry of environment {number} not removed: {unregistered}";
         }
 
         onUnregistered(number);
-        log($"ambiente {number} distrutto; restano i branch nei cloni sorgente");
+        log($"environment {number} destroyed; the branches stay in the source clones");
         return null;
     }
 
     /// <summary>
-    /// Avvia l'ambiente: env_file dei container riscritti (il worktree no, G-11), file Docker,
-    /// slot.env, override, guardia del container dell'api, poi up -d --build. Errore o null.
+    /// Starts the environment: containers' env_files rewritten (not the worktree, G-11), Docker files,
+    /// slot.env, override, api container guard, then up -d --build. Error or null.
     /// </summary>
     public static async Task<string?> StartAsync(AppConfiguration c, int number, Action<string> log, CancellationToken ct = default)
     {
@@ -445,10 +445,10 @@ public static class DockerEnvironmentProvisioner
         }
 
         var up = await ComposeRunner.RunAsync(slot, "up -d --build", slot.HasContainerizedFrontend, log, ct: ct).ConfigureAwait(false);
-        return up.Success ? null : $"docker compose up non riuscito: {up.Tail(4)}";
+        return up.Success ? null : $"docker compose up failed: {up.Tail(4)}";
     }
 
-    /// <summary>compose stop dell'ambiente (timeout 120 s): l'esito e se tutti i container sono fermi.</summary>
+    /// <summary>compose stop of the environment (timeout 120 s): the outcome and whether all containers are stopped.</summary>
     public static async Task<(string Outcome, bool AllStopped)> StopAsync(AppConfiguration c, int number, Action<string> log, CancellationToken ct = default)
     {
         var (slot, slotError) = await CommandSlotAsync(c, number, ct).ConfigureAwait(false);
@@ -462,13 +462,13 @@ public static class DockerEnvironmentProvisioner
         var containers = status.OfProject(slot.Project).ToList();
         var allStopped = stop.Success && status.IsReachable && containers.All(x => x.RunState == ContainerRunState.Stopped);
         return stop.Success
-            ? ($"container fermati: {containers.Count(x => x.RunState == ContainerRunState.Stopped)} su {containers.Count}", allStopped)
-            : ($"compose stop non riuscito: {stop.Tail(2)}", false);
+            ? ($"containers stopped: {containers.Count(x => x.RunState == ContainerRunState.Stopped)} of {containers.Count}", allStopped)
+            : ($"compose stop failed: {stop.Tail(2)}", false);
     }
 
     /// <summary>
-    /// Avvia un servizio: l'api con il suo env_file, la guardia del container e la build; il web
-    /// con il suo env_file e la build; il database. Errore o null.
+    /// Starts a service: the api with its env_file, the container guard and the build; the web
+    /// with its env_file and the build; the database. Error or null.
     /// </summary>
     public static async Task<string?> StartServiceAsync(AppConfiguration c, int number, string service, Action<string> log, CancellationToken ct = default)
     {
@@ -483,7 +483,7 @@ public static class DockerEnvironmentProvisioner
         var isDb = string.Equals(service, slot.DatabaseService, StringComparison.OrdinalIgnoreCase);
         if (!isApi && !isWeb && !isDb)
         {
-            return $"il servizio {service} non e' dell'ambiente {number}";
+            return $"service {service} does not belong to environment {number}";
         }
 
         if (!isDb && await WriteEnvAsync(c, slot, local: false, log, ct, only: isApi ? slot.Backend : slot.Frontend).ConfigureAwait(false) is { } envError)
@@ -502,10 +502,10 @@ public static class DockerEnvironmentProvisioner
         }
 
         var up = await ComposeRunner.RunAsync(slot, isDb ? $"up -d {service}" : $"up -d --build {service}", isWeb, log, ct: ct).ConfigureAwait(false);
-        return up.Success ? null : $"docker compose up {service} non riuscito: {up.Tail(4)}";
+        return up.Success ? null : $"docker compose up {service} failed: {up.Tail(4)}";
     }
 
-    /// <summary>compose stop di un servizio, con i file gia' presenti dall'ultimo avvio. Errore o null.</summary>
+    /// <summary>compose stop of a service, with the files already in place since the last start. Error or null.</summary>
     public static async Task<string?> StopServiceAsync(AppConfiguration c, int number, string service, Action<string> log, CancellationToken ct = default)
     {
         var (slot, slotError) = await CommandSlotAsync(c, number, ct).ConfigureAwait(false);
@@ -515,27 +515,27 @@ public static class DockerEnvironmentProvisioner
         }
 
         var stop = await ComposeRunner.RunAsync(slot, $"stop {service}", slot.HasContainerizedFrontend, log, 120, ct).ConfigureAwait(false);
-        return stop.Success ? null : $"compose stop {service} non riuscito: {stop.Tail(2)}";
+        return stop.Success ? null : $"compose stop {service} failed: {stop.Tail(2)}";
     }
 
-    /// <summary>La riga di comando dei log di un servizio dello slot, per una console.</summary>
+    /// <summary>The command line for the logs of one of the slot's services, for a console.</summary>
     public static string LogsCommand(DockerSlot slot, string service)
         => $"{ComposePrefix(slot)}{(slot.HasContainerizedFrontend ? $" --profile {ComposeRunner.WebProfile}" : string.Empty)} logs -f --tail 200 {service}";
 
-    /// <summary>La riga di comando del Compose Watch del web, per la console marcata (dopo up, senza --no-up la build ripartirebbe).</summary>
+    /// <summary>The command line of the web's Compose Watch, for the marked console (after up; without --no-up the build would start again).</summary>
     public static string WatchCommand(DockerSlot slot)
         => $"{ComposePrefix(slot)} --profile {ComposeRunner.WebProfile} watch --no-up {slot.WebService}";
 
     /// <summary>
-    /// «Ripara env»: riscrive i file di env dei worktree (un target che non esiste piu' riparte
-    /// dalle costanti del modello) e gli env_file dei container, poi controlla che il worktree del
-    /// backend punti al database dello slot. Errore o null.
+    /// "Repair env": rewrites the worktrees' env files (a target that no longer exists starts again
+    /// from the template constants) and the containers' env_files, then checks that the backend
+    /// worktree points to the slot database. Error or null.
     /// </summary>
     public static async Task<string?> RepairEnvAsync(AppConfiguration c, int number, Action<string> log, CancellationToken ct = default)
     {
         if (c.Environment(number) is not { Kind: EnvironmentKind.Docker } environment)
         {
-            return $"l'ambiente {number} non e' un ambiente Docker";
+            return $"environment {number} is not a Docker environment";
         }
 
         var slot = DockerSlot.Of(c, environment);
@@ -548,7 +548,7 @@ public static class DockerEnvironmentProvisioner
         return DatabaseGuard.Check(slot.BackendWorktree!, AppConfiguration.ToProbeOptions(backend), slot.DatabasePort, slot.DatabaseName);
     }
 
-    /// <summary>Gli URL delle porte del pool assegnate all'ambiente, per {poolUrl}: id del repository → URL.</summary>
+    /// <summary>The URLs of the pool ports assigned to the environment, for {poolUrl}: repository id → URL.</summary>
     public static async Task<IReadOnlyDictionary<string, string>> PoolUrlsAsync(int number, CancellationToken ct = default)
     {
         var urls = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -563,8 +563,8 @@ public static class DockerEnvironmentProvisioner
         return urls;
     }
 
-    // Env di tutti i repository: con local il file del worktree (creazione, Ripara env), sempre
-    // l'env_file dei container. Nel log solo nomi e conteggi.
+    // Env of all repositories: with local the worktree file (creation, Repair env), always
+    // the containers' env_file. Only names and counts go to the log.
     private static bool IsEmptyFolder(string path) => !Directory.EnumerateFileSystemEntries(path).Any();
 
     private static async Task<string?> WriteEnvAsync(
@@ -588,7 +588,7 @@ public static class DockerEnvironmentProvisioner
             var resolution = EnvResolver.Resolve(c, entry, slot, poolUrls, targetIsNew?.Invoke(entry) ?? true);
             foreach (var warning in resolution.Warnings)
             {
-                log($"avviso: {warning}");
+                log($"warning: {warning}");
             }
 
             if (local)
@@ -608,9 +608,9 @@ public static class DockerEnvironmentProvisioner
         return null;
     }
 
-    // slot.env, override, config --quiet, poi la guardia sull'ambiente dell'api come lo risolve
-    // compose (env_file ed environment: del compose del prodotto). Senza checkApi (web e db) la
-    // guardia non serve: l'api non parte.
+    // slot.env, override, config --quiet, then the guard on the api environment as compose resolves
+    // it (env_file and the product compose file's environment:). Without checkApi (web and db) the
+    // guard is not needed: the api does not start.
     private static async Task<string?> PrepareComposeAsync(AppConfiguration c, DockerSlot slot, Action<string> log, CancellationToken ct, bool checkApi = true)
     {
         if (ComposeRunner.WriteSlotEnv(c, slot) is { } slotEnvError)
@@ -638,17 +638,17 @@ public static class DockerEnvironmentProvisioner
             return guard;
         }
 
-        log("guardia del container dell'api: database dello slot");
+        log("api container guard: slot database");
         return null;
     }
 
-    // Lo slot di un ambiente Docker esistente, se il suo progetto (quando c'e') ha l'etichetta di
-    // questa cartella dati: un progetto di un altro exe non si tocca.
+    // The slot of an existing Docker environment, if its project (when there is one) carries this
+    // data folder's label: another executable's project is left alone.
     private static async Task<(DockerSlot? Slot, string? Error)> CommandSlotAsync(AppConfiguration c, int number, CancellationToken ct)
     {
         if (c.Environment(number) is not { Kind: EnvironmentKind.Docker } environment)
         {
-            return (null, $"l'ambiente {number} non e' un ambiente Docker");
+            return (null, $"environment {number} is not a Docker environment");
         }
 
         var slot = DockerSlot.Of(c, environment);
@@ -658,10 +658,10 @@ public static class DockerEnvironmentProvisioner
     private static string ComposePrefix(DockerSlot slot)
         => $"docker compose -p {slot.Project} -f \"{ComposeRunner.ComposePath(slot)}\" -f \"{slot.OverridePath}\" --env-file \"{slot.SlotEnvPath}\"";
 
-    // down legge il compose: usa i file gia' nel worktree e copia dal fallback solo quelli che
-    // mancano, cosi' un fallback rimasto senza file non blocca la distruzione. slot.env e override
-    // si riscrivono; un env_file mancante (creazione fermata prima) diventa un file vuoto, che va
-    // via con la cartella dello slot.
+    // down reads the compose file: it uses the files already in the worktree and copies from the fallback only
+    // the missing ones, so a fallback left without files does not block destruction. slot.env and override
+    // are rewritten; a missing env_file (creation stopped early) becomes an empty file, which goes
+    // away with the slot folder.
     private static async Task<string?> PrepareDownAsync(AppConfiguration c, DockerSlot slot, Action<string> log, CancellationToken ct)
     {
         foreach (var entry in new[] { slot.Backend, slot.Frontend }.OfType<EnvironmentRepository>())
@@ -702,29 +702,29 @@ public static class DockerEnvironmentProvisioner
     }
 
     /// <summary>
-    /// Applica al database dello slot le migrazioni del branch del worktree del backend, con la
-    /// guardia del database prima di ogni context: tutti i context, o solo <paramref name="contextName"/>.
-    /// Errore o null.
+    /// Applies the migrations of the backend worktree's branch to the slot database, with the
+    /// database guard before each context: all contexts, or only <paramref name="contextName"/>.
+    /// Error or null.
     /// </summary>
     public static async Task<string?> ApplyMigrationsAsync(DockerSlot slot, BackendConfiguration backend, Action<string> log, CancellationToken ct, string? contextName = null)
     {
         if (slot.BackendWorktree is not { } worktree)
         {
-            return $"l'ambiente {slot.Number} non ha un backend";
+            return $"environment {slot.Number} has no backend";
         }
 
         var probe = AppConfiguration.ToProbeOptions(backend);
         if (contextName is not null && !probe.Contexts.Any(x => string.Equals(x.Name, contextName, StringComparison.OrdinalIgnoreCase)))
         {
-            return $"il context {contextName} non c'e' (context: {string.Join(", ", probe.Contexts.Select(x => x.Name))})";
+            return $"context {contextName} does not exist (contexts: {string.Join(", ", probe.Contexts.Select(x => x.Name))})";
         }
         foreach (var startup in probe.Contexts.Select(x => x.RelativeStartupProjectPath).Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            // Su un worktree appena creato dotnet ef fallisce senza project.assets.json (NETSDK1004).
+            // On a freshly created worktree dotnet ef fails without project.assets.json (NETSDK1004).
             var restore = await ProcessRunner.RunAsync("dotnet", $"restore \"{Path.Combine(worktree, startup)}\"", worktree, 600, cancellationToken: ct).ConfigureAwait(false);
             if (!restore.Success)
             {
-                return $"dotnet restore di {startup}: {restore.BuildError(3)}";
+                return $"dotnet restore of {startup}: {restore.BuildError(3)}";
             }
         }
 
@@ -735,25 +735,25 @@ public static class DockerEnvironmentProvisioner
                 return guard;
             }
 
-            log($"migrazioni di {context.Name} del branch");
+            log($"branch migrations of {context.Name}");
             var update = await MigrationApplier.UpdateDatabaseAsync(worktree, context, null, log, ct).ConfigureAwait(false);
             if (!update.Success)
             {
-                return $"migrazioni di {context.Name} non applicate: {await MigrationApplier.FailureReasonAsync(worktree, context, update, ct).ConfigureAwait(false)}";
+                return $"{context.Name} migrations not applied: {await MigrationApplier.FailureReasonAsync(worktree, context, update, ct).ConfigureAwait(false)}";
             }
         }
 
         return null;
     }
 
-    /// <summary>L'id del container di un servizio dello slot, acceso o no; null se non c'e'.</summary>
+    /// <summary>The container id of one of the slot's services, running or not; null if there is none.</summary>
     private static async Task<string?> ServiceContainerAsync(DockerSlot slot, string service, CancellationToken ct)
     {
         var ps = await ComposeRunner.RunAsync(slot, $"ps -a -q {service}", timeoutSeconds: 30, ct: ct).ConfigureAwait(false);
         return ps.Success && ps.StandardOutput.Split('\n', StringSplitOptions.RemoveEmptyEntries).Select(l => l.Trim()).FirstOrDefault(l => l.Length > 0) is { } id ? id : null;
     }
 
-    // Null se il progetto non ha ne' container ne' volumi; stringa vuota se li ha; un errore se Docker non risponde.
+    // Null if the project has neither containers nor volumes; empty string if it has them; an error if Docker does not respond.
     private static async Task<string?> ProjectResourcesAsync(string project, CancellationToken ct)
     {
         var filter = $"--filter \"label=com.docker.compose.project={project}\"";
@@ -776,14 +776,14 @@ public static class DockerEnvironmentProvisioner
     private static string BranchOf(DockerCreateRequest request, EnvironmentRepository entry)
         => request.Branches.First(p => SameId(p.Key, entry.Id)).Value.Trim();
 
-    // Dove sta il branch occupato: l'ambiente Docker che ha quel worktree, o il solo percorso.
+    // Where the taken branch is: the Docker environment that has that worktree, or just the path.
     private static string HolderOf(AppConfiguration c, string worktree)
     {
         var full = Path.TrimEndingDirectorySeparator(Path.GetFullPath(worktree));
         var number = c.DockerEnvironments
             .FirstOrDefault(e => c.RepositoriesOf(e).Any(r => string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(r.Path)), full, StringComparison.OrdinalIgnoreCase)))?
             .Number;
-        return number is null ? $"nel worktree {worktree}" : $"nell'ambiente {number} (worktree {worktree})";
+        return number is null ? $"in worktree {worktree}" : $"in environment {number} (worktree {worktree})";
     }
 
     private static bool SameId(string? a, string? b) => a is not null && b is not null && string.Equals(a, b, StringComparison.OrdinalIgnoreCase);

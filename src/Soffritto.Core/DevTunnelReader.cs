@@ -8,13 +8,13 @@ public static class DevTunnelReader
     private static readonly HttpClient Http = new() { Timeout = Timeout.InfiniteTimeSpan };
 
     /// <summary>
-    /// Stato del dev tunnel associato al clone corrente. L'associazione e' per convenzione, sulla
-    /// Description del tunnel: <paramref name="tunnelDescription"/> se il chiamante la conosce (il numero
-    /// dell'ambiente per il backend, "N-fe" per il frontend, vedi <see cref="DevTunnelProvisioner"/>),
-    /// altrimenti il suffisso numerico della cartella di lavoro (backend-1 -> "1"). Non e' una
-    /// scorciatoia: VS persiste l'associazione reale solo nel privateregistry, che non e' leggibile
-    /// in modo affidabile. Con <paramref name="onlyPort"/> (la porta del pool assegnata) le porte
-    /// lette e il probe si limitano a quella.
+    /// Status of the dev tunnel associated with the current clone. The association is by convention, on the
+    /// tunnel's Description: <paramref name="tunnelDescription"/> if the caller knows it (the environment
+    /// number for the backend, "N-fe" for the frontend, see <see cref="DevTunnelProvisioner"/>),
+    /// otherwise the numeric suffix of the working folder (backend-1 -> "1"). This is not a
+    /// shortcut: VS persists the real association only in its privateregistry, which cannot be read
+    /// reliably. With <paramref name="onlyPort"/> (the assigned pool port) the ports
+    /// read and the probe are limited to that one.
     /// </summary>
     public static async Task<DevTunnelStatus> ReadAsync(
         string solutionRoot,
@@ -28,7 +28,7 @@ public static class DevTunnelReader
         var exe = ResolveExecutable();
         if (exe is null)
         {
-            return new DevTunnelStatus(Error: "devtunnel.exe non trovato (ne' nel PATH ne' tra i pacchetti WinGet).");
+            return new DevTunnelStatus(Error: "devtunnel.exe not found (neither in PATH nor among the WinGet packages).");
         }
 
         var list = await DevTunnelAsync(exe, "list --json", solutionRoot, cancellationToken).ConfigureAwait(false);
@@ -44,7 +44,7 @@ public static class DevTunnelReader
         {
             if (doc is null || !doc.RootElement.TryGetProperty("tunnels", out var tunnels))
             {
-                return new DevTunnelStatus(Error: "Output di 'devtunnel list --json' non riconosciuto.");
+                return new DevTunnelStatus(Error: "Unrecognized output from 'devtunnel list --json'.");
             }
 
             foreach (var tunnel in tunnels.EnumerateArray())
@@ -64,12 +64,12 @@ public static class DevTunnelReader
             }
         }
 
-        // Senza corrispondenza la sezione non resta muta: l'elenco dei tunnel dell'account,
-        // con il loro stato sintetico, e' la cosa piu' utile da mostrare al posto del dettaglio.
+        // Without a match the section does not stay silent: the list of the account's tunnels,
+        // with their summary status, is the most useful thing to show instead of the details.
         if (cloneNumber.Length == 0)
         {
             return new DevTunnelStatus(
-                Error: $"La cartella '{folderName}' non ha un suffisso numerico: impossibile dedurre quale tunnel le corrisponde.",
+                Error: $"Folder '{folderName}' has no numeric suffix: cannot tell which tunnel matches it.",
                 Available: available);
         }
 
@@ -77,7 +77,7 @@ public static class DevTunnelReader
         {
             return new DevTunnelStatus(
                 Description: cloneNumber,
-                Error: $"Nessun tunnel con descrizione '{cloneNumber}'.",
+                Error: $"No tunnel with description '{cloneNumber}'.",
                 Available: available);
         }
 
@@ -94,7 +94,7 @@ public static class DevTunnelReader
         {
             if (doc is null || !doc.RootElement.TryGetProperty("tunnel", out var tunnel))
             {
-                return new DevTunnelStatus(TunnelId: tunnelId, Description: cloneNumber, Error: "Output di 'devtunnel show --json' non riconosciuto.");
+                return new DevTunnelStatus(TunnelId: tunnelId, Description: cloneNumber, Error: "Unrecognized output from 'devtunnel show --json'.");
             }
 
             hostConnections = GetInt(tunnel, "hostConnections");
@@ -132,7 +132,7 @@ public static class DevTunnelReader
             return port;
         }
 
-        // Timeout corto e locale: anche a host connesso una porta senza listener puo' restare muta.
+        // A short local timeout: even with the host connected, a port without a listener can stay silent.
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(5));
 
@@ -141,9 +141,9 @@ public static class DevTunnelReader
             using var request = new HttpRequestMessage(HttpMethod.Head, port.PortUri);
             using var response = await Http.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, timeout.Token).ConfigureAwait(false);
 
-            // Un 401 o un 404 e' una risposta arrivata fino all'app. 502, 503 e 504 li da' invece
-            // il gateway devtunnels quando l'host e' connesso ma sulla porta locale non ascolta
-            // nessuno (es. dev server spento).
+            // A 401 or a 404 is a response that made it to the app. 502, 503 and 504 instead come from
+            // the devtunnels gateway when the host is connected but nothing is listening on the local
+            // port (e.g. the dev server is stopped).
             var status = (int)response.StatusCode;
             return port with { Reachable = status is not (502 or 503 or 504) };
         }
@@ -157,7 +157,7 @@ public static class DevTunnelReader
         }
     }
 
-    /// <summary>La CLI devtunnel: prima nel PATH, poi tra i pacchetti WinGet dell'utente. Null se assente.</summary>
+    /// <summary>The devtunnel CLI: first in PATH, then among the user's WinGet packages. Null if missing.</summary>
     public static string? ResolveExecutable()
     {
         var fromPath = (Environment.GetEnvironmentVariable("PATH") ?? string.Empty)
@@ -194,7 +194,7 @@ public static class DevTunnelReader
     }
 
     /// <summary>
-    /// La CLI puo' anteporre banner o avvisi di versione al JSON: si parte dalla prima graffa.
+    /// The CLI may print banners or version notices before the JSON: parsing starts at the first brace.
     /// </summary>
     internal static JsonDocument? ParseJson(string output)
     {

@@ -2,23 +2,23 @@ using System.Collections;
 
 namespace Soffritto.Core.Env;
 
-/// <summary>Da dove viene il valore di una variabile: decide dove puo' finire.</summary>
+/// <summary>Where a variable's value comes from: decides where it may end up.</summary>
 public enum EnvClass
 {
-    /// <summary>Dalla fonte dei segreti del repository: mai nei log, mai in un file versionato.</summary>
+    /// <summary>From the repository's secrets source: never in logs, never in a versioned file.</summary>
     SharedSecret,
 
-    /// <summary>Dall'ambiente modello o dal setup.</summary>
+    /// <summary>From the template environment or from setup.</summary>
     Constant,
 
-    /// <summary>Calcolata per lo slot (porte, connessioni, URL del pool).</summary>
+    /// <summary>Computed for the slot (ports, connections, pool URLs).</summary>
     Slot,
 }
 
-/// <param name="Origin">Il file o la voce di configurazione da cui viene il valore.</param>
+/// <param name="Origin">The file or configuration entry the value comes from.</param>
 public sealed record EnvVariable(string Name, string Value, EnvClass Class, string Origin);
 
-/// <summary>Variabili in ordine, una per nome (senza distinzione di maiuscole): l'ultima scritta vince e tiene il posto della prima.</summary>
+/// <summary>Ordered variables, one per name (case-insensitive): the last one written wins and takes the place of the first.</summary>
 public sealed class EnvSet : IEnumerable<EnvVariable>
 {
     private readonly List<EnvVariable> variables = [];
@@ -58,7 +58,7 @@ public sealed class EnvSet : IEnumerable<EnvVariable>
 
     public void RemoveWhere(Func<EnvVariable, bool> predicate) => variables.RemoveAll(v => predicate(v));
 
-    /// <summary>Aggiunge le variabili di <paramref name="other"/>: a parita' di nome vince <paramref name="other"/>.</summary>
+    /// <summary>Adds the variables of <paramref name="other"/>: on equal names <paramref name="other"/> wins.</summary>
     public EnvSet Merge(EnvSet other)
     {
         foreach (var variable in other)
@@ -69,10 +69,10 @@ public sealed class EnvSet : IEnumerable<EnvVariable>
         return this;
     }
 
-    /// <summary>Le stesse variabili con un'altra classe e origine (es. i segreti letti con un adapter).</summary>
+    /// <summary>The same variables with another class and origin (e.g. secrets read with an adapter).</summary>
     public EnvSet As(EnvClass @class, string origin) => new(variables.Select(v => v with { Class = @class, Origin = origin }));
 
-    /// <summary>Nome → valore, per le guardie che controllano l'ambiente di un container.</summary>
+    /// <summary>Name → value, for the guards that check a container's environment.</summary>
     public IReadOnlyDictionary<string, string> ToDictionary()
         => variables.ToDictionary(v => v.Name, v => v.Value, StringComparer.OrdinalIgnoreCase);
 

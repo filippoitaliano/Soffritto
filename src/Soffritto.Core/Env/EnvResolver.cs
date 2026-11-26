@@ -4,22 +4,22 @@ using Soffritto.Core.Docker;
 
 namespace Soffritto.Core.Env;
 
-/// <param name="Local">Le variabili per il file di env del worktree.</param>
-/// <param name="Container">Le variabili per l'env_file del container, con i nomi "A__B".</param>
-/// <param name="Warnings">Avvisi per l'utente: solo nomi, mai valori.</param>
+/// <param name="Local">The variables for the worktree's env file.</param>
+/// <param name="Container">The variables for the container's env_file, with "A__B" names.</param>
+/// <param name="Warnings">Warnings for the user: names only, never values.</param>
 public sealed record EnvResolution(EnvSet Local, EnvSet Container, IReadOnlyList<string> Warnings);
 
 /// <summary>
-/// Le variabili di un repository in uno slot: costanti dall'ambiente modello (piu' le manuali),
-/// segreti dalla loro fonte, valori per slot che vincono. Il worktree le riceve dall'adapter, il
-/// container da &lt;cartella dello slot&gt;\&lt;id&gt;.env.
+/// A repository's variables in a slot: constants from the template environment (plus the manual ones),
+/// secrets from their source, per-slot values that win. The worktree gets them through the adapter, the
+/// container from &lt;slot folder&gt;\&lt;id&gt;.env.
 /// </summary>
 public static partial class EnvResolver
 {
-    /// <param name="poolUrls">Id del repository → URL della sua porta del pool, per {poolUrl}.</param>
+    /// <param name="poolUrls">Repository id → URL of its pool port, for {poolUrl}.</param>
     /// <param name="targetIsNew">
-    /// Vero quando il file di env del worktree non esiste ancora: una variabile con il valore per
-    /// slot non risolvibile tiene allora la costante del modello, invece di sparire dal set.
+    /// True when the worktree's env file does not exist yet: a variable whose per-slot value
+    /// cannot be resolved then keeps the template constant, instead of disappearing from the set.
     /// </param>
     public static EnvResolution Resolve(
         AppConfiguration c,
@@ -37,7 +37,7 @@ public static partial class EnvResolver
         var template = TemplatePathOf(c, entry.Repository);
         if (template is null)
         {
-            warnings.Add($"{entry.Id}: l'ambiente modello non include il repository, niente costanti ne' segreti.");
+            warnings.Add($"{entry.Id}: the template environment does not include the repository, so no constants or secrets.");
         }
 
         var constants = new EnvSet();
@@ -50,7 +50,7 @@ public static partial class EnvResolver
             }
             else
             {
-                warnings.Add($"{entry.Id}: costanti non trovate, {source} non esiste.");
+                warnings.Add($"{entry.Id}: constants not found, {source} does not exist.");
             }
         }
 
@@ -65,7 +65,7 @@ public static partial class EnvResolver
             }
             else
             {
-                warnings.Add($"{entry.Id}: segreti non trovati, {secretsPath} non esiste.");
+                warnings.Add($"{entry.Id}: secrets not found, {secretsPath} does not exist.");
             }
         }
 
@@ -82,8 +82,8 @@ public static partial class EnvResolver
             }
             else
             {
-                // Senza valore per slot la riga del worktree resta com'e' (anche se scritta a mano):
-                // la costante del modello la riscriverebbe con il valore di un altro ambiente.
+                // Without a per-slot value the worktree's line stays as it is (even if hand-written):
+                // the template constant would overwrite it with another environment's value.
                 if (!targetIsNew)
                 {
                     local.Remove(variable.Name);
@@ -91,7 +91,7 @@ public static partial class EnvResolver
 
                 warnings.Add(localMissing!.StartsWith("{poolUrl", StringComparison.Ordinal)
                     ? PoolHint(variable.Name, entry.Id, PoolOwnerOf(localMissing, entry.Id), slot.Number)
-                    : $"{variable.Name} di {entry.Id}: valore per slot non risolvibile ({localMissing})");
+                    : $"{variable.Name} of {entry.Id}: unresolvable per-slot value ({localMissing})");
             }
 
             if (variable.Container.Length == 0 || localValue is null)
@@ -108,7 +108,7 @@ public static partial class EnvResolver
             else
             {
                 container.Remove(variable.Name);
-                warnings.Add($"{variable.Name} di {entry.Id} non va al container: valore per slot non risolvibile ({containerMissing})");
+                warnings.Add($"{variable.Name} of {entry.Id} is not passed to the container: unresolvable per-slot value ({containerMissing})");
             }
         }
 
@@ -116,23 +116,23 @@ public static partial class EnvResolver
         return new EnvResolution(local, containerNames, warnings);
     }
 
-    /// <summary>L'avviso di una variabile {poolUrl} senza porta del pool: dice di assegnarla a <paramref name="owner"/> e dove.</summary>
+    /// <summary>The warning for a {poolUrl} variable without a pool port: says to assign one to <paramref name="owner"/> and where.</summary>
     public static string PoolHint(string variable, string repository, string owner, int number)
-        => $"{variable} di {repository} non impostato: {owner} dell'ambiente {number} non ha una porta del pool (accendi «Tunnel» nell'intestazione dell'ambiente {number})";
+        => $"{variable} of {repository} not set: {owner} of environment {number} has no pool port (turn on \"Tunnel\" in the header of environment {number})";
 
-    // {poolUrl:<id>} → id; {poolUrl} → il repository stesso.
+    // {poolUrl:<id>} → id; {poolUrl} → the repository itself.
     private static string PoolOwnerOf(string placeholder, string repository)
         => placeholder.StartsWith("{" + EnvConfiguration.PoolUrlPrefix, StringComparison.Ordinal)
             ? placeholder[(EnvConfiguration.PoolUrlPrefix.Length + 1)..^1]
             : repository;
 
-    /// <summary>La cartella del repository nell'ambiente modello; null se non c'e'.</summary>
+    /// <summary>The repository's folder in the template environment; null if it is not there.</summary>
     public static string? TemplatePathOf(AppConfiguration c, RepositoryConfiguration repository)
         => c.TemplateNumber() is { } number && c.Environment(number) is { } template
             ? c.RepositoriesOf(template).FirstOrDefault(r => string.Equals(r.Id, repository.Id, StringComparison.OrdinalIgnoreCase))?.Path
             : null;
 
-    /// <summary>Il file dei segreti: assoluto, o relativo al repository nell'ambiente modello; null senza segreti.</summary>
+    /// <summary>The secrets file: absolute, or relative to the repository in the template environment; null without secrets.</summary>
     public static string? SecretsPathOf(AppConfiguration c, RepositoryConfiguration repository)
         => repository.Env?.Secrets is { Source.Length: > 0 } secrets
             ? Path.IsPathFullyQualified(secrets.Source)
@@ -143,9 +143,9 @@ public static partial class EnvResolver
     public static string ContainerEnvPath(DockerSlot slot, EnvironmentRepository entry) => Path.Combine(slot.ComposeFolder, $"{entry.Id}.env");
 
     /// <summary>
-    /// Scrive il file di env del worktree con l'adapter del repository e copia i file locali
-    /// dall'ambiente modello. I segreti vanno solo in un target ignorato da git, oppure restano
-    /// nel loro .bat richiamato con @CALL. Restituisce le righe di log (nomi e conteggi).
+    /// Writes the worktree's env file with the repository's adapter and copies the local files
+    /// from the template environment. Secrets go only into a target ignored by git, or stay
+    /// in their own .bat invoked with @CALL. Returns the log lines (names and counts).
     /// </summary>
     public static async Task<IReadOnlyList<string>> WriteLocalAsync(AppConfiguration c, EnvironmentRepository entry, EnvResolution resolution, CancellationToken ct = default)
     {
@@ -162,17 +162,17 @@ public static partial class EnvResolver
                 {
                     set.RemoveWhere(v => v.Class == EnvClass.SharedSecret);
                     options = new EnvWriteOptions(SecretsCall: call);
-                    log.Add($"{entry.Id}: {secretCount} segreti richiamati con @CALL da {call}");
+                    log.Add($"{entry.Id}: {secretCount} secrets invoked with @CALL from {call}");
                 }
                 else if (await SourceCloneRepository.IsIgnoredAsync(entry.Path, env.Target, ct).ConfigureAwait(false) != true)
                 {
                     set.RemoveWhere(v => v.Class == EnvClass.SharedSecret);
-                    log.Add($"segreti non scritti: {target} non e' ignorato da git");
+                    log.Add($"secrets not written: {target} is not ignored by git");
                 }
             }
 
             EnvAdapters.For(env.Adapter).Write(target, set, options);
-            log.Add($"{entry.Id}: {target} scritto ({set.Count} variabili, {set.Count(v => v.Class == EnvClass.Slot)} per slot, {set.Count(v => v.Class == EnvClass.SharedSecret)} segreti)");
+            log.Add($"{entry.Id}: {target} written ({set.Count} variables, {set.Count(v => v.Class == EnvClass.Slot)} per slot, {set.Count(v => v.Class == EnvClass.SharedSecret)} secrets)");
         }
 
         var template = TemplatePathOf(c, entry.Repository);
@@ -181,22 +181,22 @@ public static partial class EnvResolver
             var source = template is null ? null : Path.Combine(template, file);
             if (source is null || !File.Exists(source))
             {
-                log.Add($"{entry.Id}: file locale {file} non trovato nell'ambiente modello");
+                log.Add($"{entry.Id}: local file {file} not found in the template environment");
                 continue;
             }
 
             var destination = Path.Combine(entry.Path, file);
             Directory.CreateDirectory(Path.GetDirectoryName(destination)!);
             File.Copy(source, destination, overwrite: true);
-            log.Add($"{entry.Id}: file locale {file} copiato dall'ambiente modello");
+            log.Add($"{entry.Id}: local file {file} copied from the template environment");
         }
 
         return log;
     }
 
     /// <summary>
-    /// Scrive &lt;cartella dello slot&gt;\&lt;id&gt;.env per compose (valori tra apici singoli,
-    /// letterali). Errore o null; l'errore nomina la variabile, mai il valore.
+    /// Writes &lt;slot folder&gt;\&lt;id&gt;.env for compose (values in single quotes,
+    /// literal). Error or null; the error names the variable, never the value.
     /// </summary>
     public static string? WriteContainer(DockerSlot slot, EnvironmentRepository entry, EnvResolution resolution)
     {
@@ -205,7 +205,7 @@ public static partial class EnvResolver
         {
             if (variable.Value.Contains('\'') || variable.Value.Contains('\n') || variable.Value.Contains('\r'))
             {
-                return $"{variable.Name} di {entry.Id}: il valore contiene un apice o un a capo, che l'env_file di compose non sa scrivere";
+                return $"{variable.Name} of {entry.Id}: the value contains a single quote or a line break, which compose's env_file cannot express";
             }
 
             lines.Add($"{variable.Name}='{variable.Value}'");
@@ -219,7 +219,7 @@ public static partial class EnvResolver
         return null;
     }
 
-    // (valore, null) se tutti i segnaposto si risolvono; (null, primo segnaposto mancante) altrimenti.
+    // (value, null) if every placeholder resolves; (null, first missing placeholder) otherwise.
     private static (string? Value, string? Missing) Substitute(string text, EnvironmentRepository entry, DockerSlot slot, IReadOnlyDictionary<string, string>? poolUrls)
     {
         string? missing = null;

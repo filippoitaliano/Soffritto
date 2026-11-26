@@ -1,18 +1,18 @@
 namespace Soffritto.Core;
 
-/// <summary>Le convenzioni git dello strumento, uguali per ogni repository del catalogo.</summary>
+/// <summary>The tool's git conventions, the same for every repository in the catalog.</summary>
 public static class GitConventions
 {
     /// <summary>
-    /// Il branch di sviluppo principale: Reset ci riporta i repository, i branch nuovi degli
-    /// ambienti Docker ne nascono, «Verifica seed» e «Allinea seed» si confrontano con le sue
-    /// migrazioni. Ogni repository del catalogo lo deve avere su origin.
+    /// The main development branch: Reset brings repositories back to it, new Docker environment
+    /// branches are created from it, and "Verify seed" and "Align seed" compare against its
+    /// migrations. Every repository in the catalog must have it on origin.
     /// </summary>
     public const string DevelopmentBranch = "dev";
 
-    /// <summary>Il remote-tracking branch di <see cref="DevelopmentBranch"/>.</summary>
+    /// <summary>The remote-tracking branch of <see cref="DevelopmentBranch"/>.</summary>
     public const string RemoteDevelopmentBranch = "origin/" + DevelopmentBranch;
 
-    /// <summary>Il ref completo di <see cref="RemoteDevelopmentBranch"/>.</summary>
+    /// <summary>The full ref of <see cref="RemoteDevelopmentBranch"/>.</summary>
     public const string RemoteDevelopmentReference = "refs/remotes/" + RemoteDevelopmentBranch;
 }

@@ -3,8 +3,8 @@ namespace Soffritto.Core;
 public static class GitStatusReader
 {
     /// <summary>
-    /// Stato del repository tramite git.exe. Con <paramref name="fetch"/> attivo esegue
-    /// prima un fetch: aggiorna solo i remote-tracking ref, mai il working tree.
+    /// Repository status via git.exe. With <paramref name="fetch"/> on it runs
+    /// a fetch first: it updates only the remote-tracking refs, never the working tree.
     /// </summary>
     public static async Task<GitStatus> ReadAsync(
         string repositoryRoot,
@@ -13,14 +13,14 @@ public static class GitStatusReader
     {
         if (!GitDirectory.Exists(repositoryRoot))
         {
-            return new GitStatus(Error: "Nessun repository git in questa cartella.");
+            return new GitStatus(Error: "No git repository in this folder.");
         }
 
         var head = await GitAsync(repositoryRoot, "rev-parse --abbrev-ref HEAD", 10, cancellationToken).ConfigureAwait(false);
         if (!head.Success)
         {
             var reason = head.Tail(2);
-            return new GitStatus(Error: reason.Length > 0 ? reason : "git non disponibile nel PATH.");
+            return new GitStatus(Error: reason.Length > 0 ? reason : "git is not available in PATH.");
         }
 
         var branch = head.StandardOutput.Trim();
@@ -41,7 +41,7 @@ public static class GitStatusReader
             if (!fetched.Success)
             {
                 var reason = fetched.Tail(2);
-                fetchError = reason.Length > 0 ? reason : "fetch fallito (timeout o remote irraggiungibile).";
+                fetchError = reason.Length > 0 ? reason : "fetch failed (timeout or unreachable remote).";
             }
         }
 
@@ -81,8 +81,8 @@ public static class GitStatusReader
     }
 
     /// <summary>
-    /// L'operazione git lasciata a meta' nel repository (merge, rebase, cherry-pick, revert), o
-    /// null. Lo stato --porcelain non la mostra se i conflitti sono gia' stati risolti.
+    /// The git operation left unfinished in the repository (merge, rebase, cherry-pick, revert), or
+    /// null. status --porcelain does not show it once the conflicts have been resolved.
     /// </summary>
     public static string? ReadOperationInProgress(string repositoryRoot)
     {
@@ -91,16 +91,16 @@ public static class GitStatusReader
             return null;
         }
 
-        return Directory.Exists(Path.Combine(git, "rebase-merge")) || Directory.Exists(Path.Combine(git, "rebase-apply")) ? "rebase in corso"
-            : File.Exists(Path.Combine(git, "MERGE_HEAD")) ? "merge in corso"
-            : File.Exists(Path.Combine(git, "CHERRY_PICK_HEAD")) ? "cherry-pick in corso"
-            : File.Exists(Path.Combine(git, "REVERT_HEAD")) ? "revert in corso"
+        return Directory.Exists(Path.Combine(git, "rebase-merge")) || Directory.Exists(Path.Combine(git, "rebase-apply")) ? "rebase in progress"
+            : File.Exists(Path.Combine(git, "MERGE_HEAD")) ? "merge in progress"
+            : File.Exists(Path.Combine(git, "CHERRY_PICK_HEAD")) ? "cherry-pick in progress"
+            : File.Exists(Path.Combine(git, "REVERT_HEAD")) ? "revert in progress"
             : null;
     }
 
     /// <summary>
-    /// Cambio branch con <c>git switch</c>: rifiuta da solo se le modifiche locali entrerebbero
-    /// in conflitto, e per un nome presente solo sul remote crea il branch locale che lo traccia.
+    /// Switches branch with <c>git switch</c>: it refuses on its own if local changes would
+    /// conflict, and for a name present only on the remote it creates the local branch tracking it.
     /// </summary>
     public static Task<ProcessOutcome> SwitchAsync(
         string repositoryRoot,
@@ -117,8 +117,8 @@ public static class GitStatusReader
             cancellationToken: cancellationToken);
     }
 
-    // refs/heads/<nome> e refs/remotes/<remote>/<nome>: il nome e' quello che si sceglie nella
-    // tendina, il remote non interessa. Il puntatore simbolico HEAD del remote non e' un branch.
+    // refs/heads/<name> and refs/remotes/<remote>/<name>: the name is what gets picked in the
+    // dropdown, the remote does not matter. The remote's symbolic HEAD pointer is not a branch.
     private static List<string> ParseBranches(string output)
     {
         var names = new SortedSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -152,8 +152,8 @@ public static class GitStatusReader
     }
 
     /// <summary>
-    /// Pull in fast-forward puro. <c>--ff-only</c> non e' una precauzione cosmetica: se il
-    /// fast-forward non e' possibile git rifiuta invece di creare un merge o dei conflitti.
+    /// A pure fast-forward pull. <c>--ff-only</c> is not a cosmetic precaution: if a
+    /// fast-forward is not possible git refuses instead of creating a merge or conflicts.
     /// </summary>
     public static Task<ProcessOutcome> FastForwardAsync(
         string repositoryRoot,
@@ -173,10 +173,10 @@ public static class GitStatusReader
     }
 
     /// <summary>
-    /// Branch locali rimasti senza il loro upstream sul remote. Il <c>--prune</c> fa parte della
-    /// lettura: finche' i remote-tracking ref cancellati restano sul disco git non marca nessun
-    /// upstream come <c>gone</c>, e l'elenco risulterebbe sempre vuoto. Il branch corrente non
-    /// compare mai: git rifiuterebbe comunque di eliminarlo.
+    /// Local branches left without their upstream on the remote. <c>--prune</c> is part of the
+    /// read: as long as deleted remote-tracking refs stay on disk git marks no
+    /// upstream as <c>gone</c>, and the list would always be empty. The current branch never
+    /// appears: git would refuse to delete it anyway.
     /// </summary>
     public static async Task<PrunableBranches> ReadPrunableBranchesAsync(
         string repositoryRoot,
@@ -197,7 +197,7 @@ public static class GitStatusReader
         if (!fetched.Success)
         {
             var reason = fetched.GitError();
-            return new PrunableBranches([], reason.Length > 0 ? reason : "fetch --prune fallito.");
+            return new PrunableBranches([], reason.Length > 0 ? reason : "fetch --prune failed.");
         }
 
         var head = await GitAsync(repositoryRoot, "rev-parse --abbrev-ref HEAD", 10, cancellationToken).ConfigureAwait(false);
@@ -212,16 +212,16 @@ public static class GitStatusReader
         if (!refs.Success)
         {
             var reason = refs.Tail(2);
-            return new PrunableBranches([], reason.Length > 0 ? reason : "lettura dei branch locali fallita.");
+            return new PrunableBranches([], reason.Length > 0 ? reason : "could not read the local branches.");
         }
 
         return new PrunableBranches(ParseGoneBranches(refs.StandardOutput, current));
     }
 
     /// <summary>
-    /// Elimina i branch locali indicati con <c>branch -D</c>. Il <c>-d</c> non e' un'alternativa:
-    /// con la storia mergiata via squash o rebase rifiuterebbe proprio i branch gia' integrati,
-    /// che sono il caso normale qui. La conferma dell'utente sta a monte.
+    /// Deletes the given local branches with <c>branch -D</c>. <c>-d</c> is not an alternative:
+    /// with history merged via squash or rebase it would refuse exactly the branches already integrated,
+    /// which are the normal case here. The user's confirmation happens upstream.
     /// </summary>
     public static Task<ProcessOutcome> DeleteBranchesAsync(
         string repositoryRoot,
@@ -240,9 +240,9 @@ public static class GitStatusReader
             cancellationToken: cancellationToken);
     }
 
-    // Righe "<branch>\t[gone]" oppure "<branch>\t[ahead 2]": il marcatore gone dice che
-    // l'upstream configurato non esiste piu'. Un branch senza upstream ha la colonna vuota e
-    // non e' un candidato: non e' "sparito dal remote", non c'e' mai stato.
+    // Lines "<branch>\t[gone]" or "<branch>\t[ahead 2]": the gone marker says the
+    // configured upstream no longer exists. A branch without an upstream has an empty column and
+    // is not a candidate: it did not "disappear from the remote", it was never there.
     private static List<string> ParseGoneBranches(string output, string? currentBranch)
     {
         var names = new List<string>();
@@ -271,8 +271,8 @@ public static class GitStatusReader
         return names;
     }
 
-    // I worktree dello stesso clone sorgente condividono i ref: due fetch insieme darebbero
-    // "cannot lock ref". Un clone normale ha i ref suoi e non aspetta nessuno.
+    // Worktrees of the same source clone share refs: two fetches at once would give
+    // "cannot lock ref". A normal clone has its own refs and waits for nobody.
     private static async Task<ProcessOutcome> SerializedAsync(string repositoryRoot, Func<Task<ProcessOutcome>> run, CancellationToken cancellationToken)
     {
         if (!GitDirectory.IsWorktree(repositoryRoot))

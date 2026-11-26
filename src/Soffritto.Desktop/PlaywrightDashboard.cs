@@ -5,13 +5,13 @@ using System.Text.RegularExpressions;
 
 namespace Soffritto.Desktop;
 
-/// <summary>Esito dell'avvio: l'indirizzo della dashboard, oppure il pid di quella gia' aperta altrove, oppure l'errore.</summary>
+/// <summary>Startup result: the dashboard address, or the pid of one already open elsewhere, or the error.</summary>
 public sealed record DashboardStart(Uri? Url, int? OtherPid, string? Error);
 
 /// <summary>
-/// La dashboard di playwright-cli (<c>playwright-cli show --port=0</c>): un server locale che
-/// mostra in diretta le pagine di tutti i browser della CLI. Gira come figlio dell'exe, dentro il
-/// suo job: muore con l'exe anche se l'exe muore male.
+/// The playwright-cli dashboard (<c>playwright-cli show --port=0</c>): a local server that shows
+/// the pages of all the CLI's browsers live. It runs as a child of the exe, inside its job: it dies
+/// with the exe even if the exe crashes.
 /// </summary>
 public sealed partial class PlaywrightDashboard
 {
@@ -19,20 +19,20 @@ public sealed partial class PlaywrightDashboard
 
     public bool IsRunning => process is { HasExited: false };
 
-    /// <param name="localAppData">La LOCALAPPDATA del registro dei browser da mostrare: la dashboard legge quel registro e nessun altro.</param>
-    /// <param name="onExited">Chiamato se la dashboard si chiude da sola, non dopo <see cref="Stop"/>.</param>
+    /// <param name="localAppData">The LOCALAPPDATA of the browser registry to show: the dashboard reads that registry and no other.</param>
+    /// <param name="onExited">Called if the dashboard closes on its own, not after <see cref="Stop"/>.</param>
     public async Task<DashboardStart> StartAsync(string localAppData, Action onExited, CancellationToken cancellationToken)
     {
         var path = PlaywrightCli.CurrentPath();
 
-        // Senza questo controllo l'errore arriva da cmd, nella codepage OEM e non in UTF-8.
+        // Without this check the error comes from cmd, in the OEM code page instead of UTF-8.
         if (!PlaywrightCli.IsInstalled(path))
         {
-            return new DashboardStart(null, null, "playwright-cli non trovato, non e' installato o non e' nel PATH");
+            return new DashboardStart(null, null, "playwright-cli not found: it is not installed or not on the PATH");
         }
 
-        // Lo stdin resta aperto apposta: la dashboard si chiude da sola quando le si chiude lo
-        // stdin, ed e' cosi' che Stop la ferma senza lasciare orfani.
+        // stdin stays open on purpose: the dashboard exits on its own when its stdin is closed,
+        // and that is how Stop shuts it down without leaving orphans.
         var startInfo = new ProcessStartInfo("cmd.exe", "/d /c playwright-cli show --port=0")
         {
             WorkingDirectory = Path.GetTempPath(),
@@ -87,7 +87,7 @@ public sealed partial class PlaywrightDashboard
             }
 
             announced.TrySetResult(new DashboardStart(null, null,
-                detail.Length > 0 ? detail : "playwright-cli show si e' chiuso senza aprire la dashboard"));
+                detail.Length > 0 ? detail : "playwright-cli show exited without opening the dashboard"));
 
             if (ReferenceEquals(process, started))
             {
@@ -103,7 +103,7 @@ public sealed partial class PlaywrightDashboard
         catch (Exception ex)
         {
             started.Dispose();
-            return new DashboardStart(null, null, $"playwright-cli non avviabile: {ex.Message}");
+            return new DashboardStart(null, null, $"playwright-cli could not be started: {ex.Message}");
         }
 
         process = started;
@@ -113,7 +113,7 @@ public sealed partial class PlaywrightDashboard
         var winner = await Task.WhenAny(announced.Task, Task.Delay(TimeSpan.FromSeconds(30), cancellationToken)).ConfigureAwait(false);
         var outcome = winner == announced.Task
             ? announced.Task.Result
-            : new DashboardStart(null, null, "playwright-cli show non ha annunciato la dashboard entro 30 secondi");
+            : new DashboardStart(null, null, "playwright-cli show did not announce the dashboard within 30 seconds");
 
         if (outcome.Url is null)
         {
@@ -123,7 +123,7 @@ public sealed partial class PlaywrightDashboard
         return outcome;
     }
 
-    /// <summary>Chiude la dashboard: bloccante fino a qualche secondo, da chiamare fuori dal thread della UI.</summary>
+    /// <summary>Closes the dashboard: blocks for up to a few seconds, so call it off the UI thread.</summary>
     public void Stop()
     {
         var running = process;
@@ -145,7 +145,7 @@ public sealed partial class PlaywrightDashboard
         }
         catch
         {
-            // Gia' uscita tra il controllo e la chiusura.
+            // Already exited between the check and the close.
         }
 
         running.Dispose();

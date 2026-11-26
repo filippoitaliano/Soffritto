@@ -2,44 +2,44 @@
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
-    <!-- La versione di Windows serve alla WebView2CompositionControl del pannello del
-         pomodoro: il suo assembly WPF usa le proiezioni WinRT (Windows.Graphics.Capture), che
-         arrivano solo con un target che dichiara la versione di Windows. -->
+    <!-- The Windows version is needed by the WebView2CompositionControl of the Pomodoro panel:
+         its WPF assembly uses the WinRT projections (Windows.Graphics.Capture), which only come
+         with a target that declares the Windows version. -->
     <TargetFramework>net11.0-windows10.0.17763.0</TargetFramework>
     <UseWPF>true</UseWPF>
-    <!-- Solo per NotifyIcon: le notifiche Windows partono dal fumetto dell'icona di sistema. -->
+    <!-- Only for NotifyIcon: Windows notifications start from the tray icon balloon. -->
     <UseWindowsForms>true</UseWindowsForms>
     <RootNamespace>Soffritto.Desktop</RootNamespace>
     <AssemblyName>Soffritto</AssemblyName>
-    <!-- L'icona del prodotto: 16, 32, 48 e 256 px. -->
+    <!-- The product icon: 16, 32, 48 and 256 px. -->
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <!-- La build Debug puo' girare accanto a quella pubblicata: lava e roccia al posto di erba e
-         violetto la distinguono in barra delle applicazioni, finestra e tray. -->
+    <!-- The Debug build can run next to the published one: lava and rock instead of grass and
+         violet tell it apart in the taskbar, the window and the tray. -->
     <ApplicationIcon Condition="'$(Configuration)' == 'Debug'">app-debug.ico</ApplicationIcon>
     <NoWarn>$(NoWarn);NETSDK1057</NoWarn>
 
-    <!-- Su una macchina che ha solo un runtime piu' recente dell'11 l'exe non parte senza roll
-         forward. La prerelease non viene scelta senza DOTNET_ROLL_FORWARD_TO_PRERELEASE. -->
+    <!-- On a machine that only has a runtime newer than 11 the exe does not start without roll
+         forward. A prerelease is not picked without DOTNET_ROLL_FORWARD_TO_PRERELEASE. -->
     <RollForward>LatestMajor</RollForward>
 
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <SelfContained>false</SelfContained>
     <PublishSingleFile>true</PublishSingleFile>
-    <!-- La SNI nativa di SqlClient finisce dentro l'exe e viene estratta all'avvio: senza,
-         il file singolo resterebbe accompagnato dalla sua DLL nativa. -->
+    <!-- The native SNI of SqlClient goes inside the exe and is extracted at startup: without
+         this, the single file would still ship alongside its native DLL. -->
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
-    <!-- Program.Main serve Velopack prima che parta WPF (Infrastructure/Installation.cs). -->
+    <!-- Program.Main serves Velopack before WPF starts (Infrastructure/Installation.cs). -->
     <StartupObject>Soffritto.Desktop.Program</StartupObject>
   </PropertyGroup>
 
-  <!-- La release da cui l'installazione si aggiorna: la passa release.ps1, cosi' nel codice non
-       c'e' nessun indirizzo. Le build di sviluppo non ce l'hanno e non si aggiornano. -->
+  <!-- The release the installation updates from: release.ps1 passes it, so there is no address
+       in the code. Development builds don't have it and don't update. -->
   <ItemGroup Condition="'$(UpdateRepository)' != ''">
     <AssemblyMetadata Include="UpdateRepository" Value="$(UpdateRepository)" />
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Gli using impliciti di WinForms rendono ambigui Application, Image, KeyEventArgs di WPF. -->
+    <!-- The implicit WinForms usings make WPF's Application, Image and KeyEventArgs ambiguous. -->
     <Using Remove="System.Windows.Forms" />
     <Using Remove="System.Drawing" />
   </ItemGroup>
@@ -55,12 +55,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Codicons di VS Code (@vscode/codicons 0.0.45, CC BY 4.0, licenza accanto al font): le
-         icone git uguali a quelle di Visual Studio, che Segoe Fluent Icons non ha. -->
+    <!-- VS Code Codicons (@vscode/codicons 0.0.45, CC BY 4.0, license next to the font): git
+         icons matching Visual Studio's, which Segoe Fluent Icons lacks. -->
     <Resource Include="Fonts\codicon.ttf" />
-    <!-- Nunito (SIL OFL 1.1, licenza accanto ai font), il carattere tondo dello stile giocoso:
-         quattro pesi statici da Google Fonts, perche' del font variabile WPF usa un peso solo e
-         il grassetto lo simula. -->
+    <!-- Nunito (SIL OFL 1.1, license next to the fonts), the rounded typeface of the playful style:
+         four static weights from Google Fonts, because WPF uses only one weight of the variable
+         font and fakes the bold. -->
     <Resource Include="Fonts\Nunito-*.ttf" />
   </ItemGroup>
 

@@ -3,25 +3,25 @@ using System.Collections.Concurrent;
 namespace Soffritto.Core;
 
 /// <summary>
-/// Dove sta la cartella git di un working tree: ".git" e' una cartella in un clone normale e un
-/// file "gitdir: ..." in un worktree. Da qui anche il lock che serializza il git di rete dei
-/// worktree che condividono lo stesso clone sorgente.
+/// Where a working tree's git folder is: ".git" is a folder in a normal clone and a
+/// "gitdir: ..." file in a worktree. This also provides the lock that serializes network git
+/// operations of worktrees sharing the same source clone.
 /// </summary>
 public static class GitDirectory
 {
     private static readonly ConcurrentDictionary<string, SemaphoreSlim> locks = new(StringComparer.OrdinalIgnoreCase);
 
-    /// <summary>Vero se la cartella ha un ".git", cartella o file.</summary>
+    /// <summary>True if the folder has a ".git", folder or file.</summary>
     public static bool Exists(string root)
     {
         var git = Path.Combine(root, ".git");
         return Directory.Exists(git) || File.Exists(git);
     }
 
-    /// <summary>Vero se ".git" e' un file: la cartella e' un worktree di un altro clone.</summary>
+    /// <summary>True if ".git" is a file: the folder is a worktree of another clone.</summary>
     public static bool IsWorktree(string root) => File.Exists(Path.Combine(root, ".git"));
 
-    /// <summary>La cartella git del working tree (".git", o quella indicata dal file "gitdir:"); null se non c'e'.</summary>
+    /// <summary>The working tree's git folder (".git", or the one pointed to by the "gitdir:" file); null if there is none.</summary>
     public static string? Resolve(string root)
     {
         var git = Path.Combine(root, ".git");
@@ -47,7 +47,7 @@ public static class GitDirectory
         return null;
     }
 
-    /// <summary>La cartella comune di un worktree (il clone sorgente, da "commondir"); null per un clone normale.</summary>
+    /// <summary>A worktree's common folder (the source clone, from "commondir"); null for a normal clone.</summary>
     public static string? Common(string root)
     {
         if (Resolve(root) is not { } gitDirectory)
@@ -71,8 +71,8 @@ public static class GitDirectory
     }
 
     /// <summary>
-    /// Il lock del clone a cui appartiene la cartella: lo stesso per un clone bare e per tutti i
-    /// suoi worktree, cosi' fetch, pull e comandi worktree sullo stesso clone non si sovrappongono.
+    /// The lock of the clone the folder belongs to: the same for a bare clone and all of its
+    /// worktrees, so fetch, pull and worktree commands on the same clone never overlap.
     /// </summary>
     public static SemaphoreSlim LockOf(string root)
     {

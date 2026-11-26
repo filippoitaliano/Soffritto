@@ -21,11 +21,11 @@ public enum MeetingPhase
 }
 
 /// <summary>
-/// I colori della riunione, pensata per un televisore: un accento per fase, cosi' da lontano si
-/// capisce a che punto si e' anche senza leggere. Nel tema chiaro gli accenti sono piu' scuri,
-/// perche' stanno anche come testo su fondo bianco; <see cref="OnAccent"/> e' il testo sopra un
-/// accento. Il cronometro della descrizione passa a <see cref="Warning"/> dopo un minuto e a
-/// <see cref="Expired"/> dopo due. Fondi e testi neutri li tiene il pannello
+/// The meeting colours, designed for a TV screen: one accent per phase, so you can tell from across
+/// the room where things stand without reading. In the light theme the accents are darker, because
+/// they also serve as text on a white background; <see cref="OnAccent"/> is the text on top of an
+/// accent. The description stopwatch turns <see cref="Warning"/> after one minute and
+/// <see cref="Expired"/> after two. Neutral backgrounds and texts belong to the panel
 /// (StoryPointsMeetingPanel.ApplyTheme).
 /// </summary>
 public sealed record MeetingPalette(string Expert, string Description, string Thinking, string Votes, string Warning, string Expired, string OnAccent)
@@ -36,8 +36,8 @@ public sealed record MeetingPalette(string Expert, string Description, string Th
 }
 
 /// <summary>
-/// Un partecipante della riunione: ha una sigla modificabile, chi conduce lo sceglie come esperto
-/// e ne scrive il voto.
+/// A meeting participant: has editable initials; the facilitator picks them as the expert and
+/// types in their vote.
 /// </summary>
 public sealed class MeetingParticipant : ObservableObject
 {
@@ -70,14 +70,14 @@ public sealed class MeetingParticipant : ObservableObject
         }
     }
 
-    /// <summary>La sigla come si mostra: senza sigla vale la posizione (P5).</summary>
+    /// <summary>The initials as shown: without initials, the position stands in (P5).</summary>
     public string Label => initials.Trim() is { Length: > 0 } trimmed ? trimmed.ToUpperInvariant() : $"P{number}";
 
     public ICommand ChooseExpertCommand { get; }
 
     public bool IsExpert { get => isExpert; set => SetProperty(ref isExpert, value); }
 
-    /// <summary>Vuoto vale come astensione; un testo che non e' un numero non e' un voto.</summary>
+    /// <summary>Empty counts as abstaining; text that is not a number is not a vote.</summary>
     public string VoteText
     {
         get => voteText;
@@ -113,7 +113,7 @@ public sealed class MeetingParticipant : ObservableObject
     }
 }
 
-/// <summary>Un valore della scala nella fase dei voti: quello piu' vicino alla media e' gia' scelto.</summary>
+/// <summary>A scale value in the voting phase: the one closest to the average is preselected.</summary>
 public sealed class PointsChoice : ObservableObject
 {
     private bool isSelected;
@@ -131,7 +131,7 @@ public sealed class PointsChoice : ObservableObject
     public bool IsSelected { get => isSelected; set => SetProperty(ref isSelected, value); }
 }
 
-/// <summary>Una tappa nella striscia delle fasi o delle storie: fatta, in corso o da fare.</summary>
+/// <summary>A step in the phase or story strip: done, current or still to do.</summary>
 public sealed class MeetingStep : ObservableObject
 {
     private readonly string number;
@@ -169,37 +169,37 @@ public sealed class MeetingStep : ObservableObject
     }
 }
 
-/// <summary>Come e' andata una storia, per il riepilogo di fine riunione.</summary>
+/// <summary>How a story went, for the end-of-meeting summary.</summary>
 public sealed record MeetingOutcome(string WorkItem, string Title, string Result, int? Points)
 {
     public bool IsSkipped => Points is null;
 }
 
-/// <summary>Una storia nell'elenco del recap prima di partire.</summary>
+/// <summary>A story in the recap list shown before starting.</summary>
 public sealed record RecapStory(string WorkItem, string Title, string Feature);
 
 /// <summary>
-/// La riunione dei punti storia, un gioco a turni e a tempo: un turno per storia utente da
-/// stimare. Prima di partire un recap dice quante storie ci sono e quanto durera' circa. Le fasi
-/// sono la scelta dell'esperto, la sua descrizione, il tempo per pensare e i voti, di cui la media
-/// si arrotonda al valore della scala piu' vicino. Si avanza sempre a mano con «Avanti»: solo la
-/// descrizione ha un cronometro, che diventa giallo dopo un minuto e rosso dopo due ma continua a
-/// contare. I punti si scrivono sul work item solo con «Salva».
+/// The story points meeting, a timed turn-based game: one turn per user story to estimate. Before
+/// starting, a recap says how many stories there are and roughly how long it will take. The phases
+/// are picking the expert, the expert's description, thinking time and the votes, whose average is
+/// rounded to the nearest scale value. You always move on by hand with “Next”: only the description
+/// has a stopwatch, which turns yellow after one minute and red after two but keeps counting. Points
+/// are written to the work item only with “Save”.
 /// </summary>
 public sealed class StoryPointsMeetingViewModel : ObservableObject
 {
     private const int MinParticipants = 2;
     private const int MaxParticipants = 20;
 
-    // I tempi realistici delle fasi: non sono piu' timer, ma restano la base della durata stimata.
-    // DescriptionTime e' anche la soglia del giallo del cronometro; il doppio e' quella del rosso.
+    // Realistic phase durations: they are no longer timers, but still drive the estimated duration.
+    // DescriptionTime is also the stopwatch's yellow threshold; twice that is the red one.
     private static readonly TimeSpan ExpertTime = TimeSpan.FromSeconds(10);
     private static readonly TimeSpan DescriptionTime = TimeSpan.FromMinutes(1);
     private static readonly TimeSpan DescriptionLate = DescriptionTime * 2;
     private static readonly TimeSpan ThinkingTime = TimeSpan.FromSeconds(10);
 
-    // I voti non hanno timer: per la stima della durata contano giro di voti, eventuale scelta
-    // di un altro valore e salvataggio.
+    // Votes have no timer: the duration estimate covers the round of votes, possibly picking
+    // another value, and saving.
     private static readonly TimeSpan VotesEstimate = TimeSpan.FromSeconds(40);
     private static readonly TimeSpan PerStory = ExpertTime + DescriptionTime + ThinkingTime + VotesEstimate;
 
@@ -218,16 +218,16 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
     private DateTime startedAt;
     private DateTime finishedAt;
 
-    // Il cronometro della descrizione: l'inizio mentre corre, il tempo fermo mentre e' in pausa.
+    // The description stopwatch: the start time while running, the frozen elapsed time while paused.
     private DateTime phaseStart;
     private TimeSpan pausedElapsed;
     private bool isPaused;
     private int signals;
 
-    /// <param name="read">Da dove arrivano le storie: Azure DevOps, o dati inventati nella demo.</param>
-    /// <param name="save">Scrive i punti; null se riuscito, altrimenti il motivo.</param>
-    /// <param name="initials">Le sigle con cui parte la riunione.</param>
-    /// <param name="remember">Ricorda sigle e tema per la volta dopo (non in demo).</param>
+    /// <param name="read">Where the stories come from: Azure DevOps, or made-up data in the demo.</param>
+    /// <param name="save">Writes the points; null on success, otherwise the reason.</param>
+    /// <param name="initials">The initials the meeting starts with.</param>
+    /// <param name="remember">Remembers initials and theme for next time (not in the demo).</param>
     public StoryPointsMeetingViewModel(
         Func<Task<StoriesToEstimate>> read,
         Func<int, int, Task<string?>> save,
@@ -250,10 +250,10 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         Choices = new ObservableCollection<PointsChoice>(StoryPointsScale.Values.Select(v => new PointsChoice(v, Select)));
         PhaseSteps =
         [
-            new MeetingStep("1", "Esperto"),
-            new MeetingStep("2", "Descrizione"),
-            new MeetingStep("3", "Pensare"),
-            new MeetingStep("4", "Voti"),
+            new MeetingStep("1", "Expert"),
+            new MeetingStep("2", "Description"),
+            new MeetingStep("3", "Think"),
+            new MeetingStep("4", "Votes"),
         ];
 
         LessCommand = new RelayCommand(_ => RemoveParticipant());
@@ -268,7 +268,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         EditCommand = new RelayCommand(_ => SetEditing(true));
         UseAverageCommand = new RelayCommand(_ => VotesChanged());
         SaveCommand = new AsyncCommand(SaveAsync);
-        SkipCommand = new RelayCommand(_ => Finish("saltata", null));
+        SkipCommand = new RelayCommand(_ => Finish("skipped", null));
         NewMeetingCommand = new RelayCommand(_ => Reset());
         OpenStoryCommand = new RelayCommand(_ =>
         {
@@ -298,7 +298,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
 
     public IReadOnlyList<MeetingStep> PhaseSteps { get; }
 
-    /// <summary>Un pallino per storia, in cima durante i turni.</summary>
+    /// <summary>One dot per story, shown at the top during the turns.</summary>
     public ObservableCollection<MeetingStep> StoryDots { get; } = [];
 
     public ICommand LessCommand { get; }
@@ -400,7 +400,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
 
     public string VotesVisibility => Visible(phase == MeetingPhase.Votes);
 
-    /// <summary>Le tre fasi prima dei voti: titolo, comandi della fase e «Avanti»; nei voti il risultato.</summary>
+    /// <summary>The three phases before the votes: title, phase commands and “Next”; during the votes, the result.</summary>
     public string BeforeVotesVisibility => Visible(phase is MeetingPhase.Expert or MeetingPhase.Description or MeetingPhase.Thinking);
 
     public string StopwatchVisibility => Visible(phase == MeetingPhase.Description);
@@ -419,27 +419,27 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
 
     public string PhaseTitle => phase switch
     {
-        MeetingPhase.Expert => "Chi è l'esperto?",
-        MeetingPhase.Description => $"Parla {ExpertLabel}",
-        MeetingPhase.Thinking => "Silenzio, si pensa",
-        MeetingPhase.Votes => "Dite i vostri punti",
+        MeetingPhase.Expert => "Who's the expert?",
+        MeetingPhase.Description => $"{ExpertLabel} has the floor",
+        MeetingPhase.Thinking => "Quiet, thinking time",
+        MeetingPhase.Votes => "Call out your points",
         _ => string.Empty,
     };
 
     public string PhaseHint => phase switch
     {
-        MeetingPhase.Expert => "Scegliete chi conosce meglio quest'area",
-        MeetingPhase.Description => "Circa un minuto per spiegare la storia",
-        MeetingPhase.Thinking => "Ognuno decide il suo numero, senza dirlo",
-        MeetingPhase.Votes => "Tutti insieme, poi si scrivono i numeri",
+        MeetingPhase.Expert => "Pick whoever knows this area best",
+        MeetingPhase.Description => "About a minute to explain the story",
+        MeetingPhase.Thinking => "Everyone picks a number without saying it",
+        MeetingPhase.Votes => "All together, then type in the numbers",
         _ => string.Empty,
     };
 
-    private string ExpertLabel => Participants.FirstOrDefault(p => p.IsExpert)?.Label ?? "l'esperto";
+    private string ExpertLabel => Participants.FirstOrDefault(p => p.IsExpert)?.Label ?? "The expert";
 
     public StoryToEstimate? Story => index < stories.Count ? stories[index] : null;
 
-    public string StoryCounter => $"Storia {Math.Min(index + 1, stories.Count)} di {stories.Count}";
+    public string StoryCounter => $"Story {Math.Min(index + 1, stories.Count)} of {stories.Count}";
 
     public string StoryId => Story is { } story ? $"#{story.Id}" : string.Empty;
 
@@ -449,23 +449,23 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
 
     public string FeatureTitle => Story?.FeatureTitle ?? string.Empty;
 
-    /// <summary>Un bug senza funzionalita' padre non ha la sezione della funzionalita'.</summary>
+    /// <summary>A bug without a parent feature has no feature section.</summary>
     public string FeatureSectionVisibility => Visible(Story?.FeatureId is not null);
 
-    public string StoryKindLabel => Story?.IsBug == true ? "BUG" : "STORIA UTENTE";
+    public string StoryKindLabel => Story?.IsBug == true ? "BUG" : "USER STORY";
 
-    /// <summary>La descrizione com'e' sul work item, anche quando ripete il titolo.</summary>
+    /// <summary>The description as it is on the work item, even when it repeats the title.</summary>
     public string StoryDescription => Story?.Description ?? string.Empty;
 
     public string DescriptionSectionVisibility => Visible(StoryDescription.Length > 0);
 
     public string StoryCount => stories.Count.ToString(CultureInfo.CurrentCulture);
 
-    public string StoryCountLabel => stories.Count == 1 ? "storia da stimare" : "storie da stimare";
+    public string StoryCountLabel => stories.Count == 1 ? "story to estimate" : "stories to estimate";
 
     public string EstimatedDuration => $"~{Minutes(PerStory * stories.Count)}";
 
-    public string EstimatedDurationHint => $"{Minutes(PerStory)} a storia: 10 s + 1 min + 10 s + ~{VotesEstimate.TotalSeconds:0} s di voti";
+    public string EstimatedDurationHint => $"{Minutes(PerStory)} per story: 10 s + 1 min + 10 s + ~{VotesEstimate.TotalSeconds:0} s of voting";
 
     public string EstimatedEnd => (DateTime.Now + PerStory * stories.Count).ToString("HH:mm", CultureInfo.CurrentCulture);
 
@@ -483,8 +483,8 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
     }
 
     /// <summary>
-    /// L'anello si riempie in un minuto, blu e poi di nuovo giallo; dal secondo minuto in poi
-    /// resta pieno e rosso.
+    /// The ring fills up in one minute, blue and then again in yellow; from the second minute on it
+    /// stays full and red.
     /// </summary>
     public double TimeRatio
     {
@@ -504,7 +504,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         }
     }
 
-    public string PauseLabel => isPaused ? "Riprendi" : "Pausa";
+    public string PauseLabel => isPaused ? "Resume" : "Pause";
 
     private TimeSpan Elapsed => isPaused ? pausedElapsed : DateTime.UtcNow - phaseStart;
 
@@ -515,13 +515,13 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
             var invalid = Participants.Where(p => p.HasInvalidVote).Select(p => p.Label).ToList();
             if (invalid.Count > 0)
             {
-                return $"{string.Join(", ", invalid)}: non è un numero";
+                return $"{string.Join(", ", invalid)}: not a number";
             }
 
             var votes = Votes();
             return votes.Count == 0
-                ? "Nessun voto ancora"
-                : $"{votes.Count} voti su {Participants.Count} · media {votes.Average().ToString("0.#", CultureInfo.CurrentCulture)}";
+                ? "No votes yet"
+                : $"{votes.Count} of {Participants.Count} voted · average {votes.Average().ToString("0.#", CultureInfo.CurrentCulture)}";
         }
     }
 
@@ -533,12 +533,12 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
 
     private bool IsManual => Selected is { } selected && selected.Value != Nearest;
 
-    /// <summary>Da dove viene il valore nel cerchio: la media, o una scelta a mano che la cambia.</summary>
+    /// <summary>Where the value in the circle comes from: the average, or a manual pick that overrides it.</summary>
     public string PointsNote => Selected is null
-        ? "scrivete i voti per avere la media"
-        : IsManual ? $"cambiato a mano · la media dava {Nearest}" : "il valore più vicino alla media";
+        ? "type in the votes to get the average"
+        : IsManual ? $"changed by hand · the average gave {Nearest}" : "the value closest to the average";
 
-    /// <summary>La scala si vede solo dopo «Modifica»: di norma vale la media.</summary>
+    /// <summary>The scale shows only after “Edit”: normally the average applies.</summary>
     public string ChoicesVisibility => Visible(isEditing);
 
     public string EditVisibility => Visible(!isEditing && Selected is not null);
@@ -547,7 +547,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
 
     public bool CanSave => !isSaving && Votes().Count > 0 && Participants.All(p => !p.HasInvalidVote) && Choices.Any(c => c.IsSelected);
 
-    public string SaveLabel => isSaving ? "Salvataggio…" : "Salva e avanti";
+    public string SaveLabel => isSaving ? "Saving…" : "Save and next";
 
     public string ErrorLine
     {
@@ -569,17 +569,17 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         {
             var saved = Outcomes.Count(o => o.Points is not null);
             var skipped = Outcomes.Count - saved;
-            return $"{saved} {(saved == 1 ? "storia stimata" : "storie stimate")}"
-                + (skipped > 0 ? $", {skipped} {(skipped == 1 ? "saltata" : "saltate")}" : string.Empty)
-                + $" · {Outcomes.Sum(o => o.Points ?? 0)} punti in tutto";
+            return $"{saved} {(saved == 1 ? "story estimated" : "stories estimated")}"
+                + (skipped > 0 ? $", {skipped} skipped" : string.Empty)
+                + $" · {Outcomes.Sum(o => o.Points ?? 0)} points in total";
         }
     }
 
     public string FinishedDuration
-        => $"Dalle {startedAt.ToString("HH:mm", CultureInfo.CurrentCulture)} alle {finishedAt.ToString("HH:mm", CultureInfo.CurrentCulture)}"
-            + $" · durata {Minutes(finishedAt - startedAt)}, stimata {Minutes(PerStory * stories.Count)}";
+        => $"From {startedAt.ToString("HH:mm", CultureInfo.CurrentCulture)} to {finishedAt.ToString("HH:mm", CultureInfo.CurrentCulture)}"
+            + $" · took {Minutes(finishedAt - startedAt)}, estimated {Minutes(PerStory * stories.Count)}";
 
-    /// <summary>Ferma il timer: la riunione resta dov'e', ma non suona piu'.</summary>
+    /// <summary>Stops the timer: the meeting stays where it is, but no longer beeps.</summary>
     public void Stop() => timer.Stop();
 
     private void AddParticipant(string initials, bool rememberNow = false)
@@ -785,7 +785,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         TimeChanged();
     }
 
-    // Il cronometro non ferma la fase: suona solo quando diventa giallo e quando diventa rosso.
+    // The stopwatch never ends the phase: it only beeps when it turns yellow and when it turns red.
     private void Tick()
     {
         var elapsed = Elapsed;
@@ -815,8 +815,8 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         OnPropertyChanged(nameof(PhaseTitle));
     }
 
-    // Ogni voto cambiato (e «Usa la media») ripropone il valore della scala piu' vicino alla media
-    // e richiude la scala: una scelta a mano fatta prima non vale piu' per i voti nuovi.
+    // Every changed vote (and “Use the average”) reselects the scale value closest to the average
+    // and closes the scale again: an earlier manual pick no longer applies to the new votes.
     private void VotesChanged()
     {
         var nearest = Nearest;
@@ -830,7 +830,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         OnPropertyChanged(nameof(VotesSummary));
     }
 
-    // Un clic sulla scala sceglie e la richiude: il cerchio dice che il valore e' cambiato a mano.
+    // A click on the scale picks a value and closes it: the circle says the value was changed by hand.
     private void Select(PointsChoice selected)
     {
         foreach (var choice in Choices)
@@ -879,11 +879,11 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
 
         if (error is not null)
         {
-            ErrorLine = $"Punti non salvati su #{story.Id}: {error}";
+            ErrorLine = $"Points not saved on #{story.Id}: {error}";
             return;
         }
 
-        Finish($"{choice.Value} punti", choice.Value);
+        Finish($"{choice.Value} points", choice.Value);
     }
 
     private void Finish(string result, int? points)
@@ -898,7 +898,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         BeginTurn();
     }
 
-    // I partecipanti restano con le loro sigle: si perdono solo voti ed esperto.
+    // Participants keep their initials: only the votes and the expert are cleared.
     private void Reset()
     {
         timer.Stop();
@@ -919,7 +919,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
     private static string Minutes(TimeSpan span)
     {
         var minutes = (int)Math.Round(span.TotalMinutes);
-        return minutes < 1 ? "meno di un minuto" : minutes == 1 ? "1 min" : $"{minutes} min";
+        return minutes < 1 ? "less than a minute" : minutes == 1 ? "1 min" : $"{minutes} min";
     }
 
     private static string Visible(bool visible) => visible ? "Visible" : "Collapsed";

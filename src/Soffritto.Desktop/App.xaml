@@ -3,32 +3,31 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Soffritto.Desktop"
              xmlns:sys="clr-namespace:System;assembly=mscorlib">
-  <!-- Stili di pulsanti e tag condivisi tra la finestra principale e i pannelli flottanti. -->
+  <!-- Button and tag styles shared by the main window and the floating panels. -->
   <Application.Resources>
     <ResourceDictionary>
-    <!-- Colori neutri (fondi, bordi, testi, campi) come risorse Theme.*: ThemeManager sostituisce
-         ThemeLight.xaml con ThemeDark.xaml, e ogni DynamicResource si aggiorna da solo. -->
+    <!-- Neutral colors (backgrounds, borders, texts, fields) as Theme.* resources: ThemeManager swaps
+         ThemeLight.xaml for ThemeDark.xaml, and every DynamicResource updates by itself. -->
     <ResourceDictionary.MergedDictionaries>
       <ResourceDictionary Source="ThemeLight.xaml" />
     </ResourceDictionary.MergedDictionaries>
-    <!-- Icone git (branch, fetch, pull) disegnate come in Visual Studio: vengono dal font Codicons
-         incorporato, il resto delle icone resta Segoe Fluent Icons. -->
+    <!-- Git icons (branch, fetch, pull) drawn as in Visual Studio: they come from the embedded
+         Codicons font, the rest of the icons stay Segoe Fluent Icons. -->
     <FontFamily x:Key="Codicons">pack://application:,,,/Fonts/#codicon</FontFamily>
     <FontFamily x:Key="Rounded">pack://application:,,,/Fonts/#Nunito</FontFamily>
 
-    <!-- Bottoni delle azioni (card, righe delle liste, pannelli): una sola misura, 26 px, e lo
-         stesso disegno dei bottoni-app (AppButton) in piccolo. Fondo pieno (crema di default, il
-         colore nel Background per le varianti), labbro scuro di 3 px in basso, filo chiaro in
-         alto. Al passaggio del mouse un velo bianco schiarisce il fondo e il bottone rimbalza un
-         po' piu' grande; alla pressione un velo nero lo scurisce e lo schiaccia. Il velo sta
-         sopra il fondo, quindi le varianti colorate (ServiceToggle, PrimaryButton del setup)
-         restano del loro colore. ButtonRadius e' esattamente meta' altezza: cerchio per i glifi,
-         pillola per i testi; un raggio piu' grande WPF lo ridurrebbe separatamente in larghezza e
-         in altezza e la pillola diventerebbe un ovale. -->
+    <!-- Action buttons (cards, list rows, panels): a single size, 26 px, and the same design as the
+         app buttons (AppButton), only smaller. Solid background (cream by default, the color in
+         Background for the variants), a 3 px dark lip at the bottom, a light line at the top. On
+         hover a white veil lightens the background and the button bounces a little bigger; on
+         press a black veil darkens and squashes it. The veil sits above the background, so the
+         colored variants (ServiceToggle, the setup's PrimaryButton) keep their color.
+         ButtonRadius is exactly half the height: a circle for glyphs, a pill for texts; WPF would
+         shrink a larger radius separately in width and height and the pill would become an oval. -->
     <CornerRadius x:Key="ButtonRadius">13</CornerRadius>
 
 
-    <!-- Interruttore: binario a pillola grigio, verde quando acceso, pomello bianco che scorre. -->
+    <!-- Switch: a grey pill track, green when on, with a sliding white knob. -->
     <Style x:Key="Switch" TargetType="CheckBox">
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="VerticalAlignment" Value="Center" />
@@ -95,7 +94,7 @@
               <Border x:Name="Veil" Background="White" Opacity="0" CornerRadius="{DynamicResource ButtonRadius}" />
               <Border BorderBrush="#2E000000" BorderThickness="0,0,0,3" CornerRadius="{DynamicResource ButtonRadius}" />
               <Border BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0" CornerRadius="{DynamicResource ButtonRadius}" />
-              <!-- In basso 1 px per il labbro, come nei bottoni-app. -->
+              <!-- 1 px at the bottom for the lip, as in the app buttons. -->
               <Border Margin="0,0,0,1">
                 <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="False" />
               </Border>
@@ -156,10 +155,10 @@
                   </BeginStoryboard>
                 </Trigger.ExitActions>
               </Trigger>
-              <!-- L'uscita da IsPressed rimbalza a 1.08 dando per scontato il mouse sopra: se il
-                   rilascio arriva col mouse fuori (barra spaziatrice sul bottone col focus, mouse
-                   uscito prima del rilascio) il bottone restava ingrandito. Dichiarato dopo IsPressed
-                   perche' il suo storyboard parta per ultimo e vinca. -->
+              <!-- Leaving IsPressed bounces to 1.08 assuming the mouse is over the button: if the
+                   release happens with the mouse outside (space bar on the focused button, mouse
+                   gone before the release) the button stayed enlarged. Declared after IsPressed
+                   so that its storyboard starts last and wins. -->
               <MultiTrigger>
                 <MultiTrigger.Conditions>
                   <Condition Property="IsMouseOver" Value="False" />
@@ -185,9 +184,9 @@
       </Style.Triggers>
     </Style>
 
-    <!-- 1 px in alto: le etichette dei bottoni (Reset, VS, Genapi…) sono quasi tutte senza
-         discendenti e Nunito riserva loro spazio sotto, quindi centrate sulla riga sembravano
-         alte rispetto ai glifi. -->
+    <!-- 1 px up: button labels (Reset, VS, Genapi…) almost never have descenders and Nunito
+         reserves room for them below, so centered on the line they looked high next to the
+         glyphs. -->
     <Style x:Key="TextButton" TargetType="Button" BasedOn="{StaticResource IconButton}">
       <Setter Property="Width" Value="NaN" />
       <Setter Property="MinWidth" Value="26" />
@@ -197,17 +196,17 @@
       <Setter Property="FontWeight" Value="Bold" />
     </Style>
 
-    <!-- Titolo delle intestazioni delle card. Con Segoe UI serviva alzarlo di 2 px (il corpo
-         delle minuscole stava sotto il centro della riga); Nunito ha le metriche bilanciate e
-         centrato e' gia' allineato a pallini e icone. -->
+    <!-- Title of the card headers. With Segoe UI it had to be raised by 2 px (the x-height sat
+         below the center of the line); Nunito has balanced metrics, and centered it already
+         lines up with dots and icons. -->
     <Style x:Key="CardTitle" TargetType="TextBlock">
       <Setter Property="FontWeight" Value="Bold" />
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <!-- Tag dell'intestazione di colonna (server e database del backend): azzurro traslucido
-         (il blu informativo #0078D4), testo monospazio perche' sono nomi tecnici. -->
+    <!-- Column header tag (backend server and database): translucent light blue (the
+         informational blue #0078D4), monospaced text because these are technical names. -->
     <Style x:Key="Tag" TargetType="Border">
       <Setter Property="Background" Value="{DynamicResource Theme.TagBackground}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Theme.TagBorder}" />
@@ -226,7 +225,7 @@
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
-    <!-- Segni dell'ambiente nel chip della testata (Docker, database protetto, sunset). -->
+    <!-- Environment markers in the header chip (Docker, protected database, sunset). -->
     <Style x:Key="ChipGlyph" TargetType="TextBlock">
       <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
       <Setter Property="FontWeight" Value="Normal" />
@@ -235,11 +234,11 @@
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
-    <!-- Bottone-app (riga delle app della testata, Aggiorna del pannello delle PR), come le app
-         del telefono di Animal Crossing: una pillola colorata (il colore nel Tag) con dentro il
-         glifo (Content) e l'etichetta (AppButton.Label) in bianco, labbro scuro in basso. Niente
-         alone fuori dal bottone: al passaggio del mouse la pillola si schiarisce e rimbalza un po'
-         piu' grande (BackEase), alla pressione si scurisce e si schiaccia. -->
+    <!-- App button (the header's app row, Refresh in the PR panel), like the apps on the Animal
+         Crossing phone: a colored pill (the color in Tag) holding the glyph (Content) and the
+         label (AppButton.Label) in white, with a dark lip at the bottom. No glow outside the
+         button: on hover the pill lightens and bounces a little bigger (BackEase), on press it
+         darkens and squashes. -->
     <Style x:Key="AppButton" TargetType="Button">
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="Margin" Value="5,0" />
@@ -255,8 +254,8 @@
               <Border x:Name="Veil" CornerRadius="13" Background="White" Opacity="0" />
               <Border CornerRadius="13" BorderBrush="#2E000000" BorderThickness="0,0,0,3" />
               <Border CornerRadius="13" BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0" />
-              <!-- Margini laterali uguali. In basso 1 px: a meta' tra il centro della faccia (sopra
-                   il labbro di 3 px) e quello dell'intera pillola, dove l'occhio li vede centrati. -->
+              <!-- Equal side margins. 1 px at the bottom: halfway between the center of the face (above
+                   the 3 px lip) and that of the whole pill, where the eye sees them centered. -->
               <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,14,1">
                 <ContentPresenter VerticalAlignment="Center"
                                   RecognizesAccessKey="False"
@@ -270,8 +269,8 @@
                            VerticalAlignment="Center"
                            Margin="8,0,0,0" />
               </StackPanel>
-              <!-- AppButton.Badge: il rosso delle segnalazioni, col bordo bianco che lo stacca
-                   dalla pillola, a cavallo dell'angolo in alto a destra. -->
+              <!-- AppButton.Badge: the alert red, with a white border that sets it off from
+                   the pill, straddling the top-right corner. -->
               <Border x:Name="Badge"
                       MinWidth="18"
                       Height="18"
@@ -351,7 +350,7 @@
                   </BeginStoryboard>
                 </Trigger.ExitActions>
               </Trigger>
-              <!-- Come in IconButton: riporta la pillola a 1 se il rilascio arriva col mouse fuori. -->
+              <!-- As in IconButton: brings the pill back to 1 if the release happens with the mouse outside. -->
               <MultiTrigger>
                 <MultiTrigger.Conditions>
                   <Condition Property="IsMouseOver" Value="False" />
@@ -372,17 +371,17 @@
       </Setter>
     </Style>
 
-    <!-- Pallino di stato: un cerchio di DotSize px (10) col colore della risorsa (i colori comuni
-         di StatusBadge); in lettura il blu di StatusBadge.InfoColor che pulsa. Lo stato e l'ora
-         dell'ultima lettura si leggono solo nel suo tooltip.
-         Il controllo e' un quadrato di 22 px con il cerchio al centro: l'area sensibile al mouse
-         coincide con i bordi del controllo, ed e' su quei bordi che il ToolTipService calcola se
-         il mouse e' ancora sul proprietario. Un'area allargata con un margine negativo dentro il
-         template, piu' grande dei bordi, faceva chiudere e riaprire il tooltip a ogni movimento.
-         I margini negativi del controllo (6 px per lato) tengono il cerchio dove starebbe un
-         elemento di 10 px: nelle intestazioni delle card 14 px dopo il bottone precedente e a
-         filo del padding, senza alzare la riga. Il tooltip aspetta un attimo prima di aprirsi;
-         passando da un pallino all'altro si apre subito. -->
+    <!-- Status dot: a circle of DotSize px (10) in the resource's color (StatusBadge's shared
+         colors); while reading, the pulsing blue of StatusBadge.InfoColor. The status and the time
+         of the last read show only in its tooltip.
+         The control is a 22 px square with the circle in the middle: the mouse-sensitive area
+         matches the control's bounds, and those bounds are what ToolTipService uses to decide
+         whether the mouse is still over the owner. An area enlarged with a negative margin inside
+         the template, bigger than the bounds, made the tooltip close and reopen on every move.
+         The control's negative margins (6 px per side) keep the circle where a 10 px element
+         would be: in card headers 14 px after the previous button and flush with the padding,
+         without making the row taller. The tooltip waits a moment before opening; moving from
+         one dot to another opens it at once. -->
     <Style TargetType="local:StatusDot">
       <Setter Property="Width" Value="22" />
       <Setter Property="Height" Value="22" />
@@ -432,10 +431,10 @@
       </Setter>
     </Style>
 
-    <!-- Azione di una lane con piu' azioni: solo il glifo, grigio come quello dell'azione
-         singola, in uno spazio largo 28 px e alto quanto la lane. Al passaggio del mouse compare
-         una pastiglia crema rientrata di 2 px dal bordo della lane, alla pressione si scurisce:
-         niente labbro ne' fondo pieno, che dentro la riga sembravano bottoni incastrati. -->
+    <!-- Action of a lane with several actions: just the glyph, grey like the single action's, in
+         a space 28 px wide and as tall as the lane. On hover a cream lozenge appears, inset 2 px
+         from the lane's edge, and darkens on press: no lip and no solid background, which inside
+         the row looked like wedged-in buttons. -->
     <Style x:Key="LaneActionButton" TargetType="Button">
       <Setter Property="Width" Value="28" />
       <Setter Property="Height" Value="26" />
@@ -474,9 +473,8 @@
       </Setter>
     </Style>
 
-    <!-- Il riquadro dei contenuti dentro le card: bordo spesso e stondato tutto attorno, come la
-         tendina dei branch. Lo usano gli elenchi (LaneGrid), i box dei log (LogBox) e l'anteprima
-         del browser di Claude. -->
+    <!-- The content frame inside cards: a thick rounded border all around, like the branch
+         drop-down. Used by lists (LaneGrid), log boxes (LogBox) and the Claude browser preview. -->
     <Style x:Key="LaneFrame" TargetType="Border">
       <Setter Property="CornerRadius" Value="14" />
       <Setter Property="Background" Value="{DynamicResource Theme.Field}" />
@@ -484,8 +482,8 @@
       <Setter Property="BorderThickness" Value="2" />
     </Style>
 
-    <!-- Box di un log: testo monospazio in sola lettura che si seleziona e si copia, nel riquadro
-         comune. Il margine interno tiene il testo lontano dagli angoli stondati. -->
+    <!-- Log box: read-only monospaced text you can select and copy, in the shared frame. The
+         inner margin keeps the text away from the rounded corners. -->
     <Style x:Key="LogBox" TargetType="TextBox">
       <Setter Property="IsReadOnly" Value="True" />
       <Setter Property="TextWrapping" Value="Wrap" />
@@ -507,8 +505,8 @@
       </Setter>
     </Style>
 
-    <!-- Elenco delle card (LaneGrid): un solo riquadro, le righe dentro sono separate da un filo
-         sottile. Con un elemento solo e' identico alla lane di un tempo. Senza elementi non si vede. -->
+    <!-- Card list (LaneGrid): a single frame, with the rows inside separated by a thin line.
+         With a single item it looks just like the old lane. With no items it is not shown. -->
     <Style TargetType="local:LaneGrid">
       <Setter Property="Focusable" Value="False" />
       <Setter Property="Template">
@@ -547,12 +545,11 @@
       </Setter>
     </Style>
 
-    <!-- Riga di una LaneGrid: alta 26 px, senza bordo (lo disegna la griglia). Solo il testo
-         monospazio e' sempre presente; pallino di stato, badge a larghezza minima fissa (i testi
-         restano allineati da una riga all'altra), nota e azioni compaiono quando ci sono. Ogni
-         azione e' un LaneActionButton, in un gruppo separato dal testo da un filo verticale; la
-         riga in se' non si clicca. Niente padding a destra: le pastiglie delle azioni stanno a
-         filo dell'angolo della griglia. -->
+    <!-- LaneGrid row: 26 px tall, no border (the grid draws it). Only the monospaced text is
+         always there; status dot, badge with a fixed minimum width (texts stay aligned from one
+         row to the next), note and actions appear when present. Each action is a
+         LaneActionButton, in a group separated from the text by a vertical line; the row itself
+         is not clickable. No right padding: the action lozenges sit flush with the grid's corner. -->
     <Style TargetType="local:Lane">
       <Setter Property="Focusable" Value="False" />
       <Setter Property="Cursor" Value="Arrow" />
@@ -616,8 +613,8 @@
                     </DataTemplate>
                   </ItemsControl.ItemTemplate>
                 </ItemsControl>
-                <!-- Tag di cio' che non va, nel colore di NoteBrush (rosso o grigio): fondo e
-                     bordo sono lo stesso pennello ad alfa bassa, come i tag di server e database. -->
+                <!-- Tag for what is wrong, in NoteBrush's color (red or grey): background and
+                     border are the same brush at low alpha, like the server and database tags. -->
                 <Grid x:Name="NoteText"
                       DockPanel.Dock="Right"
                       VerticalAlignment="Center"
@@ -642,7 +639,7 @@
               <Trigger Property="Dot" Value="{x:Null}">
                 <Setter TargetName="DotMark" Property="Visibility" Value="Collapsed" />
               </Trigger>
-              <!-- Senza badge ne' pallino il testo si stacca dal bordo come farebbe il badge. -->
+              <!-- Without badge or dot the text keeps the same distance from the edge the badge would. -->
               <MultiTrigger>
                 <MultiTrigger.Conditions>
                   <Condition Property="Badge" Value="" />
@@ -665,10 +662,10 @@
       </Setter>
     </Style>
 
-    <!-- Tendina dei branch: casella bianca arrotondata come le lane, bordo che si scurisce in
-         hover e diventa blu col focus come la nota; menu bianco arrotondato. La voce evidenziata
-         (frecce o mouse, vedi BranchComboBox) cambia solo il bordo, il branch selezionato e' in
-         grassetto con la spunta. -->
+    <!-- Branch drop-down: a rounded white box like the lanes, with a border that darkens on hover
+         and turns blue on focus like the note; rounded white menu. The highlighted item (arrows or
+         mouse, see BranchComboBox) only changes the border; the selected branch is bold with a
+         check mark. -->
     <Style x:Key="BranchComboText" TargetType="TextBox">
       <Setter Property="Background" Value="Transparent" />
       <Setter Property="BorderThickness" Value="0" />
@@ -821,12 +818,12 @@
       </Setter>
     </Style>
 
-    <!-- I componenti dei form dell'exe (setup, nuovo ambiente Docker): card, nota, campo con
-         etichetta e bottone «i», caselle, tendine e bottone principale. Gli stili con chiave
-         Form* si applicano a tutte le caselle e le tendine di un pannello con uno stile senza
-         chiave basato su di loro, nelle risorse del pannello. -->
-    <!-- Una card racchiude un solo argomento configurabile: un repository, un tunnel, un gruppo di
-         impostazioni. Elenchi, anteprime e log stanno fuori dalle card. -->
+    <!-- The app's form components (setup, new Docker environment): card, note, field with a label
+         and an “i” button, text boxes, drop-downs and primary button. The Form* keyed styles apply
+         to all text boxes and drop-downs of a panel through an unkeyed style based on them, in
+         the panel's resources. -->
+    <!-- A card holds a single configurable subject: a repository, a tunnel, a group of settings.
+         Lists, previews and logs stay outside the cards. -->
     <Style x:Key="FormCard" TargetType="Border">
       <Setter Property="Background" Value="{DynamicResource Theme.Surface}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Theme.CardBorder}" />
@@ -836,7 +833,7 @@
       <Setter Property="Margin" Value="0,0,0,12" />
     </Style>
 
-    <!-- Nota azzurra: un concetto che va letto prima di compilare i campi che seguono. -->
+    <!-- Light-blue note: a concept to read before filling in the fields that follow. -->
     <Style x:Key="FormNote" TargetType="ContentControl">
       <Setter Property="Focusable" Value="False" />
       <Setter Property="Margin" Value="0,0,0,14" />
@@ -859,8 +856,8 @@
       <Setter Property="Margin" Value="0,0,14,14" />
     </Style>
 
-    <!-- Mentre la nuvoletta e' aperta il bottone non prende il mouse: il clic sul bottone la
-         chiude come un clic altrove, invece di chiuderla e riaprirla. -->
+    <!-- While the bubble is open the button ignores the mouse: clicking the button closes it like
+         a click anywhere else, instead of closing and reopening it. -->
     <Style TargetType="local:InfoTip">
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="Focusable" Value="False" />
@@ -939,8 +936,8 @@
       </Setter>
     </Style>
 
-    <!-- Il margine interno va sul Padding del ScrollViewer, che TextBox lega gia' al proprio: come
-         Margin si sommava e le caselle venivano piu' alte delle tendine. -->
+    <!-- The inner margin goes on the ScrollViewer's Padding, which TextBox already binds to its own:
+         as a Margin it added up and text boxes came out taller than drop-downs. -->
     <Style x:Key="FormTextBox" TargetType="TextBox">
       <Setter Property="Foreground" Value="{DynamicResource Theme.FieldText}" />
       <Setter Property="CaretBrush" Value="{DynamicResource Theme.FieldText}" />
@@ -1006,10 +1003,9 @@
       </Setter>
     </Style>
 
-    <!-- Le tendine hanno lo stesso disegno delle caselle di testo. In quelle a scelta fissa un
-         bottone trasparente copre tutta la tendina, che si apre con un clic ovunque; in quelle
-         in cui si puo' scrivere (IsEditable) il clic sul testo scrive e l'elenco si apre dalla
-         freccia. -->
+    <!-- Drop-downs look the same as text boxes. In fixed-choice ones a transparent button covers
+         the whole drop-down, which opens with a click anywhere; in editable ones (IsEditable)
+         clicking the text lets you type and the list opens from the arrow. -->
     <ControlTemplate x:Key="FormComboToggle" TargetType="ToggleButton">
       <Border Background="Transparent" />
     </ControlTemplate>
@@ -1122,15 +1118,15 @@
       </Setter>
     </Style>
 
-    <!-- Stessa misura di tutti i bottoni (TextButton): cambia solo il colore. -->
+    <!-- Same size as every other button (TextButton): only the color changes. -->
     <Style x:Key="PrimaryButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
       <Setter Property="Background" Value="#2F8A68" />
       <Setter Property="Foreground" Value="White" />
     </Style>
 
-    <!-- Casella di spunta e scelta singola dei form: stesso fondo e stesso bordo delle caselle di
-         testo, verdi con il segno bianco quando sono scelte. Per un sì/no con una spiegazione
-         accanto si usa invece l'interruttore (Switch). -->
+    <!-- Form check boxes and radio buttons: same background and border as text boxes, green with
+         a white mark when selected. For a yes/no with an explanation next to it, use the switch
+         (Switch) instead. -->
     <Style x:Key="FormCheckBox" TargetType="CheckBox">
       <Setter Property="Cursor" Value="Hand" />
       <Setter Property="FontSize" Value="13" />
@@ -1216,7 +1212,7 @@
       </Setter>
     </Style>
 
-    <!-- I tooltip di tutto l'exe: una nuvoletta color crema, con il testo che va a capo. -->
+    <!-- Tooltips across the app: a cream-colored bubble, with wrapping text. -->
     <Style TargetType="ToolTip">
       <Setter Property="HasDropShadow" Value="False" />
       <Setter Property="Template">
@@ -1239,10 +1235,9 @@
       </Setter>
     </Style>
 
-    <!-- Menu a comparsa nello stile dell'exe (il menu «Apri in» delle PR): una card arrotondata con
-         le voci a pillola. Il margine attorno alla card e' lo spazio dell'ombra. Le intestazioni
-         non riconoscono i tasti di accesso, perche' sono nomi di ambienti e di branch e un «_» va
-         mostrato com'e'. -->
+    <!-- Pop-up menu in the app's style (the PRs' “Open in” menu): a rounded card with pill-shaped
+         items. The margin around the card is room for the shadow. Headers don't recognize access
+         keys, because they are environment and branch names and an “_” must be shown as is. -->
     <Style x:Key="CardMenu" TargetType="ContextMenu">
       <Setter Property="HasDropShadow" Value="False" />
       <Setter Property="FontFamily" Value="{StaticResource Rounded}" />
@@ -1297,12 +1292,12 @@
       </Setter>
     </Style>
 
-    <!-- Scrollbar a scomparsa, come quelle di blindtales.app: binario trasparente largo
-         ScrollBarSize, pollice a capsula che si vede largo 10 px (il resto e' margine, ma il mouse
-         lo prende tutto). Da fermo il pollice e' trasparente: quando si accende lo decide
-         ScrollBarFade. Il grigio del testo al posto del bianco: qui gli sfondi sono chiari. Il
-         colore e' una risorsa dinamica: un pannello su fondo scuro (la riunione punti storia)
-         ridefinisce ScrollBarThumbBrush nelle sue risorse. -->
+    <!-- Auto-hiding scrollbar, like those of blindtales.app: a transparent track ScrollBarSize
+         wide, a capsule thumb that looks 10 px wide (the rest is margin, but the mouse catches all
+         of it). At rest the thumb is transparent: ScrollBarFade decides when it lights up. The
+         text grey instead of white: backgrounds here are light. The color is a dynamic resource:
+         a panel on a dark background (the story points meeting) redefines ScrollBarThumbBrush in
+         its resources. -->
     <sys:Double x:Key="ScrollBarSize">16</sys:Double>
 
     <Style x:Key="ScrollBarPage" TargetType="RepeatButton">
@@ -1384,9 +1379,9 @@
       </Style.Triggers>
     </Style>
 
-    <!-- Le barre stanno sopra il contenuto, non accanto: il viewport e' largo quanto lo
-         ScrollViewer e i margini restano quelli che il contenuto si da', senza la striscia
-         riservata alla barra. Niente angolo grigio tra le due barre. -->
+    <!-- The bars sit over the content, not beside it: the viewport is as wide as the
+         ScrollViewer and the margins stay the ones the content sets, without a strip reserved
+         for the bar. No grey corner between the two bars. -->
     <Style TargetType="ScrollViewer">
       <Setter Property="Template">
         <Setter.Value>

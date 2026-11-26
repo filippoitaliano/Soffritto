@@ -5,8 +5,8 @@ namespace Soffritto.Desktop;
 
 public static class Program
 {
-    // Velopack va servito prima di WPF: gli hook di installazione e disinstallazione lanciano
-    // l'exe con argomenti propri e si aspettano che esca subito, senza finestra.
+    // Velopack must run before WPF: the install and uninstall hooks launch the exe with their own
+    // arguments and expect it to exit right away, without a window.
     [STAThread]
     public static void Main()
     {

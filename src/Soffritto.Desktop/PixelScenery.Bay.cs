@@ -1,9 +1,10 @@
 namespace Soffritto.Desktop;
 
-// Omaggio a GTA VI, di giorno e in colori chiari: il lungomare di una citta' della Florida con
-// gli hotel art deco color pastello, le insegne verticali al neon, le palme, le decappottabili
-// che passano e un aereo che traina lo striscione. Il cielo sta in sky; skyline, hotel, palme e
-// strada stanno in land. Nuvole, gabbiani e aereo passano dietro i palazzi, insegne e auto davanti.
+// A tribute to the crime sagas set on the Florida coast, by day and in light colours: a seafront
+// with pastel art deco hotels, vertical neon signs, palm trees, passing convertibles and a plane
+// towing a banner.
+// The sky lives in sky; skyline, hotels, palms and road live in land. Clouds, gulls and the plane
+// pass behind the buildings, signs and cars in front.
 public sealed partial class PixelScenery
 {
     private const int RoadRows = 12;
@@ -12,9 +13,9 @@ public sealed partial class PixelScenery
     private const int PorchRows = 7;
     private const uint Trim = 0xFFFFFFFF;
 
-    // Prugna scura, la sera del lungomare dietro i neon rosa e viola.
+    // Dark plum, the seafront evening behind the pink and purple neon.
     private const uint BayChrome = 0xFF4A2350;
-    private const string BannerText = "GTA VI";
+    private const string BannerText = "VICE COAST";
 
     private static readonly uint[] BaySky = [0xFF8FCBEF, 0xFFB5DDF4, 0xFFDDE7F2, 0xFFF9DADF, 0xFFFFE3C8];
     private static readonly uint[] SignColors = [0xFFFF4FA3, 0xFF1FB5CC, 0xFF9B5CF6, 0xFFFF7A3D];
@@ -62,8 +63,8 @@ public sealed partial class PixelScenery
         [' '] = ["...", "...", "...", "...", "..."],
     };
 
-    // Decappottabile verso destra: B carrozzeria, b fiancata in ombra, W parabrezza, D capelli,
-    // K pelle, S sedili, L fari, R fanali, T gomme, H cerchi.
+    // Convertible facing right: B body, b shaded side, W windscreen, D hair, K skin, S seats,
+    // L headlights, R tail lights, T tyres, H rims.
     private static readonly string[] Convertible =
     [
         "...........W............",
@@ -76,7 +77,7 @@ public sealed partial class PixelScenery
         "....TT............TT....",
     ];
 
-    // Verso sinistra: P fusoliera, p ali e coda, w oblo'.
+    // Facing left: P fuselage, p wings and tail, w windows.
     private static readonly string[] Plane =
     [
         "..........p.",
@@ -186,8 +187,8 @@ public sealed partial class PixelScenery
         }
     }
 
-    // Marciapiede degli hotel, strada a due corsie con la mezzeria tratteggiata e, sopra il footer,
-    // il lungomare a scacchi rosa dove cammina il gattino.
+    // Hotel sidewalk, a two-lane road with a dashed centre line and, above the footer, the pink
+    // checkered promenade where the kitten walks.
     private void PaintStreet(Random r, int street, int promenade)
     {
         var dashes = roadTop + (RoadRows / 2);
@@ -236,7 +237,7 @@ public sealed partial class PixelScenery
             }
         }
 
-        // Coronamento a gradoni, il segno dell'art deco.
+        // Stepped crown, the hallmark of art deco.
         var crown = Math.Max(6, width / 3);
         var spire = Math.Max(3, crown / 2);
         Block(left + ((width - crown) / 2), top - 4, crown, 4, f.Body, f.Accent);
@@ -266,7 +267,7 @@ public sealed partial class PixelScenery
             }
         }
 
-        // Tettoia a strisce sopra il portico, colonne bianche e la porta a vetri al centro.
+        // Striped awning over the porch, white columns and the glass door in the middle.
         for (var x = left; x <= right; x++)
         {
             Put(land, x, porch, f.Accent);
@@ -317,8 +318,8 @@ public sealed partial class PixelScenery
         }
     }
 
-    // Insegna verticale su una pinna bianca che sporge dal tetto: le lettere sono neon, che di
-    // giorno brillano poco; il nome si accorcia se l'hotel e' basso, e sotto le tre lettere sparisce.
+    // Vertical sign on a white fin sticking out of the roof: the letters are neon, which barely glows
+    // by day; the name is shortened if the hotel is low, and below three letters it disappears.
     private void PaintSign(Random r, Facade f, int left, int right, int top, int porch, string name)
     {
         var finTop = top - 4;
@@ -407,7 +408,7 @@ public sealed partial class PixelScenery
             motes.Add(gull);
         }
 
-        // Le auto di una corsia vanno tutte alla stessa velocita': non si tamponano mai.
+        // Cars in one lane all go at the same speed: they never rear-end each other.
         foreach (var toRight in new[] { false, true })
         {
             var x = r.NextDouble() * cols;
@@ -520,7 +521,7 @@ public sealed partial class PixelScenery
         Overlay(land);
         DrawNeons();
 
-        // Prima la corsia lontana, poi quella vicina.
+        // Far lane first, then the near one.
         foreach (var car in cars.OrderBy(c => c.ToRight))
         {
             DrawCar(car);
@@ -545,7 +546,7 @@ public sealed partial class PixelScenery
 
     private static int BannerWidth => (BannerText.Length * 4) + 3;
 
-    // L'aereo tira lo striscione con una corda; lo striscione ondeggia colonna per colonna.
+    // The plane tows the banner on a rope; the banner ripples column by column.
     private void DrawPlane()
     {
         if (planeWait > 0)
@@ -610,7 +611,7 @@ public sealed partial class PixelScenery
     private void Stamp(uint[]? layer, string[] sprite, int left, int top, Func<char, uint> color, bool mirror = false) =>
         Stamp(layer, sprite, left, top, (c, _) => color(c), mirror);
 
-    // Senza strato disegna sul fotogramma; il colore 0 lascia vedere sotto.
+    // Without a layer it draws on the frame; colour 0 lets what is underneath show through.
     private void Stamp(uint[]? layer, string[] sprite, int left, int top, Func<char, int, uint> color, bool mirror = false)
     {
         for (var sy = 0; sy < sprite.Length; sy++)

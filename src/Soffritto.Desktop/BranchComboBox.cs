@@ -7,9 +7,9 @@ using System.Windows.Threading;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Tendina dei branch (stile in App.xaml): con il menu aperto le frecce spostano solo
-/// l'evidenziato e Invio lo sceglie. Nella ComboBox standard le frecce cambiano subito
-/// SelectedItem, e qui una scelta e' un git switch.
+/// Branch dropdown (style in App.xaml): with the menu open the arrow keys only move the
+/// highlight and Enter picks it. In the standard ComboBox the arrows change SelectedItem
+/// right away, and here a choice is a git switch.
 /// </summary>
 public sealed class BranchComboBox : ComboBox
 {
@@ -17,13 +17,13 @@ public sealed class BranchComboBox : ComboBox
         nameof(HighlightedItem), typeof(object), typeof(BranchComboBox),
         new PropertyMetadata(null, (d, _) => ((BranchComboBox)d).MarkContainers()));
 
-    /// <summary>Vero sul contenitore della voce evidenziata, da tastiera o dal mouse: lo legge lo stile delle voci.</summary>
+    /// <summary>True on the container of the highlighted item, by keyboard or mouse: read by the item style.</summary>
     public static readonly DependencyProperty IsHighlightedItemProperty = DependencyProperty.RegisterAttached(
         "IsHighlightedItem", typeof(bool), typeof(BranchComboBox), new PropertyMetadata(false));
 
     private TextBox? editableTextBox;
 
-    /// <summary>La voce su cui si trova il cursore del menu; null a menu chiuso.</summary>
+    /// <summary>The item under the menu cursor; null while the menu is closed.</summary>
     public object? HighlightedItem
     {
         get => GetValue(HighlightedItemProperty);
@@ -40,7 +40,7 @@ public sealed class BranchComboBox : ComboBox
 
         if (plain && e.Key is Key.Down or Key.Up)
         {
-            // A menu chiuso la freccia lo apre, invece di passare al branch successivo.
+            // With the menu closed, the arrow opens it instead of moving to the next branch.
             if (IsDropDownOpen)
             {
                 MoveHighlight(e.Key == Key.Down ? 1 : -1);
@@ -56,7 +56,7 @@ public sealed class BranchComboBox : ComboBox
 
         if (e.Key == Key.Enter && IsDropDownOpen && HighlightedItem is { } item)
         {
-            // La voce gia' selezionata non cambia SelectedItem e il ViewModel non chiuderebbe il menu.
+            // The already selected item does not change SelectedItem, and the ViewModel would not close the menu.
             if (Equals(item, SelectedItem))
             {
                 IsDropDownOpen = false;
@@ -85,9 +85,9 @@ public sealed class BranchComboBox : ComboBox
         HighlightedItem = SelectedItem is { } selected && Items.Contains(selected) ? selected : null;
         BringHighlightIntoView();
 
-        // La ComboBox editabile seleziona tutto il testo quando il menu si apre: aperto dal
-        // ViewModel alla prima lettera della ricerca, la lettera successiva la sostituirebbe.
-        // Il cursore torna in fondo dopo la selezione di WPF, che arriva in coda al dispatcher.
+        // The editable ComboBox selects all the text when the menu opens: since the ViewModel opens it
+        // on the first letter of the search, the next letter would replace that one.
+        // The caret goes back to the end after WPF's selection, which is queued on the dispatcher.
         if (editableTextBox is { IsKeyboardFocused: true } box)
         {
             Dispatcher.BeginInvoke(DispatcherPriority.Input, () => box.Select(box.Text.Length, 0));
@@ -100,8 +100,8 @@ public sealed class BranchComboBox : ComboBox
         HighlightedItem = null;
     }
 
-    // Il filtro della ricerca cambia le voci: un evidenziato sparito si perde e la prossima
-    // freccia riparte dalla prima voce.
+    // The search filter changes the items: a highlight that disappears is lost, and the next
+    // arrow starts again from the first item.
     protected override void OnItemsChanged(NotifyCollectionChangedEventArgs e)
     {
         base.OnItemsChanged(e);
@@ -123,7 +123,7 @@ public sealed class BranchComboBox : ComboBox
         }
     }
 
-    // Mouse e tastiera muovono lo stesso evidenziato: una freccia dopo il mouse riparte da li'.
+    // Mouse and keyboard move the same highlight: an arrow after the mouse continues from there.
     private void OnItemMouseEnter(object sender, MouseEventArgs e)
     {
         if (sender is ComboBoxItem container && ItemContainerGenerator.ItemFromContainer(container) is { } item

@@ -6,15 +6,15 @@ using Soffritto.Presentation;
 
 namespace Soffritto.Desktop.ViewModels;
 
-/// <summary>Riceve l'input della vista dal vivo e lo inoltra al browser di playwright.</summary>
+/// <summary>Receives input from the live view and forwards it to the playwright browser.</summary>
 public interface IPreviewInput
 {
     void Send(string method, object parameters);
 }
 
 /// <summary>
-/// La sezione di anteprima nella card del frontend di un ambiente: mostra dal vivo il browser di
-/// playwright-cli aperto sulla porta del dev server.
+/// The preview section in an environment's frontend card: a live view of the playwright-cli
+/// browser open on the dev server port.
 /// </summary>
 public sealed class FrontendPreviewViewModel : ObservableObject
 {
@@ -44,8 +44,8 @@ public sealed class FrontendPreviewViewModel : ObservableObject
     public string Visibility { get; private set; }
 
     /// <summary>
-    /// Rilegge porta e presenza del clone: in un ambiente Docker creato a caldo la colonna nasce
-    /// prima che il worktree e il suo file di env esistano.
+    /// Re-reads the port and whether the clone exists: in a Docker environment created on the fly
+    /// the column appears before the worktree and its env file exist.
     /// </summary>
     public void Reload(RepoLocation frontend)
     {
@@ -76,37 +76,37 @@ public sealed class FrontendPreviewViewModel : ObservableObject
 
     public ICommand? OpenExternalCommand { get; set; }
 
-    /// <summary>Da aprire nel browser esterno: la pagina del browser di Claude, o il dev server se non c'e'.</summary>
+    /// <summary>What to open in the external browser: the page in Claude's browser, or the dev server if there is none.</summary>
     public Uri ExternalUrl => hasSession && Uri.TryCreate(pageUrl, UriKind.Absolute, out var page) ? page : FrontendUrl;
 
     public string ClaudeViewVisibility => hasSession ? "Visible" : "Collapsed";
 
     public string ClaudePlaceholderVisibility => hasSession ? "Collapsed" : "Visible";
 
-    public string ClaudePlaceholder => unavailableReason ?? $"Nessun browser di playwright-cli aperto su localhost:{Port}";
+    public string ClaudePlaceholder => unavailableReason ?? $"No playwright-cli browser open on localhost:{Port}";
 
-    /// <summary>Verde quando un browser di playwright e' sul frontend di questo ambiente, arancio quando l'anteprima e' bloccata.</summary>
+    /// <summary>Green when a playwright browser is on this environment's frontend, orange when the preview is blocked.</summary>
     public string SessionColor => hasSession ? StatusBadge.OkColor : reasonIsProblem ? StatusBadge.WarningColor : StatusBadge.OffColor;
 
     public string Header => hasSession && pageTitle.Length > 0
         ? pageTitle
         : $"localhost:{Port}";
 
-    // A card chiusa il tooltip e' l'unico posto in cui il motivo si legge.
+    // With the card collapsed, the tooltip is the only place where the reason can be read.
     public string HeaderToolTip => hasSession
         ? pageUrl
         : unavailableReason is { } reason ? $"{FrontendUrl}{Environment.NewLine}{reason}" : FrontendUrl.ToString();
 
     public ImageSource? Frame { get => frame; private set => SetProperty(ref frame, value); }
 
-    /// <summary>Dimensioni della pagina in CSS px: servono a riportare i click sulle coordinate del browser.</summary>
+    /// <summary>Page size in CSS px: used to map clicks onto the browser's coordinates.</summary>
     public double ViewportWidth { get; private set; }
 
     public double ViewportHeight { get; private set; }
 
     /// <summary>
-    /// Proporzione del riquadro dell'anteprima: quella del fotogramma quando e' piu' largo del 16:9,
-    /// altrimenti 16:9, che fa da altezza massima e lascia il bordo stringersi in larghezza.
+    /// Aspect ratio of the preview box: the frame's when it is wider than 16:9, otherwise 16:9,
+    /// which acts as a maximum height and lets the border shrink in width.
     /// </summary>
     public double SizerWidth => FrameIsWide ? ViewportWidth : 16;
 
@@ -124,7 +124,7 @@ public sealed class FrontendPreviewViewModel : ObservableObject
 
         if (!hasSession && !autoExpanded)
         {
-            // Alla prima sessione la card si apre da sola; dopo decide chi la usa.
+            // On the first session the card opens by itself; after that the user decides.
             autoExpanded = true;
             Expander.IsExpanded = true;
         }
@@ -148,8 +148,8 @@ public sealed class FrontendPreviewViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Perche' l'anteprima «Claude» non c'e'; null torna al testo di quando non c'e' nessun browser.
-    /// Un problema (dashboard bloccata, avvio fallito) colora il pallino; un'informazione no.
+    /// Why the “Claude” preview is missing; null goes back to the text shown when there is no browser.
+    /// A problem (dashboard blocked, launch failed) colours the dot; a plain notice does not.
     /// </summary>
     public void ShowUnavailableReason(string? reason, bool isProblem = false)
     {
@@ -193,8 +193,8 @@ public sealed class FrontendPreviewViewModel : ObservableObject
         }
         else
         {
-            // Creato qui e non nel costruttore: SetSession gira sempre sul thread della UI, il
-            // costruttore non e' detto.
+            // Created here rather than in the constructor: SetSession always runs on the UI thread,
+            // the constructor might not.
             collapseTimer ??= CreateCollapseTimer();
             collapseTimer.Start();
         }
@@ -204,7 +204,7 @@ public sealed class FrontendPreviewViewModel : ObservableObject
         OnPropertyChanged(nameof(SessionColor));
     }
 
-    // Un minuto senza sessione chiude la sezione e la prossima sessione la riapre da sola.
+    // One minute without a session collapses the section, and the next session reopens it by itself.
     private DispatcherTimer CreateCollapseTimer()
     {
         var timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(1) };

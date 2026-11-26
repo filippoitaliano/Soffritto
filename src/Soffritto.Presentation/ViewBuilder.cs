@@ -2,11 +2,11 @@ using Soffritto.Core;
 
 namespace Soffritto.Presentation;
 
-/// <summary>Trasforma i report di Core nelle viste del pannello, senza sapere quale host le mostra.</summary>
+/// <summary>Turns the Core reports into the panel views, without knowing which host shows them.</summary>
 public static class ViewBuilder
 {
-    // Durante la rilettura tutto resta com'era e solo il timestamp dice cosa si sta facendo:
-    // il pannello non deve scattare su e giu' a ogni refresh.
+    // During the reread everything stays as it was and only the timestamp says what is happening:
+    // the panel must not jump up and down on every refresh.
     public static RepoLoadingView RepoLoading(string root, bool fetch) => new(
         StatusText.WorkingFolder(root),
         StatusText.WorkingFolder(root),
@@ -31,7 +31,7 @@ public static class ViewBuilder
         return new GitView(
             CloneName: folder,
             Branch: StatusText.BuildBranch(git),
-            RepoLine: git.Error is not null ? $"{folder} · git non disponibile" : folder,
+            RepoLine: git.Error is not null ? $"{folder} · git unavailable" : folder,
             RepoDetail: git.Error ?? StatusText.BuildRepoDetail(git),
             UpstreamWarning: StatusText.BuildUpstreamWarning(git),
             RepoToolTip: root,
@@ -43,24 +43,24 @@ public static class ViewBuilder
             Problems: string.Join(Environment.NewLine, problems));
     }
 
-    /// <param name="schemaLock">Il motivo per cui lo schema non si tocca (database protetto): niente pulsanti di update, la nota lo dice.</param>
+    /// <param name="schemaLock">The reason the schema must not be touched (protected database): no update buttons, and the note says so.</param>
     public static MigrationsView Migrations(StatusReport report, DateTimeOffset now, string? schemaLock = null)
     {
         var contexts = new List<ContextView>();
 
-        // Con il database irraggiungibile la history e' vuota: ogni migrazione risulterebbe
-        // «mancante» e il pulsante proporrebbe di applicarle tutte. Si mostra «non letta».
-        // Un database noto come spento o in avvio non e' un errore: il motivo va nella nota. Un
-        // database raggiunto senza la tabella della history ha davvero tutto da applicare.
+        // With the database unreachable the history is empty: every migration would show up as
+        // “missing” and the button would offer to apply them all. “not read” is shown instead.
+        // A database known to be stopped or starting is not an error: the reason goes in the note. A
+        // database reached without the history table really does have everything to apply.
         var unread = (report.DatabaseError is not null && !report.DatabaseReached) || report.DatabaseOffline is not null;
 
         foreach (var context in report.Contexts)
         {
-            // Entries e' in ordine crescente di ID: le ultime sono le piu' recenti, e in cima
-            // va la piu' nuova perche' e' quella a cui si torna piu' spesso. Il numero davanti
-            // al nome e' la posizione assoluta nel context (1 = la prima migrazione): rende
-            // leggibile l'ordine decrescente e combacia con il contatore "applicate/totali".
-            // Le righe si costruiscono tutte: l'host ne mostra una pagina alla volta.
+            // Entries is in ascending ID order: the last ones are the most recent, and the newest
+            // goes on top because it is the one you come back to most often. The number before
+            // the name is the absolute position in the context (1 = the first migration): it makes
+            // the descending order readable and matches the "applied/total" counter.
+            // All rows are built: the host shows one page at a time.
             var total = context.Entries.Count;
             var rows = context.Entries
                 .Reverse()
@@ -90,19 +90,19 @@ public static class ViewBuilder
             if (unread)
             {
                 notes.Add(report.DatabaseOffline is { } offline
-                    ? $"{offline}: migrazioni non lette."
-                    : "Database non raggiungibile: migrazioni non lette.");
+                    ? $"{offline}: migrations not read."
+                    : "Database unreachable: migrations not read.");
             }
 
             var mismatches = context.FileNameMismatches;
             if (mismatches.Count > 0)
             {
-                notes.Add($"{mismatches.Count} migrazione/i con nome file diverso dall'attributo [Migration].");
+                notes.Add($"{mismatches.Count} migration(s) with a file name different from the [Migration] attribute.");
             }
 
             if (context.OutOfOrder.Count > 0)
             {
-                notes.Add("Aggiornamento automatico non proposto: ci sono migrazioni fuori ordine.");
+                notes.Add("Automatic update not offered: there are out-of-order migrations.");
             }
 
             contexts.Add(new ContextView(
@@ -135,11 +135,11 @@ public static class ViewBuilder
             Server: report.Server ?? StatusText.Unresolved,
             Database: report.Database ?? StatusText.Unresolved,
             DatabaseLine: (report.Server is null
-                ? "database non risolto"
+                ? "database unresolved"
                 : $"{report.Server} · {report.Database}") + (schemaLock is null ? string.Empty : $" · {StatusText.ProtectedDatabaseTag}"),
             Contexts: contexts,
             Unknown: report.Unknown.Select(e => e.MigrationId).ToList(),
-            UnknownHeader: $"Applicate ma sconosciute al codice ({report.Unknown.Count})",
+            UnknownHeader: $"Applied but unknown to the code ({report.Unknown.Count})",
             UnknownVisible: report.Unknown.Count > 0,
             Problems: string.Join(Environment.NewLine, problems));
     }
@@ -149,8 +149,8 @@ public static class ViewBuilder
         if (tunnel is null)
         {
             return new TunnelView(
-                "dev tunnel non letto",
-                "Aggiorna per interrogare la CLI devtunnel.",
+                "dev tunnel not read",
+                "Refresh to query the devtunnel CLI.",
                 DetailVisible: true,
                 Ports: [],
                 Available: [],
@@ -160,7 +160,7 @@ public static class ViewBuilder
         if (!tunnel.Shared)
         {
             return new TunnelView(
-                "non condiviso",
+                "not shared",
                 tunnel.Error ?? string.Empty,
                 DetailVisible: true,
                 Ports: [],
@@ -170,20 +170,20 @@ public static class ViewBuilder
 
         if (tunnel.Error is not null)
         {
-            // Nessuna corrispondenza col clone: al posto del dettaglio si mostra cosa c'e',
-            // cosi' si vede a colpo d'occhio quale tunnel e' acceso e come si chiama.
+            // No match with the clone: instead of the detail, show what is there,
+            // so you can see at a glance which tunnel is on and what it is called.
             var available = tunnel.AllAvailable
                 .Select(summary => new TunnelSummaryView(
                     summary.Description.Length > 0
                         ? $"{summary.TunnelId} · {summary.Description}"
-                        : $"{summary.TunnelId} · (senza descrizione)",
-                    $"{(summary.IsHostConnected ? "host connesso" : "host non connesso")} · {summary.PortCount} porte",
+                        : $"{summary.TunnelId} · (no description)",
+                    $"{(summary.IsHostConnected ? "host connected" : "host not connected")} · {summary.PortCount} ports",
                     summary.IsHostConnected ? StatusBadge.OkColor : StatusBadge.ErrorColor))
                 .ToList();
 
             return new TunnelView(
-                tunnel.TunnelId ?? "dev tunnel non disponibile",
-                tunnel.AllAvailable.Count > 0 ? $"{tunnel.Error} Tunnel dell'account:" : tunnel.Error,
+                tunnel.TunnelId ?? "dev tunnel unavailable",
+                tunnel.AllAvailable.Count > 0 ? $"{tunnel.Error} Account tunnels:" : tunnel.Error,
                 DetailVisible: true,
                 Ports: [],
                 Available: available,
@@ -195,8 +195,8 @@ public static class ViewBuilder
             {
                 var kind = port.Reachable switch
                 {
-                    true => "raggiungibile",
-                    false => "nessuna risposta",
+                    true => "reachable",
+                    false => "no response",
                     null => string.Empty,
                 };
 
@@ -212,7 +212,7 @@ public static class ViewBuilder
             })
             .ToList();
 
-        // Host connesso o no lo dice il pallino, le porte si contano a vista: nessun dettaglio.
+        // The dot says whether the host is connected, the ports can be counted at a glance: no detail.
         return new TunnelView(
             tunnel.TunnelId ?? string.Empty,
             string.Empty,

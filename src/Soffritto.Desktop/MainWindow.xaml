@@ -1,8 +1,8 @@
-<!-- Le sezioni riprendono quelle della VSIX (UI/StatusControl.xaml): stesse righe e solo i
-     contenuti (migrazioni, porte, errori) cambiano altezza. A differenza della VSIX, l'exe non
-     scrive stato e «aggiornato HH:mm:ss» sotto le card: stanno nel tooltip del pallino. Le icone sono glifi Segoe Fluent Icons
-     al posto dei KnownMonikers, che fuori da Visual Studio non esistono.
-     Il colore #26808080 e' un grigio traslucido usato per i separatori. -->
+<!-- The sections mirror those of the VSIX (UI/StatusControl.xaml): same rows, and only the
+     contents (migrations, ports, errors) change height. Unlike the VSIX, the app does not write
+     the status and “updated HH:mm:ss” under the cards: they live in the dot's tooltip. Icons are
+     Segoe Fluent Icons glyphs instead of KnownMonikers, which don't exist outside Visual Studio.
+     The color #26808080 is a translucent grey used for separators. -->
 <Window x:Class="Soffritto.Desktop.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -20,10 +20,10 @@
         Foreground="{DynamicResource Theme.Text}"
         Background="{DynamicResource Theme.WindowBackground}">
   <Window.Resources>
-    <!-- Avvia/ferma dei servizi (Tag = IsStop del gruppo): grigio standard quando avvia, viola
-         pieno quando ferma, cosi' cio' che e' acceso e va fermato si vede a colpo d'occhio senza
-         il peso del rosso delle segnalazioni; il glifo bianco sopra sta a circa 4.6:1. Il
-         template e' quello di IconButton con l'hover che scurisce il viola invece del grigio. -->
+    <!-- Service start/stop (Tag = the group's IsStop): standard grey when it starts, solid purple
+         when it stops, so what is running and needs stopping stands out at a glance without the
+         weight of the alert red; the white glyph on top is about 4.6:1. The template is
+         IconButton's, with a hover that darkens the purple instead of the grey. -->
     <Style x:Key="ServiceToggle" TargetType="Button" BasedOn="{StaticResource IconButton}">
       <Style.Triggers>
         <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
@@ -33,7 +33,7 @@
       </Style.Triggers>
     </Style>
 
-    <!-- Riquadro delle risorse della macchina nella testata: etichetta, barra e valore. -->
+    <!-- Machine resources box in the header: label, bar and value. -->
     <Style x:Key="MeterLabel" TargetType="TextBlock">
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="Bold" />
@@ -82,15 +82,15 @@
       <Setter Property="Margin" Value="0,-1,0,0" />
     </Style>
 
-    <!-- Tag della copia intera: gli stessi colori di Tag gia' composti sul bianco della card,
-         ma pieni, perche' sopra i pulsanti un tag traslucido li lascerebbe trasparire. -->
+    <!-- Tag of the full copy: the same colors as Tag, already blended onto the card's white, but
+         solid, because over the buttons a translucent tag would let them show through. -->
     <Style x:Key="OpaqueTag" TargetType="Border" BasedOn="{StaticResource Tag}">
       <Setter Property="Background" Value="{DynamicResource Theme.OpaqueTagBackground}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Theme.OpaqueTagBorder}" />
     </Style>
 
-    <!-- Copia intera dei tag sopra la riga, nella stessa posizione dei tag veri: senza fondo ne'
-         ombra, solo i tag, in dissolvenza col mouse sulla riga. -->
+    <!-- Full copy of the tags above the row, in the same position as the real tags: no background
+         or shadow, just the tags, fading in with the mouse over the row. -->
     <Style x:Key="TagsOverlay" TargetType="Border">
       <Setter Property="IsHitTestVisible" Value="False" />
       <Setter Property="Opacity" Value="0" />
@@ -114,7 +114,7 @@
       </Style.Triggers>
     </Style>
 
-    <!-- Seconda riga dei tooltip dei pallini: «aggiornato HH:mm:ss» in piccolo e in grigio; vuota sparisce. -->
+    <!-- Second line of the dots' tooltips: “updated HH:mm:ss”, small and grey; when empty it disappears. -->
     <Style x:Key="DotStamp" TargetType="TextBlock">
       <Setter Property="FontSize" Value="11" />
       <Setter Property="FontWeight" Value="Normal" />
@@ -130,12 +130,12 @@
       </Style.Triggers>
     </Style>
 
-    <!-- Nota dell'intestazione di colonna: post-it tratteggiato alto almeno due righe, testo
-         centrato in orizzontale e in verticale, fino a quattro righe visibili e poi scroll. Il
-         bordo diventa verde pieno mentre si scrive. L'altezza minima sta sulla casella e non sulle
-         righe (MinLines): con MinLines l'area del testo sarebbe alta due righe e una nota di una
-         riga resterebbe in alto. Fondo trasparente perche' sotto c'e' il segnaposto, centrato
-         allo stesso modo. -->
+    <!-- Column header note: a dashed sticky note at least two lines tall, text centered
+         horizontally and vertically, up to four visible lines and then scrolling. The border
+         turns solid green while typing. The minimum height is on the box and not on the lines
+         (MinLines): with MinLines the text area would be two lines tall and a one-line note
+         would stay at the top. Transparent background because the placeholder sits beneath it,
+         centered the same way. -->
     <Style x:Key="NoteBox" TargetType="TextBox">
       <Setter Property="FontSize" Value="12" />
       <Setter Property="MinHeight" Value="40" />
@@ -150,7 +150,7 @@
       <Setter Property="BorderBrush" Value="#26808080" />
       <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Padding" Value="4,2" />
-      <Setter Property="ToolTip" Value="Nota dell'ambiente: si salva da sola ed e' la stessa nella VSIX" />
+      <Setter Property="ToolTip" Value="Environment note: it saves itself and is the same one shown in the VSIX" />
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="TextBox">
@@ -178,13 +178,13 @@
       </Setter>
     </Style>
 
-    <!-- Tag dell'intestazione di un ambiente: database protetto per primo, poi Docker, database e
-         server del backend predefinito. Ogni tag sta a 4 px dal precedente e il gruppo a 4 px dal
-         titolo, cosi' il primo visibile e' sempre a 8 px. Li usano la card dell'ambiente e la scheda
-         del suo chip nella testata. -->
+    <!-- Environment header tags: protected database first, then Docker, database and server of
+         the default backend. Each tag is 4 px from the previous one and the group 4 px from the
+         title, so the first visible one is always at 8 px. Used by the environment card and by its
+         chip's card in the header. -->
     <DataTemplate x:Key="EnvironmentTags">
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
-        <!-- Ambiente locale con database protetto: le migrazioni si leggono ma non si applicano. -->
+        <!-- Local environment with a protected database: migrations are read but not applied. -->
         <Border Visibility="{Binding ProtectedDatabaseVisibility}" ToolTip="{Binding ProtectedDatabaseToolTip}">
           <Border.Style>
             <Style TargetType="Border" BasedOn="{StaticResource Tag}">
@@ -197,7 +197,7 @@
           <TextBlock Text="{Binding ProtectedDatabaseTag}" Style="{StaticResource TagText}" />
         </Border>
         <Border Visibility="{Binding KindBadgeVisibility}"
-                ToolTip="Ambiente Docker: worktree dai cloni sorgente, api, web e database nei container dello slot">
+                ToolTip="Docker environment: worktrees from the source clones, api, web and database in the slot's containers">
           <Border.Style>
             <Style TargetType="Border" BasedOn="{StaticResource Tag}">
               <Setter Property="Margin" Value="4,0,0,0" />
@@ -208,10 +208,10 @@
           </Border.Style>
           <TextBlock Text="Docker" Style="{StaticResource TagText}" />
         </Border>
-        <!-- Database e server del backend predefinito dell'ambiente, letti dagli
-             appsettings. In un ambiente Docker il server e' sempre il container dello
-             slot e non si mostra. Arancione, ognuno per conto suo, il tag il cui nome
-             la configurazione chiede di evidenziare (highlightedTags del backend). -->
+        <!-- Database and server of the environment's default backend, read from the
+             appsettings. In a Docker environment the server is always the slot's container
+             and is not shown. Orange, each on its own, for a tag whose name the
+             configuration asks to highlight (the backend's highlightedTags). -->
         <Border Visibility="{Binding DatabaseTagVisibility}" ToolTip="{Binding DatabaseTagToolTip}">
           <Border.Style>
             <Style TargetType="Border" BasedOn="{StaticResource Tag}">
@@ -245,7 +245,7 @@
       </StackPanel>
     </DataTemplate>
 
-    <!-- Stesso aspetto dei microtesti grigi delle card (lo stato git sotto la tendina). -->
+    <!-- Same look as the cards' small grey texts (the git status under the drop-down). -->
     <Style x:Key="NotePlaceholder" TargetType="TextBlock">
       <Setter Property="FontSize" Value="12" />
       <Setter Property="Opacity" Value="0.65" />
@@ -254,15 +254,14 @@
       <Setter Property="IsHitTestVisible" Value="False" />
     </Style>
 
-    <!-- Ogni sezione della colonna e' una card come quelle del pannello delle PR: angoli ampi,
-         bordo appena accennato, staccata dalla successiva di 8 px. Sopra e sotto il padding e'
-         piu' corto che ai lati perche' la riga dell'intestazione (26 px) aggiunge gia' aria.
-         Padding verticale, margine del separatore e margine delle intestazioni annidate valgono
-         tutti 8 px: cosi' ogni riga di intestazione ha la stessa aria sopra e sotto ed e'
-         centrata nella sua fascia.
-         Effetto vetro opaco leggero: bianco al 97-95% che lascia appena trasparire il gradiente.
-         WPF non sfoca lo sfondo dietro un elemento, quindi l'opacita' resta alta per tenere
-         leggibile il testo anche sopra il paesaggio di Ctrl+T. -->
+    <!-- Each section of the column is a card like those of the PR panel: wide corners, a barely
+         visible border, 8 px from the next one. Top and bottom padding is shorter than at the
+         sides because the header row (26 px) already adds air.
+         Vertical padding, separator margin and nested header margin are all 8 px: so every
+         header row has the same air above and below and is centered in its band.
+         Light frosted-glass effect: 97-95% white that lets the gradient barely show through.
+         WPF does not blur the background behind an element, so opacity stays high to keep the
+         text readable even over the Ctrl+T scenery. -->
     <Style x:Key="Section" TargetType="Border">
       <Setter Property="Background" Value="{DynamicResource Theme.CardBackground}" />
       <Setter Property="BorderBrush" Value="{DynamicResource Theme.CardBorder}" />
@@ -271,10 +270,10 @@
       <Setter Property="Padding" Value="14,8" />
       <Setter Property="Margin" Value="0,0,0,8" />
       <Style.Triggers>
-        <!-- Ambiente tutto su dev, di solito inutilizzato: la card e' piena come le altre ma con
-             un tramonto appena accennato, pesca in alto a sinistra che sfuma nel rosa in basso a
-             destra, cosi' sembra "a riposo" accanto al bianco caldo degli ambienti in uso senza
-             l'aria di cosa disabilitata. -->
+        <!-- Environment entirely on dev, usually unused: the card is solid like the others but with
+             a faint sunset, peach at the top left fading into pink at the bottom right, so it
+             looks "at rest" next to the warm white of the environments in use without looking
+             disabled. -->
         <Trigger Property="local:CardTint.AllOnDev" Value="True">
           <Setter Property="Background" Value="{DynamicResource Theme.CardBackgroundAllOnDev}" />
           <Setter Property="BorderBrush" Value="{DynamicResource Theme.CardBorderAllOnDev}" />
@@ -282,17 +281,17 @@
       </Style.Triggers>
     </Style>
 
-    <!-- Separatore tra intestazione e corpo di una card, da bordo a bordo come nel pannello
-         delle PR: i margini negativi annullano il padding laterale della Section. Segue la
-         visibilita' del corpo, cosi' a card chiusa non resta una riga orfana. -->
+    <!-- Separator between a card's header and body, edge to edge as in the PR panel: the
+         negative margins cancel the Section's side padding. It follows the body's visibility,
+         so a collapsed card leaves no orphan line. -->
     <Style x:Key="CardSeparator" TargetType="Border">
       <Setter Property="Height" Value="1" />
       <Setter Property="Background" Value="{DynamicResource Theme.Separator}" />
       <Setter Property="Margin" Value="-14,8,-14,0" />
     </Style>
 
-    <!-- Freccia di apertura delle card: l'intestazione intera e' cliccabile (MouseBinding), i
-         bottoni che contiene gestiscono il proprio clic e non la aprono. -->
+    <!-- Card expand arrow: the whole header is clickable (MouseBinding); the buttons inside it
+         handle their own click and don't expand it. -->
     <Style x:Key="ExpanderGlyph" TargetType="TextBlock">
       <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
       <Setter Property="FontWeight" Value="Normal" />
@@ -304,8 +303,8 @@
       <Setter Property="Margin" Value="0,0,6,0" />
     </Style>
 
-    <!-- Intestazione delle card: stessa altezza minima con o senza bottoni, cosi' freccia,
-         icona, titolo e pallino stanno sulla stessa linea in tutte le card. -->
+    <!-- Card header: same minimum height with or without buttons, so arrow, icon, title and
+         dot sit on the same line in every card. -->
     <Style x:Key="CardHeader" TargetType="DockPanel">
       <Setter Property="LastChildFill" Value="True" />
       <Setter Property="Background" Value="Transparent" />
@@ -313,7 +312,7 @@
       <Setter Property="MinHeight" Value="26" />
     </Style>
 
-    <!-- Larghezza fissa: icone diverse non spostano il titolo. -->
+    <!-- Fixed width: different icons don't shift the title. -->
     <Style x:Key="CardIcon" TargetType="TextBlock">
       <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
       <Setter Property="FontWeight" Value="Normal" />
@@ -324,9 +323,9 @@
       <Setter Property="Margin" Value="0,0,8,0" />
     </Style>
 
-    <!-- Sezione «Log» chiusa di default (LogSectionViewModel): log del container nella card del
-         repository, log delle operazioni nella card dell'ambiente Docker. Il testo si seleziona e
-         si copia; a sezione aperta resta sull'ultima riga se chi legge e' in fondo. -->
+    <!-- “Log” section, collapsed by default (LogSectionViewModel): container log in the repository
+         card, operations log in the Docker environment card. The text can be selected and
+         copied; with the section open it sticks to the last line if the reader is at the bottom. -->
     <DataTemplate x:Key="LogSectionTemplate">
       <StackPanel>
         <Border Style="{StaticResource CardSeparator}" />
@@ -362,9 +361,9 @@
       </StackPanel>
     </DataTemplate>
 
-    <!-- Una card per repository: sezione git con fetch, pull, pulizia branch e tendina, poi il
-         riquadro errori. Clone e branch non hanno un'intestazione propria: si leggono gia' dalla
-         riga del repository e dalla tendina. -->
+    <!-- One card per repository: git section with fetch, pull, branch cleanup and drop-down, then
+         the errors box. Clone and branch have no header of their own: they already show in the
+         repository row and in the drop-down. -->
     <DataTemplate x:Key="RepoCardTemplate">
       <Border Style="{StaticResource Section}" local:CardBusy.IsBusy="{Binding IsBusyVisual}">
         <StackPanel>
@@ -374,17 +373,17 @@
           </StackPanel>
 
           <StackPanel Visibility="{Binding ContentVisibility}">
-            <!-- Pull resta in fast-forward only: e' git a rifiutare quando non e' un
-                 fast-forward, per questo il pulsante puo' stare sempre visibile. -->
+            <!-- Pull stays fast-forward only: git itself refuses when it is not a
+                 fast-forward, which is why the button can always be visible. -->
             <DockPanel Style="{StaticResource CardHeader}">
               <DockPanel.InputBindings>
                 <MouseBinding Gesture="LeftClick" Command="{Binding Expander.ToggleCommand}" />
               </DockPanel.InputBindings>
-              <!-- Stato: verde acceso, arancio solo console aperta, grigio spento, azzurro
-                   pulsante mentre si legge il repository. In ogni intestazione il pallino e' il
-                   primo elemento ancorato a destra, quindi sta sul bordo della card, dopo i
-                   bottoni: lo stato si legge sempre nello stesso punto. L'host del tunnel ha il
-                   suo pallino nella sezione del tunnel, nel corpo delle card di backend e frontend. -->
+              <!-- Status: green running, orange console open only, grey stopped, pulsing light blue
+                   while the repository is being read. In every header the dot is the first
+                   element docked right, so it sits on the card's edge, after the buttons: the
+                   status always shows in the same spot. The tunnel host has its own dot in the
+                   tunnel section, in the body of the backend and frontend cards. -->
               <local:StatusDot DockPanel.Dock="Right"
                                Color="{Binding Tool.StateColor}"
                                IsLoading="{Binding IsLoading}">
@@ -408,7 +407,7 @@
               <Button DockPanel.Dock="Right"
                       Command="{Binding FetchCommand}"
                       Visibility="{Binding GitActionsVisibility}"
-                      ToolTip="git fetch — aggiorna i remote-tracking ref e rilegge lo stato del repository"
+                      ToolTip="git fetch — update the remote-tracking refs and reload the repository status"
                       IsEnabled="{Binding IsNotBusy}"
                       Style="{StaticResource IconButton}"
                       FontFamily="{StaticResource Codicons}" FontSize="16"
@@ -416,17 +415,17 @@
               <Button DockPanel.Dock="Right"
                       Command="{Binding PruneCommand}"
                       Visibility="{Binding GitActionsVisibility}"
-                      ToolTip="Elimina i branch locali il cui branch remoto non esiste piu' (chiede conferma)"
+                      ToolTip="Delete local branches whose remote branch no longer exists (asks for confirmation)"
                       IsEnabled="{Binding IsNotBusy}"
                       Style="{StaticResource IconButton}"
                       Content="&#xE74D;" />
-              <!-- L'editor (Visual Studio o VS Code, lo dice il tooltip) e' la prima azione dopo quelle di git. -->
+              <!-- The editor (Visual Studio or VS Code, as the tooltip says) is the first action after the git ones. -->
               <Button DockPanel.Dock="Right"
                       Command="{Binding Tool.OpenCommand}"
                       ToolTip="{Binding Tool.OpenToolTip}"
                       Style="{StaticResource IconButton}"
                       Content="&#xE943;" />
-              <!-- Avvia e ferma sono lo stesso bottone: il glifo dice cosa fara', rosso se ferma. -->
+              <!-- Start and stop are the same button: the glyph says what it will do, red if it stops. -->
               <Button DockPanel.Dock="Right"
                       Command="{Binding Tool.ToggleCommand}"
                       Visibility="{Binding Tool.ToggleVisibility}"
@@ -462,17 +461,17 @@
                          Text="{Binding RepoLine}"
                          ToolTip="{Binding RepoToolTip}"
                          Style="{StaticResource CardTitle}" />
-              <!-- Il tag della card: l'id del catalogo, solo per i repository non predefiniti (dice
-                   quale dei due backend e' questo). Database e server stanno sulla card
-                   dell'ambiente. Nella riga i tag si tagliano; al passaggio del mouse
-                   una copia intera compare sopra i pulsanti (Canvas, che non taglia, e ZIndex sopra
-                   i fratelli del DockPanel). La copia non intercetta il mouse: spostandosi sui
-                   pulsanti sparisce e li lascia cliccabili. -->
+              <!-- The card's tag: the catalog id, only for non-default repositories (it tells which of
+                   the two backends this is). Database and server are on the environment card.
+                   In the row the tags get cut off; on hover a full copy appears over the buttons
+                   (a Canvas, which does not clip, with a ZIndex above the DockPanel's siblings).
+                   The copy ignores the mouse: moving onto the buttons makes it disappear and
+                   leaves them clickable. -->
               <Grid VerticalAlignment="Center" Visibility="{Binding TagsVisibility}" Background="Transparent" Panel.ZIndex="1">
                 <StackPanel Orientation="Horizontal" Margin="8,0,0,0">
                   <Border Style="{StaticResource Tag}" Visibility="{Binding IdTagVisibility}" Margin="0,0,4,0">
                     <Border.ToolTip>
-                      <TextBlock Text="{Binding Id, StringFormat='Id nel catalogo: {0}. Console e dev tunnel di questo repository usano nomi con questo id.'}" />
+                      <TextBlock Text="{Binding Id, StringFormat='Catalog id: {0}. Consoles and dev tunnels of this repository use names with this id.'}" />
                     </Border.ToolTip>
                     <TextBlock Text="{Binding Id}" Style="{StaticResource TagText}" />
                   </Border>
@@ -489,14 +488,14 @@
               </Grid>
             </DockPanel>
 
-            <!-- Corpo della card: a card chiusa restano intestazione, timestamp ed errori. -->
+            <!-- Card body: with the card collapsed, header, timestamp and errors remain. -->
             <Border Visibility="{Binding Expander.BodyVisibility}" Style="{StaticResource CardSeparator}" />
             <StackPanel Visibility="{Binding Expander.BodyVisibility}">
-            <!-- Tendina editabile con ricerca integrata: scrivendo le voci si filtrano per
-                 sottostringa e il menu si apre da solo; le frecce spostano solo l'evidenziato e
-                 una scelta (Invio o clic) esegue git switch.
-                 IsTextSearchEnabled=False lascia al ViewModel il filtro invece del salto per
-                 prefisso; StaysOpenOnEdit tiene il menu aperto mentre si scrive. -->
+            <!-- Editable drop-down with built-in search: typing filters the items by substring and
+                 the menu opens by itself; the arrows only move the highlight and a choice
+                 (Enter or click) runs git switch.
+                 IsTextSearchEnabled=False leaves filtering to the ViewModel instead of jumping by
+                 prefix; StaysOpenOnEdit keeps the menu open while typing. -->
             <local:BranchComboBox DataContext="{Binding BranchPicker}"
                                   ItemsSource="{Binding Branches}"
                                   SelectedItem="{Binding SelectedBranch, Mode=TwoWay}"
@@ -507,12 +506,12 @@
                                   StaysOpenOnEdit="True"
                                   Visibility="{Binding DataContext.GitActionsVisibility, RelativeSource={RelativeSource AncestorType=StackPanel}}"
                                   IsEnabled="{Binding DataContext.IsNotBusy, RelativeSource={RelativeSource AncestorType=StackPanel}}"
-                                  ToolTip="Scrivi per cercare, frecce per scorrere, Invio o clic per cambiare branch (git switch)"
+                                  ToolTip="Type to search, arrows to scroll, Enter or click to switch branch (git switch)"
                                   FontFamily="Consolas" FontWeight="Normal"
                                   FontSize="13"
                                   Margin="0,6,0,0" />
 
-            <!-- Stato git e avviso sulla stessa riga, centrati: se lo spazio non basta si accorcia lo stato. -->
+            <!-- Git status and warning on the same line, centered: if space runs out the status is shortened. -->
             <DockPanel HorizontalAlignment="Center" Margin="0,6,0,0">
               <TextBlock DockPanel.Dock="Right"
                          Text="{Binding UpstreamWarning}"
@@ -533,8 +532,8 @@
                          TextTrimming="CharacterEllipsis" />
             </DockPanel>
 
-            <!-- Dev tunnel, nelle card del backend e del frontend: sezione con la sua
-                 intestazione, che si apre e chiude da sola dentro il corpo della card. -->
+            <!-- Dev tunnel, in the backend and frontend cards: a section with its own
+                 header, expanding and collapsing on its own inside the card body. -->
             <StackPanel DataContext="{Binding Tunnel}"
                         Visibility="{Binding DataContext.TunnelVisibility, RelativeSource={RelativeSource AncestorType=Border}}">
               <Border Style="{StaticResource CardSeparator}" />
@@ -544,8 +543,8 @@
                 </DockPanel.InputBindings>
                 <TextBlock DockPanel.Dock="Left" Text="{Binding State.Expander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
                 <TextBlock DockPanel.Dock="Left" Text="&#xE774;" Style="{StaticResource CardIcon}" />
-                <!-- Nessun comando qui: il tunnel si accende e si spegne per tutto l'ambiente,
-                     dall'intestazione. Il pallino e' lo stato dell'host. -->
+                <!-- No commands here: the tunnel is turned on and off for the whole environment,
+                     from the header. The dot is the host's status. -->
                 <local:StatusDot DockPanel.Dock="Right"
                                  Color="{Binding Host.StateColor}"
                                  IsLoading="{Binding State.IsLoading}">
@@ -571,10 +570,10 @@
                            TextAlignment="Center"
                            Margin="0,8,0,0" />
 
-                <!-- Una riga per porta: numero nel badge, host senza schema (gli URL pubblici sono https),
-                     due bottoni a destra: copia dell'URL e apertura nel browser
-                     predefinito. La nota compare solo per una porta che non risponde o per il
-                     feedback della copia. -->
+                <!-- One row per port: number in the badge, host without scheme (public URLs are https),
+                     two buttons on the right: copy the URL and open it in the default browser.
+                     The note appears only for a port that does not respond or as copy
+                     feedback. -->
                 <local:LaneGrid ItemsSource="{Binding Ports}"
                                 Visibility="{Binding PortsVisibility}"
                                 Margin="0,8,0,0">
@@ -588,8 +587,8 @@
                   </local:LaneGrid.ItemTemplate>
                 </local:LaneGrid>
 
-                <!-- Nessun tunnel corrisponde al clone: tunnel dell'account con stato sintetico. -->
-                <!-- Pallino di stato, nome del tunnel e, nella nota grigia, host e porte. -->
+                <!-- No tunnel matches the clone: the account's tunnels with a short status. -->
+                <!-- Status dot, tunnel name and, in the grey note, host and ports. -->
                 <local:LaneGrid ItemsSource="{Binding List}"
                                 Visibility="{Binding ListVisibility}"
                                 Margin="0,8,0,0">
@@ -603,9 +602,9 @@
 
             </StackPanel>
 
-            <!-- Anteprima del frontend, solo nella card del frontend: il browser di playwright-cli
-                 aperto sulla porta del dev server di questo ambiente, dal vivo e utilizzabile in
-                 un riquadro 16:9. Il pallino e' verde quando il browser di Claude c'e'. -->
+            <!-- Frontend preview, only in the frontend card: the playwright-cli browser open on this
+                 environment's dev server port, live and usable in a 16:9 frame. The dot is
+                 green when Claude's browser is there. -->
             <StackPanel DataContext="{Binding Preview}"
                         Visibility="{Binding DataContext.PreviewVisibility, RelativeSource={RelativeSource AncestorType=Border}}">
               <Border Style="{StaticResource CardSeparator}" />
@@ -620,12 +619,12 @@
                                  ToolTip="{Binding HeaderToolTip}" />
                 <Button DockPanel.Dock="Right"
                         Click="OpenPreview_Click"
-                        ToolTip="Ingrandisci a tutta la finestra"
+                        ToolTip="Expand to the whole window"
                         Style="{StaticResource IconButton}"
                         Content="&#xE740;" />
                 <Button DockPanel.Dock="Right"
                         Command="{Binding OpenExternalCommand}"
-                        ToolTip="Apri nel browser predefinito la pagina del browser di Claude (o il dev server se non c'e')"
+                        ToolTip="Open the page of Claude's browser in the default browser (or the dev server if there is none)"
                         Style="{StaticResource IconButton}"
                         Content="&#xE8A7;" />
                 <TextBlock DockPanel.Dock="Left"
@@ -634,11 +633,11 @@
                            Style="{StaticResource CardTitle}" />
               </DockPanel>
 
-              <!-- Il Viewbox da' l'altezza massima: 16:9, o la proporzione del fotogramma quando
-                   e' piu' largo. Con un fotogramma il riquadro si stringe sull'immagine (l'Image
-                   Uniform misura solo l'area del fotogramma), senza resta pieno. Il contenuto
-                   si ritaglia sugli angoli stondati con una maschera: ClipToBounds taglierebbe
-                   solo in rettangolo. -->
+              <!-- The Viewbox sets the maximum height: 16:9, or the frame's aspect ratio when it is
+                   wider. With a frame the box shrinks to the image (a Uniform Image measures
+                   only the frame's area); without one it stays full. The content is clipped to
+                   the rounded corners with a mask: ClipToBounds would only clip to a
+                   rectangle. -->
               <Grid Visibility="{Binding Expander.BodyVisibility}" Margin="0,8,0,0">
                 <Viewbox x:Name="PreviewSizer" Stretch="Uniform">
                   <Rectangle Width="{Binding SizerWidth}" Height="{Binding SizerHeight}" />
@@ -678,16 +677,16 @@
               </Grid>
             </StackPanel>
 
-            <!-- Log del container, solo nelle card di backend e frontend di un ambiente Docker:
-                 si legge solo a sezione aperta (DevToolsController.FollowContainerLogAsync). -->
+            <!-- Container log, only in the backend and frontend cards of a Docker environment:
+                 it is read only while the section is open (DevToolsController.FollowContainerLogAsync). -->
             <ContentControl Content="{Binding ContainerLog}"
                             ContentTemplate="{StaticResource LogSectionTemplate}"
                             Visibility="{Binding ContainerLogVisibility}"
                             Focusable="False" />
 
-            <!-- Migrazioni e context, solo nella card del backend: una sezione ciascuno in fondo
-                 al corpo, prima le migrazioni applicate che il codice non conosce, perche' vanno
-                 viste prima di leggere i contatori dei context. -->
+            <!-- Migrations and contexts, only in the backend card: one section each at the bottom
+                 of the body, applied migrations unknown to the code first, because they must
+                 be seen before reading the context counters. -->
             <StackPanel DataContext="{Binding Migrations}"
                         Visibility="{Binding DataContext.MigrationsVisibility, RelativeSource={RelativeSource AncestorType=Border}}">
               <StackPanel Visibility="{Binding UnknownVisibility}">
@@ -718,15 +717,15 @@
                   <DataTemplate>
                     <StackPanel>
                       <Border Style="{StaticResource CardSeparator}" />
-                      <!-- Intestazione cliccabile: apre e chiude la sezione. Il database update
-                           parte dalle righe delle migrazioni, non da qui. -->
+                      <!-- Clickable header: expands and collapses the section. The database update
+                           starts from the migration rows, not from here. -->
                       <DockPanel Style="{StaticResource CardHeader}" Margin="0,8,0,0">
                         <DockPanel.InputBindings>
                           <MouseBinding Gesture="LeftClick" Command="{Binding Expander.ToggleCommand}" />
                         </DockPanel.InputBindings>
                         <TextBlock DockPanel.Dock="Left" Text="{Binding Expander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
                         <TextBlock DockPanel.Dock="Left" Text="&#xEE94;" Style="{StaticResource CardIcon}" />
-                        <!-- Verde allineato, arancio con migrazioni da sistemare. -->
+                        <!-- Green when in sync, orange with migrations to fix. -->
                         <local:StatusDot DockPanel.Dock="Right"
                                          Color="{Binding StatusColor}"
                                          IsLoading="{Binding IsLoading}">
@@ -743,7 +742,7 @@
                                    Style="{StaticResource CardTitle}" />
                       </DockPanel>
 
-                      <!-- Corpo: aperto di default solo se il context non e' allineato. -->
+                      <!-- Body: expanded by default only if the context is out of sync. -->
                       <StackPanel Visibility="{Binding Expander.BodyVisibility}">
                       <TextBlock Text="{Binding Note}"
                                  Visibility="{Binding NoteVisibility}"
@@ -753,9 +752,9 @@
                                  TextAlignment="Center"
                                  Margin="0,8,0,0" />
 
-                      <!-- Ultime migrazioni, con la posizione nel context nel badge: il bottone
-                           della riga lancia l'update fino a quella migrazione, con conferma. Il
-                           glifo dice la direzione: Play in avanti, Undo per un rollback. -->
+                      <!-- Latest migrations, with the position in the context in the badge: the row's
+                           button runs the update up to that migration, with confirmation. The
+                           glyph tells the direction: Play forward, Undo for a rollback. -->
                       <local:LaneGrid ItemsSource="{Binding Recent}"
                                       Visibility="{Binding RecentVisibility}"
                                       Margin="0,8,0,0">
@@ -774,7 +773,7 @@
                                   Margin="0,8,0,0">
                         <Button Command="{Binding PreviousPageCommand}"
                                 IsEnabled="{Binding CanGoPrevious}"
-                                ToolTip="Migrazioni più recenti"
+                                ToolTip="Newer migrations"
                                 Style="{StaticResource IconButton}"
                                 Margin="0"
                                 Content="&#xE76B;" />
@@ -785,7 +784,7 @@
                                    Margin="6,0,2,0" />
                         <Button Command="{Binding NextPageCommand}"
                                 IsEnabled="{Binding CanGoNext}"
-                                ToolTip="Migrazioni più vecchie"
+                                ToolTip="Older migrations"
                                 Style="{StaticResource IconButton}"
                                 Content="&#xE76C;" />
                       </StackPanel>
@@ -798,8 +797,8 @@
             </StackPanel>
             </StackPanel>
 
-            <!-- Errori di configurazione, database, git o azioni: rosso ad alfa bassa, si
-                 stacca senza gridare. -->
+            <!-- Configuration, database, git or action errors: low-alpha red, it stands out
+                 without shouting. -->
             <Border CornerRadius="12"
                     Background="#14C42B1C"
                     BorderBrush="#40C42B1C"
@@ -827,11 +826,10 @@
       <RowDefinition Height="Auto" />
     </Grid.RowDefinitions>
 
-    <!-- Sfondo della finestra sotto l'intestazione e le card: il gradiente del brand,
-         senza logo. Una base lavanda chiara che scurisce verso il basso a destra, piu' tre
-         macchie morbide: azzurra in alto a sinistra, chiara in alto al centro, lilla in basso a
-         destra. Copre anche la riga dell'intestazione, cosi' negli angoli stondati si vede il
-         gradiente. -->
+    <!-- Window background under the header and the cards: the brand gradient, without the
+         logo. A light lavender base darkening toward the bottom right, plus three soft spots:
+         light blue at the top left, pale at the top center, lilac at the bottom right. It also
+         covers the header row, so the gradient shows in the rounded corners. -->
     <Grid Grid.Row="0" Grid.RowSpan="3">
       <Border>
         <Border.Background>
@@ -868,14 +866,14 @@
       </Border>
     </Grid>
 
-    <!-- Easter egg di Ctrl+T: un paesaggio in pixel art sopra il gradiente, sotto testata e
-         card, col terreno sul bordo del footer come i piedi del gattino. -->
+    <!-- Ctrl+T easter egg: a pixel-art landscape over the gradient, under the header and the
+         cards, with the ground on the footer's edge like the kitten's feet. -->
     <local:PixelScenery x:Name="Scenery" Grid.Row="0" Grid.RowSpan="2" />
 
-    <!-- Intestazione fissa (riga delle app e intestazioni delle colonne): una card unica,
-         sullo stesso piano delle card delle colonne: stesso fondo, bordo, raggio e distanza dal
-         bordo della finestra (stile Section), e 8 px dalla prima card come tra le card. Niente
-         ombra. L'ombra resta ai pannelli, che stanno sopra. -->
+    <!-- Fixed header (app row and column headers): a single card, on the same plane as the
+         column cards: same background, border, radius and distance from the window edge
+         (Section style), and 8 px from the first card as between cards. No shadow. Shadows
+         belong to the panels, which sit on top. -->
     <Border x:Name="HeaderCard"
             Grid.Row="0"
             Margin="8,8,8,0"
@@ -885,16 +883,16 @@
             BorderThickness="1,1,1,3"
             TextElement.Foreground="{DynamicResource Theme.Text}">
       <StackPanel>
-        <!-- Riga delle app, nello spirito del telefono di Animal Crossing: un bottone per pannello
-             (icona tonda colorata ed etichetta). A sinistra i pannelli di lavoro, a destra, da
-             sinistra a destra, risorse della macchina, Setup, Aggiorna tutto e Notifiche: col Dock a destra
-             il primo dichiarato e' il piu' a destra. Le letture in corso le mostra l'isola in
-             cima alla finestra. -->
-        <!-- Quattro gruppi nella stessa griglia: pannelli a sinistra, comandi a destra, chip degli
-             ambienti subito dopo i pannelli e risorse della macchina subito prima dei comandi. Se non
-             stanno tutti in una riga, chip e risorse scendono nella seconda, i chip a sinistra e le
-             risorse a destra; le risorse vanno nella terza solo se neanche li' c'e' posto
-             (TopBar_SizeChanged). -->
+        <!-- App row, in the spirit of the Animal Crossing phone: one button per panel (round colored
+             icon and label). On the left the work panels; on the right, from left to right,
+             machine resources, Setup, Refresh all and Notifications: with Dock right the first
+             declared is the rightmost. Reads in progress are shown by the island at the top of
+             the window. -->
+        <!-- Four groups in the same grid: panels on the left, commands on the right, environment
+             chips right after the panels and machine resources right before the commands. If
+             they don't all fit on one row, chips and resources drop to the second, chips on the
+             left and resources on the right; resources go to the third only if there is no
+             room there either (TopBar_SizeChanged). -->
         <Grid x:Name="TopBar" Margin="12,10,12,10" SizeChanged="TopBar_SizeChanged">
           <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
@@ -905,22 +903,22 @@
           <Button x:Name="PullRequestsButton"
                   DockPanel.Dock="Left"
                   Click="OpenPullRequests_Click"
-                  ToolTip="Le pull request che ti riguardano, raggruppate per work item"
+                  ToolTip="The pull requests that concern you, grouped by work item"
                   Style="{StaticResource AppButton}"
                   Tag="#3FB8A0"
                   Content="&#xE943;"
                   local:AppButton.Label="Pull request" />
           <Button DockPanel.Dock="Left"
                   Click="OpenMeeting_Click"
-                  ToolTip="Gioco a turni e a tempo per dare i punti alle storie utente"
+                  ToolTip="A timed, turn-based game to give points to user stories"
                   Style="{StaticResource AppButton}"
                   Tag="#E07A9B"
                   Content="&#xE716;"
-                  local:AppButton.Label="Punti storia" />
+                  local:AppButton.Label="Story points" />
           <Button x:Name="TomatoButton"
                   DockPanel.Dock="Left"
                   Click="OpenTomato_Click"
-                  ToolTip="Il tomato timer del giardino, in un pannello che a chiuderlo non ferma il timer"
+                  ToolTip="The garden's tomato timer, in a panel that doesn't stop the timer when closed"
                   Style="{StaticResource AppButton}"
                   Tag="#D9544D"
                   Content="&#xE916;"
@@ -930,37 +928,36 @@
           <Button x:Name="NotificationsButton"
                   DockPanel.Dock="Right"
                   Click="OpenNotifications_Click"
-                  ToolTip="I lavori nuovi sulle pull request, finché non li leggi"
+                  ToolTip="New work on pull requests, until you read it"
                   Style="{StaticResource AppButton}"
                   Tag="#A98BE3"
                   Content="&#xEA8F;"
-                  local:AppButton.Label="Notifiche"
+                  local:AppButton.Label="Notifications"
                   local:AppButton.Badge="{Binding Notifications.BadgeText}" />
           <Button DockPanel.Dock="Right"
                   Command="{Binding RefreshAllCommand}"
-                  ToolTip="Rilegge tutti gli ambienti liberi: git fetch, migrazioni e dev tunnel"
+                  ToolTip="Reload all idle environments: git fetch, migrations and dev tunnels"
                   Style="{StaticResource AppButton}"
                   Tag="#7CC56A"
                   Content="&#xE72C;"
-                  local:AppButton.Label="Aggiorna tutto" />
-          <!-- Il badge conta le migrazioni di dev che mancano al seed: si allinea dalla scheda «Docker». -->
+                  local:AppButton.Label="Refresh all" />
+          <!-- The badge counts the dev migrations missing from the seed: sync it from the “Docker” tab. -->
           <Button x:Name="SetupButton"
                   DockPanel.Dock="Right"
                   Click="OpenSetup_Click"
-                  ToolTip="Preferenze dell'exe (tema, gattino, sfondo, demo), ambienti, repository, Docker (seed, spazio, log), tunnel e DevOps"
+                  ToolTip="App preferences (theme, kitten, background, demo), environments, repositories, Docker (seed, disk space, logs), tunnels and DevOps"
                   Style="{StaticResource AppButton}"
                   Tag="#55B7EA"
                   Content="&#xE713;"
                   local:AppButton.Label="Setup"
                   local:AppButton.Badge="{Binding Docker.MissingBadge}" />
           </DockPanel>
-          <!-- Risorse della macchina (SystemLoad: disco di sistema e RAM): in prima riga a sinistra di
-               Setup, oppure a destra nella riga dei chip quando la prima non basta (TopBar_SizeChanged).
-               La sagoma dei bottoni-app
-               ma piatta, senza labbro e con un filo di bordo, perche' non sembri cliccabile. La
-               barra piena e' la parte usata, il binario
-               vuoto quella libera; i valori in GB e le percentuali libere stanno nel tooltip.
-               La sorgente e' statica: resta anche quando la demo di Ctrl+D cambia il DataContext. -->
+          <!-- Machine resources (SystemLoad: system disk and RAM): in the first row to the left of
+               Setup, or on the right in the chips row when the first one is not enough
+               (TopBar_SizeChanged). The shape of the app buttons, but flat, with no lip and a
+               thin border, so it doesn't look clickable. The filled bar is the used part, the
+               empty track the free part; GB values and free percentages are in the tooltip.
+               The source is static: it stays even when the Ctrl+D demo changes the DataContext. -->
           <Grid x:Name="TopBarMeter"
                 Height="34"
                 HorizontalAlignment="Right"
@@ -982,14 +979,15 @@
             </StackPanel>
           </Grid>
           <StackPanel x:Name="TopBarChips" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" SizeChanged="TopBar_SizeChanged">
-          <!-- Un chip per ambiente, sempre visibile anche scorrendo le colonne in orizzontale. Da
-               sinistra: numero, pallino di stato (azzurro pulsante mentre l'ambiente legge o i container
-               partono) e i segni dell'ambiente solo quando valgono: pila di livelli viola per
-               Docker, lucchetto rosso per il database protetto, spunta verde acqua se ogni repository e' su dev.
-               Lo sfondo dice solo se la colonna e' mostrata (beige caldo, in rilievo) o nascosta (ardesia,
-               piatta).
-               Col mouse sopra si apre la scheda dell'ambiente (ChipCard, in fondo alla finestra). Il
-               clic mostra o nasconde la colonna; mostrandola la porta in vista. -->
+          <!-- One chip per environment, always visible even when scrolling the columns horizontally.
+               From the left: number, status dot (pulsing light blue while the environment reads
+               or the containers start) and the environment markers only when they apply: a
+               purple layer stack for Docker, a red padlock for the protected database, a teal
+               check if every repository is on dev.
+               The background only tells whether the column is shown (warm beige, raised) or
+               hidden (slate, flat).
+               Hovering opens the environment's card (ChipCard, at the bottom of the window). A
+               click shows or hides the column; showing it scrolls it into view. -->
           <ItemsControl ItemsSource="{Binding Environments}" VerticalAlignment="Center">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
@@ -1008,8 +1006,8 @@
                   <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource TextButton}">
                       <Style.Triggers>
-                        <!-- Colonna nascosta: chip piatto, senza il labbro e il riflesso dei bottoni,
-                             con un filo di bordo; resta il velo in hover perche' si veda che e' cliccabile. -->
+                        <!-- Hidden column: flat chip, without the buttons' lip and sheen, with a thin
+                             border; the hover veil stays so it is clear that it can be clicked. -->
                         <DataTrigger Binding="{Binding IsCollapsed}" Value="True">
                           <Setter Property="Background" Value="{DynamicResource Theme.ChipHidden}" />
                           <Setter Property="Template">
@@ -1043,12 +1041,12 @@
               </DataTemplate>
             </ItemsControl.ItemTemplate>
           </ItemsControl>
-          <!-- Dopo i chip degli ambienti: apre il riquadro di creazione di un ambiente Docker. -->
+          <!-- After the environment chips: opens the Docker environment creation pane. -->
           <Button x:Name="NewDockerButton"
                   DockPanel.Dock="Left"
                   Click="OpenDocker_Click"
                   Visibility="{Binding NewDockerVisibility}"
-                  ToolTip="Nuovo ambiente Docker: worktree dai cloni sorgente, database dal seed e container dello slot"
+                  ToolTip="New Docker environment: worktrees from the source clones, database from the seed and the slot's containers"
                   Style="{StaticResource TextButton}"
                   Margin="0"
                   VerticalAlignment="Center"
@@ -1066,11 +1064,11 @@
       </StackPanel>
     </Border>
 
-    <!-- Un solo scroll per tutte le colonne, card dell'ambiente comprese: scorrono insieme, e la
-         riga della griglia e' alta quanto la colonna piu' lunga. La scrollbar compare solo se c'e'
-         qualcosa da scorrere. In orizzontale la griglia e' larga quanto il viewport, ma mai meno di
-         ColumnsMinWidth (MinWidth vince su Width): sotto quella soglia le colonne non si stringono
-         e compare lo scroll orizzontale. -->
+    <!-- A single scroll for all columns, environment cards included: they scroll together, and the
+         grid row is as tall as the longest column. The scrollbar appears only if there is
+         something to scroll. Horizontally the grid is as wide as the viewport, but never less
+         than ColumnsMinWidth (MinWidth wins over Width): below that threshold the columns don't
+         shrink and the horizontal scroll appears. -->
     <ScrollViewer x:Name="BodyScroll" Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextElement.Foreground="{DynamicResource Theme.Text}">
       <ItemsControl x:Name="BodyColumns"
                     ItemsSource="{Binding Environments}"
@@ -1089,8 +1087,8 @@
         </ItemsControl.ItemContainerStyle>
         <ItemsControl.ItemTemplate>
           <DataTemplate>
-            <!-- La prima riga e' la card dell'ambiente, alta quanto il suo contenuto: ogni colonna
-                 ha la sua. Una colonna nascosta sparisce del tutto e si riapre dal suo chip nella testata. -->
+            <!-- The first row is the environment card, as tall as its content: each column has
+                 its own. A hidden column disappears entirely and reopens from its chip in the header. -->
             <Grid x:Name="Column"
                   Margin="8,8,8,3"
                   local:CardTint.AllOnDev="{Binding AllOnDev}">
@@ -1098,29 +1096,29 @@
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
               </Grid.RowDefinitions>
-                <!-- La card dell'ambiente, in cima alla colonna: nome, pallino, attivita', azioni
-                     d'ambiente, occhio per nascondere la colonna e nota. -->
+                <!-- The environment card, at the top of the column: name, dot, activity, environment
+                     actions, eye to hide the column, and note. -->
                 <Border Style="{StaticResource Section}" Visibility="{Binding ColumnVisibility}" local:CardBusy.IsBusy="{Binding IsHeaderBusy}">
                   <StackPanel>
                     <DockPanel Style="{StaticResource CardHeader}" Cursor="Arrow">
-                      <!-- Azzurro pulsante mentre l'ambiente legge, esegue un'azione o (Docker) i
-                           container partono; rosso se un container e' in errore. -->
+                      <!-- Pulsing light blue while the environment reads, runs an action or (Docker) the
+                           containers start; red if a container is in error. -->
                       <local:StatusDot DockPanel.Dock="Right"
                                        Color="{Binding StatusColor}"
                                        IsLoading="{Binding IsHeaderBusy}"
                                        ToolTip="{Binding StatusLine}" />
                       <Button DockPanel.Dock="Right"
                               Command="{Binding ToggleCollapseCommand}"
-                              ToolTip="Nasconde la colonna: si riapre dal suo numero nella testata"
+                              ToolTip="Hide the column: reopen it from its number in the header"
                               Style="{StaticResource IconButton}"
                               Content="&#xED1A;" />
                       <Button DockPanel.Dock="Right"
                               Command="{Binding RefreshCommand}"
-                              ToolTip="Rilegge l'ambiente, esegue git fetch e interroga i dev tunnel"
+                              ToolTip="Reload the environment, run git fetch and query the dev tunnels"
                               Style="{StaticResource IconButton}"
                               Content="&#xE72C;" />
-                      <!-- Avvia/ferma d'ambiente: Kestrel, dev server e host dei tunnel di tutte le
-                           card; lo stop ferma anche app e Metro, l'avvio no (vedi DevToolsController). -->
+                      <!-- Environment start/stop: Kestrel, dev server and tunnel hosts of all the
+                           cards; stop also stops the app and Metro, start does not (see DevToolsController). -->
                       <Button DockPanel.Dock="Right"
                               Command="{Binding Tools.Stack.ToggleCommand}"
                               IsEnabled="{Binding Tools.Stack.ToggleEnabled}"
@@ -1132,7 +1130,7 @@
                       <TextBlock DockPanel.Dock="Left" Text="{Binding Title}" FontWeight="ExtraBold" FontSize="15" Foreground="{DynamicResource Theme.TextStrong}" VerticalAlignment="Center" />
                       <ContentControl DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource EnvironmentTags}" Focusable="False" IsTabStop="False" VerticalAlignment="Center" />
                     </DockPanel>
-                    <!-- Solo negli ambienti Docker: docker che non risponde e avvisi degli env dello slot (nomi, mai valori). -->
+                    <!-- Only in Docker environments: docker not responding and warnings about the slot's env files (names, never values). -->
                     <TextBlock Text="{Binding Docker.UnreachableText}"
                                Visibility="{Binding Docker.UnreachableVisibility, FallbackValue=Collapsed}"
                                TextWrapping="Wrap"
@@ -1145,11 +1143,11 @@
                                FontSize="11"
                                Foreground="{DynamicResource Theme.DockerWarningText}"
                                Margin="0,4,0,0" />
-                    <!-- Nota libera dell'ambiente, condivisa con la VSIX: si scrive qui e si salva da
-                         sola. Il segnaposto sta sotto la casella trasparente. -->
+                    <!-- Free-form environment note, shared with the VSIX: typed here, it saves
+                         itself. The placeholder sits under the transparent box. -->
                     <Border Margin="0,6,0,2" CornerRadius="10" Background="{DynamicResource Theme.Note}">
                       <Grid>
-                        <!-- Mentre si scrive il segnaposto sparisce: il cursore centrato gli cadrebbe in mezzo. -->
+                        <!-- While typing the placeholder disappears: the centered caret would land in the middle of it. -->
                         <TextBlock Text="Note"
                                    Visibility="{Binding NotePlaceholderVisibility}">
                           <TextBlock.Style>
@@ -1167,13 +1165,13 @@
                                  Style="{StaticResource NoteBox}" />
                       </Grid>
                     </Border>
-                    <!-- Azioni secondarie sotto la nota: l'intestazione tiene solo avvia/ferma, rilettura
-                         e occhio, cosi' nome, tag e stato hanno spazio. L'interruttore del tunnel sta
-                         a sinistra, le azioni a destra. -->
+                    <!-- Secondary actions under the note: the header keeps only start/stop, reload and
+                         eye, so name, tags and status have room. The tunnel switch is on the left,
+                         the actions on the right. -->
                     <DockPanel LastChildFill="False" Margin="0,6,0,0">
                       <StackPanel DockPanel.Dock="Left" Orientation="Horizontal">
-                        <!-- Il tunnel dell'ambiente: spuntato, l'ambiente ha un tunnel del pool con una
-                             porta per ogni repository che ne espone una. -->
+                        <!-- The environment's tunnel: when checked, the environment has a pool tunnel with a
+                             port for each repository that exposes one. -->
                         <TextBlock Text="Tunnel"
                                    FontSize="12"
                                    FontWeight="Bold"
@@ -1191,38 +1189,38 @@
                                   Margin="6,0,4,0" />
                       </StackPanel>
                       <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
-                        <!-- Solo negli ambienti Docker: «Distruggi ambiente» e «Ripara env». Gli env dei locali si
-                             riallineano da soli a ogni rilettura completa (EnvironmentController.Refresh). -->
+                        <!-- Only in Docker environments: “Destroy environment” and “Repair env”. The env files of local
+                             environments realign by themselves on every full reload (EnvironmentController.Refresh). -->
                         <Button Command="{Binding Docker.DestroyCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 Visibility="{Binding KindBadgeVisibility}"
-                                ToolTip="Distrugge l'ambiente: container e volume del database, worktree (solo se non hanno codice da perdere), cartella dello slot, immagini dell'api e del web, porte del pool e voce. Restano i branch e la nota"
+                                ToolTip="Destroy the environment: containers and database volume, worktrees (only if they have no code to lose), slot folder, api and web images, pool ports and entry. Branches and the note remain"
                                 ToolTipService.ShowOnDisabled="True"
                                 Style="{StaticResource TextButton}"
-                                Content="Distruggi ambiente" />
+                                Content="Destroy environment" />
                         <Button Command="{Binding Docker.RepairEnvCommand}"
                                 IsEnabled="{Binding IsNotBusy}"
                                 Visibility="{Binding KindBadgeVisibility}"
-                                ToolTip="Riscrive gli env dei worktree e gli env_file dei container dalla configurazione; i valori impostati a mano che lo slot non sa calcolare restano"
+                                ToolTip="Rewrite the worktrees' env files and the containers' env_file from the configuration; values set by hand that the slot cannot compute are kept"
                                 ToolTipService.ShowOnDisabled="True"
                                 Style="{StaticResource TextButton}"
-                                Content="Ripara env" />
-                        <!-- Reset: stessa logica del checkout delle PR, con tutti i repository su dev. -->
+                                Content="Repair env" />
+                        <!-- Reset: same logic as the PR checkout, with every repository on dev. -->
                         <Button Command="{Binding ResetCommand}"
-                                ToolTip="Spegne tutto l'ambiente, app compresa, e se i repository sono puliti li riporta su dev con il pull"
+                                ToolTip="Stop the whole environment, app included, and if the repositories are clean bring them back to dev with a pull"
                                 Style="{StaticResource TextButton}"
                                 Content="Reset to dev" />
                       </StackPanel>
                     </DockPanel>
-                    <!-- Solo negli ambienti Docker: il log delle operazioni dell'ambiente
-                         (creazione, avvio, stop, ripara env, distruggi). -->
+                    <!-- Only in Docker environments: the environment's operations log
+                         (create, start, stop, repair env, destroy). -->
                     <ContentControl Content="{Binding OperationLog}"
                                     ContentTemplate="{StaticResource LogSectionTemplate}"
                                     Visibility="{Binding KindBadgeVisibility}"
                                     Focusable="False" />
                   </StackPanel>
                 </Border>
-                <!-- Le card del catalogo che l'ambiente include, nell'ordine del catalogo. -->
+                <!-- The catalog cards the environment includes, in catalog order. -->
                 <ItemsControl Grid.Row="1" ItemsSource="{Binding Repos}" ItemTemplate="{StaticResource RepoCardTemplate}" Visibility="{Binding ColumnVisibility}" />
             </Grid>
           </DataTemplate>
@@ -1230,15 +1228,15 @@
       </ItemsControl>
     </ScrollViewer>
 
-    <!-- Easter egg di Ctrl+G: sopra il contenuto, coi piedi sul bordo del footer. -->
+    <!-- Ctrl+G easter egg: above the content, with its feet on the footer's edge. -->
     <local:PixelCat x:Name="Cat" Grid.Row="1" VerticalAlignment="Bottom" Panel.ZIndex="2" />
 
-    <!-- Pannello delle pull request: una card che galleggia su un lato (sinistro all'avvio, «Cambia
-         lato» lo sposta: MainWindow.SwitchPullRequestsSide), sopra testata e
-         colonne (che sotto i 480 px l'una non si stringono: un pannello affiancato le manderebbe
-         in scroll), staccata dai bordi. Il DataContext e' il suo ViewModel, assegnato
-         dalla finestra: la demo di Ctrl+D non lo tocca. Scala e spostamento servono all'animazione
-         di apertura (MainWindow.ShowPullRequests). -->
+    <!-- Pull requests panel: a card floating on one side (left at startup, “Switch side” moves it:
+         MainWindow.SwitchPullRequestsSide), above the header and the columns (which don't shrink
+         below 480 px each: a side-by-side panel would make them scroll), detached from the
+         edges. The DataContext is its ViewModel, assigned by the window: the Ctrl+D demo does
+         not touch it. Scale and translation serve the opening animation
+         (MainWindow.ShowPullRequests). -->
     <local:PullRequestsPanel x:Name="PullRequests"
                              Grid.Row="0"
                              Grid.RowSpan="2"
@@ -1256,10 +1254,10 @@
       </local:PullRequestsPanel.RenderTransform>
     </local:PullRequestsPanel>
 
-    <!-- Pannello del pomodoro: card galleggiante sul lato sinistro come le PR, con il tomato
-         timer in una WebView2. Chiuderlo lo rende trasparente e non cliccabile ma non lo
-         nasconde (MainWindow.HideTomato): per Chromium la pagina resta visibile e il timer non
-         viene rallentato. -->
+    <!-- Pomodoro panel: a card floating on the left side like the PRs, with the tomato timer in
+         a WebView2. Closing it makes it transparent and not clickable but does not hide it
+         (MainWindow.HideTomato): for Chromium the page stays visible and the timer is not
+         throttled. -->
     <local:TomatoPanel x:Name="Tomato"
                        Grid.Row="0"
                        Grid.RowSpan="2"
@@ -1277,9 +1275,9 @@
       </local:TomatoPanel.RenderTransform>
     </local:TomatoPanel>
 
-    <!-- Pannello delle notifiche: card galleggiante sul lato destro, con le stesse animazioni del
-         pannello delle PR. I due non stanno aperti insieme: se le PR sono passate a destra si
-         sovrapporrebbero. Il DataContext lo assegna la finestra (vero o demo). -->
+    <!-- Notifications panel: a card floating on the right side, with the same animations as the
+         PR panel. The two are never open together: if the PRs moved to the right they would
+         overlap. The window assigns the DataContext (real or demo). -->
     <local:NotificationsPanel x:Name="Notifications"
                               Grid.Row="0"
                               Grid.RowSpan="2"
@@ -1297,8 +1295,8 @@
       </local:NotificationsPanel.RenderTransform>
     </local:NotificationsPanel>
 
-    <!-- Riquadro «Nuovo ambiente Docker» del «+»: galleggiante a destra come le notifiche, con cui
-         non sta aperto insieme, alto quanto il suo contenuto. -->
+    <!-- The “+” pane “New Docker environment”: floating on the right like the notifications, never
+         open together with them, as tall as its content. -->
     <local:DockerPanel x:Name="Docker"
                        DataContext="{Binding Docker}"
                        Grid.Row="0"
@@ -1318,17 +1316,17 @@
       </local:DockerPanel.RenderTransform>
     </local:DockerPanel>
 
-    <!-- Nessun ambiente configurato (primo avvio): al posto delle colonne un invito al setup. -->
+    <!-- No environments configured (first run): instead of the columns, an invitation to the setup. -->
     <StackPanel Grid.Row="1"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Center"
                 Visibility="{Binding EmptyVisibility}">
-      <TextBlock Text="Nessun ambiente configurato" FontSize="19" FontWeight="Bold" Foreground="{DynamicResource Theme.TextStrong}" HorizontalAlignment="Center" />
-      <TextBlock Text="Apri il setup per indicare repository, cartelle e numero di ambienti." Opacity="0.7" Margin="0,4,0,0" HorizontalAlignment="Center" />
+      <TextBlock Text="No environments configured" FontSize="19" FontWeight="Bold" Foreground="{DynamicResource Theme.TextStrong}" HorizontalAlignment="Center" />
+      <TextBlock Text="Open the setup to choose repositories, folders and the number of environments." Opacity="0.7" Margin="0,4,0,0" HorizontalAlignment="Center" />
     </StackPanel>
 
-    <!-- Setup: una card grande al centro, sopra tutto, con un velo che la separa dalle colonne.
-         Un clic sul velo non la chiude: dentro c'e' lavoro non salvato. -->
+    <!-- Setup: a large card in the center, above everything, with a veil separating it from the
+         columns. A click on the veil does not close it: there is unsaved work inside. -->
     <Border x:Name="SetupBackdrop"
             Grid.Row="0"
             Grid.RowSpan="3"
@@ -1340,10 +1338,10 @@
                         Margin="32,24" />
     </Border>
 
-    <!-- Riunione punti storia: copre tutta la finestra, footer compreso, perche' va proiettata
-         su un televisore. Il velo resta come cornice di pochi pixel e non la chiude al clic: in
-         riunione un clic sbagliato non deve far sparire il timer. Il DataContext lo assegna la
-         finestra (vero o demo). -->
+    <!-- Story points meeting: covers the whole window, footer included, because it is shown on
+         a TV. The veil stays as a frame a few pixels wide and does not close it on click: in a
+         meeting a wrong click must not make the timer disappear. The window assigns the
+         DataContext (real or demo). -->
     <Border x:Name="MeetingBackdrop"
             Grid.Row="0"
             Grid.RowSpan="3"
@@ -1353,9 +1351,9 @@
       <local:StoryPointsMeetingPanel x:Name="Meeting" Margin="8" />
     </Border>
 
-    <!-- Letture in corso: l'isola sale dal basso a sinistra, sopra le colonne e sotto i pannelli.
-         Col mouse sopra scivola sul lato destro, e da li' torna a sinistra: non copre mai
-         quello che si sta guardando. -->
+    <!-- Reads in progress: the island rises from the bottom left, above the columns and below the
+         panels. With the mouse over it, it slides to the right side, and from there back to the
+         left: it never covers what you are looking at. -->
     <local:LoadingIsland Grid.Row="1"
                          HorizontalAlignment="Left"
                          VerticalAlignment="Bottom"
@@ -1364,11 +1362,11 @@
                          DodgesMouse="True"
                          Panel.ZIndex="4" />
 
-    <!-- Scheda di un chip della testata: compare col mouse sopra il chip, centrata sotto di lui, e
-         resta aperta mentre il mouse passa dal chip alla scheda (MainWindow.xaml.cs, ChipCard_*).
-         Ha l'aspetto della card dell'ambiente: nome, tag, pallino di stato e nota (in sola lettura), poi i
-         branch di ogni repository presente in una LaneGrid e il bottone che mostra o nasconde la colonna. Il
-         DataContext e' l'ambiente del chip. -->
+    <!-- Card of a header chip: it appears when hovering the chip, centered below it, and stays
+         open while the mouse moves from the chip to the card (MainWindow.xaml.cs, ChipCard_*).
+         It looks like the environment card: name, tags, status dot and note (read-only), then
+         the branches of each present repository in a LaneGrid and the button that shows or hides
+         the column. The DataContext is the chip's environment. -->
     <Popup x:Name="ChipCard"
            AllowsTransparency="True"
            StaysOpen="True"
@@ -1396,7 +1394,7 @@
 
           <Border Margin="0,6,0,2" CornerRadius="10" Background="{DynamicResource Theme.Note}">
             <Grid>
-              <TextBlock Text="Nessuna nota" Visibility="{Binding NotePlaceholderVisibility}" Style="{StaticResource NotePlaceholder}" />
+              <TextBlock Text="No note" Visibility="{Binding NotePlaceholderVisibility}" Style="{StaticResource NotePlaceholder}" />
               <TextBox Text="{Binding Note, Mode=OneWay}"
                        Style="{StaticResource NoteBox}"
                        IsReadOnly="True"
@@ -1405,8 +1403,8 @@
             </Grid>
           </Border>
 
-          <!-- Branch di ogni repository presente, nella griglia standard delle card: il repository
-               nel badge, il branch come testo. -->
+          <!-- Branch of each present repository, in the cards' standard grid: the repository
+               in the badge, the branch as text. -->
           <local:LaneGrid ItemsSource="{Binding ChipBranches}" Margin="0,8,0,0">
             <local:LaneGrid.ItemTemplate>
               <DataTemplate>
@@ -1418,10 +1416,10 @@
           <Button HorizontalAlignment="Right" Margin="0,8,0,0" Click="ChipCardToggle_Click">
             <Button.Style>
               <Style TargetType="Button" BasedOn="{StaticResource TextButton}">
-                <Setter Property="Content" Value="Nascondi ambiente" />
+                <Setter Property="Content" Value="Hide environment" />
                 <Style.Triggers>
                   <DataTrigger Binding="{Binding IsCollapsed}" Value="True">
-                    <Setter Property="Content" Value="Mostra ambiente" />
+                    <Setter Property="Content" Value="Show environment" />
                   </DataTrigger>
                 </Style.Triggers>
               </Style>
@@ -1431,12 +1429,12 @@
       </Border>
     </Popup>
 
-    <!-- Anteprima di un ambiente ingrandita: copre testata e colonne, il footer resta. -->
+    <!-- Enlarged environment preview: covers the header and the columns, the footer stays. -->
     <local:PreviewOverlay x:Name="Overlay" Grid.Row="0" Grid.RowSpan="2" Panel.ZIndex="3" />
 
-    <!-- Footer minimale, testo bianco: versione dell'exe. Il fondo, scuro e intonato
-         allo sfondo acceso (gradiente o scena di Ctrl+T), lo da' MainWindow.xaml.cs insieme alla
-         barra del titolo. -->
+    <!-- Minimal footer, white text: the app version. The background, dark and matched to the
+         active backdrop (gradient or Ctrl+T scene), is set by MainWindow.xaml.cs together with
+         the title bar. -->
     <Border x:Name="Footer" Grid.Row="2">
       <TextBlock HorizontalAlignment="Center"
                  Margin="0,4,0,6"

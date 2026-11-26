@@ -6,8 +6,8 @@ using Soffritto.Core.Configuration;
 namespace Soffritto.Core.Docker.Seed;
 
 /// <summary>
-/// Il seed su SQL Server in un container: RESTORE e BACKUP dall'host con SqlClient e docker cp,
-/// compattazione dei file prima del BACKUP, container temporaneo del seed.
+/// The seed on SQL Server in a container: RESTORE and BACKUP from the host with SqlClient and docker cp,
+/// file shrinking before BACKUP, temporary seed container.
 /// </summary>
 public sealed class SqlServerSeedProvider : ISeedProvider
 {
@@ -26,12 +26,12 @@ public sealed class SqlServerSeedProvider : ISeedProvider
         var sql = c.PrimarySeed()?.Seed?.SqlServer;
         if (sql is null)
         {
-            return "nessun backend ha un seed configurato";
+            return "no backend has a seed configured";
         }
 
         if (sql.Password.Contains('"'))
         {
-            return "la password SQL del seed non puo' contenere virgolette doppie";
+            return "the seed's SQL password cannot contain double quotes";
         }
 
         var name = DockerNames.SeedContainer;
@@ -48,10 +48,10 @@ public sealed class SqlServerSeedProvider : ISeedProvider
             ct: ct).ConfigureAwait(false);
         if (!run.Success)
         {
-            return $"container temporaneo del seed non avviato: {run.Tail(2)}";
+            return $"temporary seed container not started: {run.Tail(2)}";
         }
 
-        log?.Invoke($"container temporaneo {name} avviato su 127.0.0.1:{port}");
+        log?.Invoke($"temporary container {name} started on 127.0.0.1:{port}");
         return null;
     }
 
@@ -63,7 +63,7 @@ public sealed class SqlServerSeedProvider : ISeedProvider
         var builder = new SqlConnectionStringBuilder(hostConnectionString) { InitialCatalog = "master", ConnectTimeout = 5, Pooling = false };
         var limit = timeout ?? TimeSpan.FromSeconds(120);
         var started = DateTime.UtcNow;
-        var last = "nessuna risposta";
+        var last = "no response";
         while (true)
         {
             try
@@ -85,7 +85,7 @@ public sealed class SqlServerSeedProvider : ISeedProvider
 
             if (DateTime.UtcNow - started > limit)
             {
-                return $"SQL Server non pronto in {limit.TotalSeconds:0} s: {last}";
+                return $"SQL Server not ready within {limit.TotalSeconds:0} s: {last}";
             }
 
             await Task.Delay(TimeSpan.FromSeconds(2), ct).ConfigureAwait(false);
@@ -102,7 +102,7 @@ public sealed class SqlServerSeedProvider : ISeedProvider
         var copy = await DockerCli.CopyToAsync(container, bakFile, SeedInContainer, ct).ConfigureAwait(false);
         if (!copy.Success)
         {
-            return $"docker cp del seed non riuscito: {copy.Tail(2)}";
+            return $"docker cp of the seed failed: {copy.Tail(2)}";
         }
 
         try
@@ -110,7 +110,7 @@ public sealed class SqlServerSeedProvider : ISeedProvider
             var master = Master(hostConnectionString);
             var files = await QueryAsync(master, $"RESTORE FILELISTONLY FROM DISK = N'{SeedInContainer}'", ct).ConfigureAwait(false);
             var total = files.Rows.Cast<DataRow>().Sum(r => Convert.ToInt64(r["Size"], CultureInfo.InvariantCulture));
-            log?.Invoke($"il seed ripristina file per {(total / 1e9).ToString("0.0", CultureInfo.InvariantCulture)} GB ({total} byte)");
+            log?.Invoke($"the seed restores {(total / 1e9).ToString("0.0", CultureInfo.InvariantCulture)} GB of files ({total} bytes)");
 
             var moves = files.Rows.Cast<DataRow>().Select(r =>
             {
@@ -119,12 +119,12 @@ public sealed class SqlServerSeedProvider : ISeedProvider
                 return $"MOVE N'{Literal((string)r["LogicalName"])}' TO N'{DataFolderInContainer}/{Literal(database)}{suffix}'";
             });
             await ExecuteAsync(master, $"RESTORE DATABASE {Name(database)} FROM DISK = N'{SeedInContainer}' WITH {string.Join(", ", moves)}, REPLACE, RECOVERY", ct).ConfigureAwait(false);
-            log?.Invoke($"database {database} ripristinato");
+            log?.Invoke($"database {database} restored");
             return null;
         }
         catch (SqlException ex)
         {
-            return $"RESTORE non riuscito: {ex.Message}";
+            return $"RESTORE failed: {ex.Message}";
         }
         finally
         {
@@ -133,15 +133,15 @@ public sealed class SqlServerSeedProvider : ISeedProvider
     }
 
     /// <summary>
-    /// Compatta i file del database (recovery SIMPLE, CHECKPOINT, SHRINKFILE per file_id con target
-    /// esplicito) e poi fa il BACKUP compresso in <paramref name="targetFile"/>, che non deve esistere.
-    /// Modifica il database da cui legge: si chiama solo sul container temporaneo del seed. Errore o null.
+    /// Shrinks the database files (recovery SIMPLE, CHECKPOINT, SHRINKFILE by file_id with an explicit
+    /// target) and then takes a compressed BACKUP to <paramref name="targetFile"/>, which must not exist.
+    /// It modifies the database it reads from: call it only on the temporary seed container. Error or null.
     /// </summary>
     public async Task<string?> BackupAsync(string container, string hostConnectionString, string database, string targetFile, Action<string>? log = null, CancellationToken ct = default)
     {
         if (!string.Equals(container, DockerNames.SeedContainer, StringComparison.Ordinal))
         {
-            return $"il backup compatta il database: si fa solo sul container temporaneo del seed ({DockerNames.SeedContainer}), non su {container}";
+            return $"the backup shrinks the database: it runs only on the temporary seed container ({DockerNames.SeedContainer}), not on {container}";
         }
 
         if (await GuardAsync(container, hostConnectionString, database, ct).ConfigureAwait(false) is { } guard)
@@ -151,7 +151,7 @@ public sealed class SqlServerSeedProvider : ISeedProvider
 
         if (File.Exists(targetFile))
         {
-            return $"{targetFile} esiste gia': il backup non lo sovrascrive";
+            return $"{targetFile} already exists: the backup does not overwrite it";
         }
 
         var temporary = targetFile + ".tmp";
@@ -162,8 +162,8 @@ public sealed class SqlServerSeedProvider : ISeedProvider
             await ExecuteAsync(onDatabase, $"ALTER DATABASE {Name(database)} SET RECOVERY SIMPLE", ct).ConfigureAwait(false);
             await ExecuteAsync(onDatabase, "CHECKPOINT", ct).ConfigureAwait(false);
 
-            // Per file_id: i nomi logici cambiano da un seed all'altro e possono contenere un punto.
-            // Senza target esplicito lo shrink si ferma alla dimensione di creazione del file.
+            // By file_id: logical names change from one seed to another and can contain a dot.
+            // Without an explicit target the shrink stops at the file's creation size.
             var before = await QueryAsync(onDatabase, "SELECT file_id, type, name, size, CAST(FILEPROPERTY(name, 'SpaceUsed') AS bigint) AS used FROM sys.database_files", ct).ConfigureAwait(false);
             foreach (DataRow row in before.Rows)
             {
@@ -187,28 +187,28 @@ public sealed class SqlServerSeedProvider : ISeedProvider
             {
                 var fileId = Convert.ToInt32(row["file_id"], CultureInfo.InvariantCulture);
                 var sizeAfter = after.Rows.Cast<DataRow>().FirstOrDefault(r => Convert.ToInt32(r["file_id"], CultureInfo.InvariantCulture) == fileId)?["size"];
-                log?.Invoke($"file {fileId} ({row["name"]}): {Megabytes(row["size"])} MB prima, {(sizeAfter is null ? "?" : Megabytes(sizeAfter))} MB dopo la compattazione");
+                log?.Invoke($"file {fileId} ({row["name"]}): {Megabytes(row["size"])} MB before, {(sizeAfter is null ? "?" : Megabytes(sizeAfter))} MB after shrinking");
             }
 
             await ExecuteAsync(Master(hostConnectionString), $"BACKUP DATABASE {Name(database)} TO DISK = N'{BackupInContainer}' WITH COPY_ONLY, INIT, COMPRESSION", ct).ConfigureAwait(false);
             var copy = await DockerCli.CopyFromAsync(container, BackupInContainer, temporary, ct).ConfigureAwait(false);
             if (!copy.Success)
             {
-                return $"docker cp del backup non riuscito: {copy.Tail(2)}";
+                return $"docker cp of the backup failed: {copy.Tail(2)}";
             }
 
             File.Move(temporary, targetFile, overwrite: false);
             done = true;
-            log?.Invoke($"backup scritto in {targetFile} ({new FileInfo(targetFile).Length} byte)");
+            log?.Invoke($"backup written to {targetFile} ({new FileInfo(targetFile).Length} bytes)");
             return null;
         }
         catch (SqlException ex)
         {
-            return $"compattazione o BACKUP non riusciti: {ex.Message}";
+            return $"shrink or BACKUP failed: {ex.Message}";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return $"backup non scritto in {targetFile}: {ex.Message}";
+            return $"backup not written to {targetFile}: {ex.Message}";
         }
         finally
         {
@@ -229,8 +229,8 @@ public sealed class SqlServerSeedProvider : ISeedProvider
     public Task<HistoryReadResult> ReadAppliedMigrationsAsync(string hostConnectionString, CancellationToken ct = default)
         => MigrationsHistoryReader.ReadAsync(new SqlConnectionStringBuilder(hostConnectionString) { Pooling = false }.ConnectionString, cancellationToken: ct);
 
-    // La connessione deve puntare alla porta che il container pubblica sull'host e al database
-    // atteso: cosi' RESTORE e BACKUP non partono verso un altro server.
+    // The connection must point to the port the container publishes on the host and to the expected
+    // database: this way RESTORE and BACKUP never go to another server.
     private static async Task<string?> GuardAsync(string container, string hostConnectionString, string database, CancellationToken ct)
     {
         var port = await DockerCli.RunAsync($"port {container} {DockerSlot.SqlServerPort}/tcp", timeoutSeconds: 15, ct: ct).ConfigureAwait(false);
@@ -243,7 +243,7 @@ public sealed class SqlServerSeedProvider : ISeedProvider
             : null;
         if (published is not { } hostPort)
         {
-            return $"il container {container} non pubblica SQL Server su 127.0.0.1: operazione fermata";
+            return $"container {container} does not publish SQL Server on 127.0.0.1: operation stopped";
         }
 
         return DatabaseGuard.CheckConnectionString(hostConnectionString, hostPort, database);
@@ -259,21 +259,21 @@ public sealed class SqlServerSeedProvider : ISeedProvider
         var label = await DockerCli.ContainerLabelAsync(name, DockerNames.LabelKey, ct).ConfigureAwait(false);
         if (label != DockerNames.DataFolderTag)
         {
-            return $"il container {name} esiste ma non e' di questa cartella dati (etichetta {DockerNames.LabelKey} {(string.IsNullOrEmpty(label) ? "assente" : label)}): non lo tocco";
+            return $"container {name} exists but does not belong to this data folder (label {DockerNames.LabelKey} {(string.IsNullOrEmpty(label) ? "missing" : label)}): leaving it alone";
         }
 
         var remove = await DockerCli.RunAsync($"rm -f {name}", timeoutSeconds: 60, ct: ct).ConfigureAwait(false);
         if (!remove.Success)
         {
-            return $"container {name} non rimosso: {remove.Tail(2)}";
+            return $"container {name} not removed: {remove.Tail(2)}";
         }
 
-        log?.Invoke($"container temporaneo {name} rimosso");
+        log?.Invoke($"temporary container {name} removed");
         return null;
     }
 
-    // Pooling = false in tutte le connessioni del provider: il container temporaneo si ricrea
-    // sulla stessa porta, e una connessione rimasta nel pool verso quello rimosso fallirebbe.
+    // Pooling = false on all of the provider's connections: the temporary container is recreated
+    // on the same port, and a pooled connection to the removed one would fail.
     private static string Master(string connectionString)
         => new SqlConnectionStringBuilder(connectionString) { InitialCatalog = "master", Pooling = false }.ConnectionString;
 

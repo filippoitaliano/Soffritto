@@ -5,8 +5,8 @@ namespace Soffritto.Core;
 public sealed record ScannedMigration(string MigrationId, string FileName)
 {
     /// <summary>
-    /// Il file e' stato rinominato senza aggiornare l'attributo [Migration] o viceversa.
-    /// Non rompe EF, che usa l'attributo, ma rende il repo fuorviante a colpo d'occhio.
+    /// The file was renamed without updating the [Migration] attribute, or vice versa.
+    /// It does not break EF, which uses the attribute, but it makes the repo misleading at a glance.
     /// </summary>
     public bool FileNameMismatch => !string.Equals(MigrationId, FileName, StringComparison.Ordinal);
 }
@@ -22,9 +22,9 @@ public static partial class MigrationScanner
     private static partial Regex MigrationAttributePattern();
 
     /// <summary>
-    /// Elenca le migrazioni di una cartella senza caricare assembly ne' EF Core.
-    /// L'ID autoritativo e' quello dichiarato in [Migration("...")] nel file .Designer.cs:
-    /// il nome del file puo' divergere se la migrazione e' stata rinominata a meta'.
+    /// Lists the migrations in a folder without loading assemblies or EF Core.
+    /// The authoritative ID is the one declared in [Migration("...")] in the .Designer.cs file:
+    /// the file name can differ if the migration was only partially renamed.
     /// </summary>
     public static IReadOnlyList<ScannedMigration> Scan(string migrationsDirectory)
     {
@@ -47,7 +47,7 @@ public static partial class MigrationScanner
     {
         var designerPath = Path.ChangeExtension(migrationPath, null) + ".Designer.cs";
 
-        // L'attributo puo' stare sulla migrazione stessa quando il Designer manca.
+        // The attribute can sit on the migration itself when the Designer file is missing.
         foreach (var candidate in new[] { designerPath, migrationPath })
         {
             if (!File.Exists(candidate))
@@ -74,7 +74,7 @@ public static partial class MigrationScanner
             }
             catch (IOException)
             {
-                // File bloccato o illeggibile: il nome file resta un fallback ragionevole.
+                // File locked or unreadable: the file name remains a reasonable fallback.
             }
         }
 

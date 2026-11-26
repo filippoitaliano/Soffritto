@@ -3,9 +3,9 @@ using System.Collections.Concurrent;
 namespace Soffritto.Mcp;
 
 /// <summary>
-/// Un'operazione lunga su un ambiente (creazione, avvio, migrazioni, distruzione…): gira in
-/// background nel processo del server, sopravvive alla chiamata che l'ha avviata e si legge con
-/// stato_operazione.
+/// A long operation on an environment (create, start, migrations, destroy…): it runs in the
+/// background in the server process, outlives the call that started it and is read with
+/// operation_status.
 /// </summary>
 internal sealed class Operation
 {
@@ -72,29 +72,29 @@ internal sealed class Operation
         {
             return new
             {
-                operazione = Id,
-                tipo = Kind,
-                ambiente = Environment,
-                stato = finished is null ? "in corso" : error is null ? "riuscita" : "fallita",
-                avviata = Started.ToString("HH:mm:ss"),
-                durataSecondi = (int)((finished ?? DateTimeOffset.Now) - Started).TotalSeconds,
-                errore = error,
-                esito = result,
+                operation = Id,
+                kind = Kind,
+                environment = Environment,
+                status = finished is null ? "running" : error is null ? "succeeded" : "failed",
+                started = Started.ToString("HH:mm:ss"),
+                durationSeconds = (int)((finished ?? DateTimeOffset.Now) - Started).TotalSeconds,
+                error,
+                result,
                 log = log.Skip(Math.Max(0, log.Count - lines)).ToList(),
-                prossimoPasso = finished is null ? $"chiama stato_operazione con operazione = \"{Id}\" per seguirla" : null,
+                nextStep = finished is null ? $"call operation_status with operation = \"{Id}\" to follow it" : null,
             };
         }
     }
 }
 
-/// <summary>Le operazioni di questo processo: una sola in corso per ambiente.</summary>
+/// <summary>The operations of this process: at most one running per environment.</summary>
 internal static class Operations
 {
     private const int DefaultLogLines = 40;
 
     private static readonly ConcurrentDictionary<string, Operation> All = new();
 
-    // Le operazioni non dipendono dalla chiamata che le avvia: si fermano solo con il processo.
+    // Operations do not depend on the call that starts them: they stop only with the process.
     private static readonly CancellationTokenSource Lifetime = new();
 
     public static Operation? Find(string id) => All.TryGetValue(id, out var operation) ? operation : null;
@@ -102,9 +102,9 @@ internal static class Operations
     public static Operation? RunningOn(int environment) => All.Values.FirstOrDefault(o => o.Environment == environment && o.IsRunning);
 
     /// <summary>
-    /// Avvia <paramref name="work"/> in background e aspetta fino a <paramref name="waitSeconds"/>:
-    /// se finisce prima risponde con l'esito, altrimenti con l'operazione da seguire. Il lavoro
-    /// restituisce l'errore (null se riuscito) e un esito da mostrare.
+    /// Starts <paramref name="work"/> in the background and waits up to <paramref name="waitSeconds"/>:
+    /// if it finishes in time the response carries the result, otherwise the operation to follow. The
+    /// work returns the error (null on success) and a result to show.
     /// </summary>
     public static async Task<object> RunAsync(
         string kind,
@@ -117,8 +117,8 @@ internal static class Operations
         {
             return new
             {
-                errore = $"sull'ambiente {environment} e' gia' in corso l'operazione {busy.Kind} ({busy.Id}): aspetta che finisca",
-                operazione = busy.Snapshot(DefaultLogLines),
+                error = $"operation {busy.Kind} ({busy.Id}) is already running on environment {environment}: wait for it to finish",
+                operation = busy.Snapshot(DefaultLogLines),
             };
         }
 

@@ -1,60 +1,61 @@
 # Soffritto
 
-![Soffritto: tre ambienti di sviluppo saltano nella stessa padella sul fuoco](docs/soffritto-hero.png)
+![Soffritto: three development environments tossed in the same pan over the fire](docs/soffritto-hero.png)
 
-Hai più copie dello stesso progetto, ognuna con il suo backend, il suo frontend, la sua app e il
-suo database? Soffritto te le mette tutte davanti in una finestra: cosa è acceso, su che branch
-sei, quali migrazioni mancano, chi è raggiungibile da fuori. E con un clic accendi, spegni,
-aggiorni e condividi.
+Do you keep several copies of the same project, each with its own backend, frontend, app and
+database? Soffritto puts them all in front of you in a single window: what is running, which
+branch you are on, which migrations are missing, what can be reached from outside. And with one
+click you start, stop, update and share.
 
-## Cosa fa
+## What it does
 
-- **Un ambiente, una colonna.** Per ogni copia numerata del progetto vedi branch, commit da
-  pullare o da pushare, working tree, migrazioni EF Core applicate, mancanti o fuori ordine.
-- **Accendi e spegni.** Backend con Kestrel, dev server del frontend, app e bundler Metro, ognuno
-  nella sua console. Pull, cambio branch e migrazioni si fanno dalla card, con guardie che
-  fermano le operazioni rischiose.
-- **Ambienti Docker usa e getta.** Un branch per repository, un database ripristinato dal seed e
-  migrato, api e web nei container: si crea dal «+» e si distrugge quando hai finito.
-- **Condividi con un interruttore.** Un pool di dev tunnel dà un indirizzo pubblico a ogni
-  servizio dell'ambiente, per provare dal telefono o farlo vedere a un collega.
-- **Parla con gli agenti.** Un server MCP mostra gli stessi ambienti a Claude Code e a ogni
-  client MCP, e un'estensione di Visual Studio porta lo stato del clone aperto dentro l'IDE.
+- **One environment, one column.** For every numbered copy of the project you see the branch,
+  commits to pull or push, the working tree, and EF Core migrations that are applied, missing or
+  out of order.
+- **Start and stop.** Backend on Kestrel, frontend dev server, app and Metro bundler, each in its
+  own console. Pull, branch switch and migrations run from the card, with guards that stop risky
+  operations.
+- **Disposable Docker environments.** One branch per repository, a database restored from the
+  seed and migrated, api and web in containers: create one from the “+” and destroy it when you
+  are done.
+- **Share with a switch.** A pool of dev tunnels gives every service of the environment a public
+  address, to try it from your phone or show it to a colleague.
+- **Talks to agents.** An MCP server exposes the same environments to Claude Code and to any MCP
+  client, and a Visual Studio extension brings the state of the open clone into the IDE.
 
-Soffritto non sa niente del tuo progetto: nomi, cartelle, porte e comandi stanno nella sua
-configurazione, che si compila dal setup.
+Soffritto knows nothing about your project: names, folders, ports and commands live in its
+configuration, which you fill in from the setup.
 
-## Installazione
+## Installation
 
-1. Scarica `Soffritto.App-win-Setup.exe` dall'[ultima release](https://github.com/filippoitaliano/Soffritto/releases/latest).
-2. Avvialo: installa per il tuo utente, senza diritti di amministratore e senza runtime .NET da
-   aggiungere.
-3. Al primo avvio la scheda **Componenti** del setup ti propone Git, Dev tunnel e Docker Desktop,
-   registra il server MCP in Claude Code e installa l'estensione di Visual Studio.
+1. Download `Soffritto.App-win-Setup.exe` from the [latest release](https://github.com/filippoitaliano/Soffritto/releases/latest).
+2. Run it: it installs for your user, with no administrator rights and no .NET runtime to add.
+3. On first launch the **Components** tab of the setup offers Git, Dev tunnel and Docker Desktop,
+   registers the MCP server in Claude Code and installs the Visual Studio extension.
 
-Gli aggiornamenti arrivano da soli: Soffritto scarica la release nuova all'avvio e la installa
-quando lo chiudi.
+Updates arrive on their own: Soffritto downloads the new release at startup and installs it when
+you close it.
 
-Vuoi solo dare un'occhiata? **Ctrl+D** apre la demo con un team inventato, che funziona anche
-senza cloni e senza rete.
+Just want a look? **Ctrl+D** opens the demo with a made-up team, which works even without clones
+and without a network.
 
-## Requisiti
+## Requirements
 
-Windows 10 o 11 a 64 bit. Git per i cloni; Dev tunnel per la condivisione e Docker Desktop per
-gli ambienti usa e getta sono facoltativi. I tuoi progetti portano i loro strumenti: SDK .NET,
-Node, e quello che serve per compilarli.
+Windows 10 or 11, 64-bit. Git for the clones; Dev tunnel for sharing and Docker Desktop for
+disposable environments are optional. Your projects bring their own tools: .NET SDK, Node, and
+whatever it takes to build them.
 
-## Per chi sviluppa Soffritto
+## Developing Soffritto
 
 ```
 dotnet build src\Soffritto.Desktop
 powershell -ExecutionPolicy Bypass -File release.ps1
 ```
 
-Il primo comando compila l'exe in Debug, il secondo crea il Setup.exe in `artifacts\releases`.
-Architettura, configurazione, guardie e dettagli di ogni funzione sono nella
-[guida tecnica](docs/GUIDA.md).
+The first command builds the app in Debug, the second creates the Setup.exe in
+`artifacts\releases`. Architecture, configuration, guards and the details of every feature are in
+the [technical guide](docs/GUIDE.md).
 
-## Licenza
+## License
 
 [MIT](LICENSE)

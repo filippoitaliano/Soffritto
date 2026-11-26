@@ -5,10 +5,10 @@ using System.Text;
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// Avvia processi che devono sopravvivere a chi li lancia: fuori dal job in cui gira l'host
-/// (il job kill-on-close dell'exe Desktop, o quelli dell'host delle estensioni di Visual Studio),
-/// altrimenti chiuderlo chiuderebbe anche Visual Studio (con il lavoro non salvato) o le console
-/// di Kestrel, dev server e app.
+/// Starts processes that must outlive whoever launches them: outside the job the host runs in
+/// (the kill-on-close job of the Desktop app, or those of the Visual Studio extension host);
+/// otherwise closing it would also close Visual Studio (with unsaved work) or the consoles
+/// of Kestrel, dev server and app.
 /// </summary>
 public static class DetachedLauncher
 {
@@ -18,8 +18,8 @@ public static class DetachedLauncher
     private const uint CreateBreakawayFromJob = 0x01000000;
     private const int ErrorAccessDenied = 5;
 
-    // Variabili che l'exe Desktop imposta per i propri figli (vedi App.OnStartup) o che una shell
-    // di sviluppo puo' aver lasciato: i processi staccati devono partire con l'ambiente normale.
+    // Variables the Desktop app sets for its own children (see App.OnStartup) or that a developer
+    // shell may have left behind: detached processes must start with the normal environment.
     private static readonly string[] StrippedVariables =
     [
         "MSBUILDDISABLENODEREUSE",
@@ -29,10 +29,10 @@ public static class DetachedLauncher
     ];
 
     /// <summary>
-    /// Avvia <paramref name="commandLine"/> nella cartella indicata. Restituisce false se il
-    /// processo e' partito ma dentro il job (il job dell'host non consente il breakaway): in quel
-    /// caso si chiudera' insieme all'host. Con <paramref name="hidden"/> un programma da console
-    /// gira senza finestra.
+    /// Starts <paramref name="commandLine"/> in the given folder. Returns false if the
+    /// process started but inside the job (the host's job does not allow breakaway): in that
+    /// case it will close along with the host. With <paramref name="hidden"/> a console program
+    /// runs without a window.
     /// </summary>
     public static bool Start(string commandLine, string workingDirectory, bool newConsole, bool hidden = false)
     {

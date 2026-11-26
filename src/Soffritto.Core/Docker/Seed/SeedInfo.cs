@@ -5,8 +5,8 @@ using Soffritto.Core.Configuration;
 namespace Soffritto.Core.Docker.Seed;
 
 /// <summary>
-/// Cosa contiene un file di seed, scritto da «Verifica seed» e da «Allinea seed» in
-/// &lt;cartella dati&gt;\docker\seed-info\&lt;sha256 del file&gt;.json.
+/// What a seed file contains, written by "Verify seed" and "Align seed" to
+/// &lt;data folder&gt;\docker\seed-info\&lt;sha256 of the file&gt;.json.
 /// </summary>
 public sealed record SeedInfo(
     string File,
@@ -29,7 +29,7 @@ public sealed record SeedInfo(
         return Convert.ToHexString(await SHA256.HashDataAsync(stream, ct).ConfigureAwait(false));
     }
 
-    /// <summary>Le informazioni del file di seed (per SHA256 del contenuto); null se il file o le informazioni mancano.</summary>
+    /// <summary>The seed file's info (by SHA256 of its content); null if the file or the info is missing.</summary>
     public static SeedInfo? Read(string seedPath)
     {
         try

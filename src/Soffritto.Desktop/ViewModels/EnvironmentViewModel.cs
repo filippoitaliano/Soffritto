@@ -5,7 +5,7 @@ using Soffritto.Presentation;
 
 namespace Soffritto.Desktop.ViewModels;
 
-/// <summary>Una colonna della finestra: l'ambiente N con le card dei suoi repository.</summary>
+/// <summary>A column of the window: environment N with the cards of its repositories.</summary>
 public sealed class EnvironmentViewModel : ObservableObject
 {
     private bool isCollapsed;
@@ -13,14 +13,14 @@ public sealed class EnvironmentViewModel : ObservableObject
     private readonly Action endOperation;
     private readonly EnvironmentNote? note;
     private string noteText;
-    private string activityLine = "avvio…";
+    private string activityLine = "starting…";
     private bool isNotBusy = true;
     private bool isLoading;
     private bool allOnDev;
     private int activeOperations;
     private readonly RepoCardViewModel? backendCard;
 
-    /// <param name="demoNote">Solo per la demo: la nota parte da questo testo e resta in memoria, senza file.</param>
+    /// <param name="demoNote">Demo only: the note starts from this text and stays in memory, with no file.</param>
     public EnvironmentViewModel(EnvironmentLayout layout, Action beginOperation, Action endOperation, string? demoNote = null)
     {
         this.beginOperation = beginOperation;
@@ -28,7 +28,7 @@ public sealed class EnvironmentViewModel : ObservableObject
 
         Number = layout.Number;
         SchemaLock = layout.SchemaLock;
-        Title = $"AMBIENTE {layout.Number}";
+        Title = $"ENVIRONMENT {layout.Number}";
         Repos = layout.Repos.Select(location => CreateCard(layout.Number, location)).ToList();
         Previews = Repos.Where(card => card.Preview is not null).Select(card => card.Preview!).ToList();
         backendCard = Repos.FirstOrDefault(card => card.Type == RepositoryType.Backend && card.IsPrimary);
@@ -49,13 +49,13 @@ public sealed class EnvironmentViewModel : ObservableObject
         }
         isCollapsed = demoNote is null && AppSettings.Current.CollapsedEnvironments.Contains(Number);
         ToggleCollapseCommand = new RelayCommand(_ => IsCollapsed = !IsCollapsed);
-        // La demo non cerca uno slot nella configurazione vera: il suo numero puo' coincidere con un ambiente vero.
+        // The demo does not look up a slot in the real configuration: its number may match a real environment.
         Docker = layout.Kind != EnvironmentKind.Docker ? null
             : demoNote is null ? CreateDocker(layout.Number)
             : new DockerEnvironmentViewModel(null, null);
         if (Docker is not null)
         {
-            OperationLog = demoNote is null ? OperationLogs.For(Number) : new LogSectionViewModel("Operazioni");
+            OperationLog = demoNote is null ? OperationLogs.For(Number) : new LogSectionViewModel("Operations");
             Docker.PropertyChanged += (_, e) =>
             {
                 if (e.PropertyName == nameof(DockerEnvironmentViewModel.IsWarmingUp))
@@ -82,14 +82,14 @@ public sealed class EnvironmentViewModel : ObservableObject
 
     public string Title { get; }
 
-    /// <summary>La parte Docker della colonna; null per un ambiente locale.</summary>
+    /// <summary>The Docker part of the column; null for a local environment.</summary>
     public DockerEnvironmentViewModel? Docker { get; }
 
     public bool IsDocker => Docker is not null;
 
     public string KindBadgeVisibility => IsDocker ? "Visible" : "Collapsed";
 
-    /// <summary>Il motivo per cui lo schema del database non si tocca (database protetto); null se si puo'.</summary>
+    /// <summary>Why the database schema must not be touched (protected database); null if it can be.</summary>
     public string? SchemaLock { get; }
 
     public string ProtectedDatabaseVisibility => SchemaLock is null ? "Collapsed" : "Visible";
@@ -98,17 +98,17 @@ public sealed class EnvironmentViewModel : ObservableObject
 
     public string ProtectedDatabaseToolTip => SchemaLock is null ? string.Empty : StatusText.ProtectedDatabaseToolTip;
 
-    /// <summary>Il database del backend predefinito dell'ambiente, letto dagli appsettings.</summary>
+    /// <summary>The database of the environment's default backend, read from appsettings.</summary>
     public string DatabaseTag => backendCard?.Database ?? string.Empty;
 
     public string DatabaseTagVisibility => backendCard is null ? "Collapsed" : "Visible";
 
     public string ServerTag => backendCard?.Server ?? string.Empty;
 
-    /// <summary>In un ambiente Docker il server e' sempre il container dello slot: il tag non dice niente.</summary>
+    /// <summary>In a Docker environment the server is always the slot's container: the tag says nothing.</summary>
     public string ServerTagVisibility => backendCard is null || IsDocker ? "Collapsed" : "Visible";
 
-    /// <summary>Ogni tag e' evidenziato per conto suo, se il suo nome e' tra quelli che la configurazione del backend chiede di evidenziare.</summary>
+    /// <summary>Each tag is highlighted on its own, when its name is among those the backend configuration asks to highlight.</summary>
     public bool IsDatabaseHighlighted => IsHighlighted(DatabaseTag);
 
     public bool IsServerHighlighted => IsHighlighted(ServerTag);
@@ -121,15 +121,15 @@ public sealed class EnvironmentViewModel : ObservableObject
         && backend.HighlightedTags.Any(name => string.Equals(name.Trim(), tag, StringComparison.OrdinalIgnoreCase));
 
     private string ToolTipOf(string kind, string tag) => IsHighlighted(tag)
-        ? $"{kind}: {tag} · evidenziato nel setup: da trattare con cautela"
+        ? $"{kind}: {tag} · highlighted in the setup: handle with care"
         : $"{kind}: {tag}";
 
-    /// <summary>Log delle operazioni dell'ambiente Docker (creazione, avvio, stop, ripara env, distruggi); null per un locale.</summary>
+    /// <summary>Operations log of the Docker environment (create, start, stop, repair env, destroy); null for a local one.</summary>
     public LogSectionViewModel? OperationLog { get; }
 
     /// <summary>
-    /// Riga di attivita' di un'azione: la mostra nell'intestazione e, negli ambienti Docker, la
-    /// aggiunge al log delle operazioni. Da qualunque thread.
+    /// Activity line of an action: shows it in the header and, in Docker environments, appends
+    /// it to the operations log. Callable from any thread.
     /// </summary>
     public void Report(string line)
     {
@@ -137,7 +137,7 @@ public sealed class EnvironmentViewModel : ObservableObject
         UiThread.Run(() => ActivityLine = line);
     }
 
-    // Uno slot non calcolabile non toglie la colonna: la guardia del database rifiutera' ogni azione.
+    // A slot that cannot be computed does not remove the column: the database guard will refuse every action.
     private static DockerEnvironmentViewModel CreateDocker(int number)
     {
         var configuration = ActiveConfiguration.Current;
@@ -145,15 +145,15 @@ public sealed class EnvironmentViewModel : ObservableObject
         {
             return configuration.Environment(number) is { } environment
                 ? new DockerEnvironmentViewModel(Soffritto.Core.Docker.DockerSlot.Of(configuration, environment), null)
-                : new DockerEnvironmentViewModel(null, $"slot non calcolabile: l'ambiente {number} non e' in configurazione");
+                : new DockerEnvironmentViewModel(null, $"slot cannot be computed: environment {number} is not in the configuration");
         }
         catch (Exception ex)
         {
-            return new DockerEnvironmentViewModel(null, $"slot non calcolabile: {ex.Message}");
+            return new DockerEnvironmentViewModel(null, $"slot cannot be computed: {ex.Message}");
         }
     }
 
-    /// <summary>Nota libera dell'ambiente, la stessa che mostra la VSIX: si salva mentre si scrive.</summary>
+    /// <summary>The environment's free-form note, the same one the VSIX shows: it saves as you type.</summary>
     public string Note
     {
         get => noteText;
@@ -172,7 +172,7 @@ public sealed class EnvironmentViewModel : ObservableObject
 
     public string SunsetVisibility => AllOnDev ? "Visible" : "Collapsed";
 
-    /// <summary>Salva la nota ancora in attesa e smette di seguire il file.</summary>
+    /// <summary>Saves the pending note and stops watching the file.</summary>
     public void CloseNote() => note?.Dispose();
 
     private void ApplyExternalNote(string text)
@@ -183,16 +183,16 @@ public sealed class EnvironmentViewModel : ObservableObject
         }
     }
 
-    /// <summary>Le card dei repository dell'ambiente, nell'ordine del catalogo.</summary>
+    /// <summary>The cards of the environment's repositories, in catalog order.</summary>
     public IReadOnlyList<RepoCardViewModel> Repos { get; }
 
-    /// <summary>La card predefinita di quel tipo (il primo repository del tipo); null se l'ambiente non ne ha.</summary>
+    /// <summary>The default card of that type (the first repository of the type); null if the environment has none.</summary>
     public RepoCardViewModel? Card(RepositoryType type) => Repos.FirstOrDefault(card => card.Type == type && card.IsPrimary);
 
-    /// <summary>Le anteprime del browser di Claude, una per card del frontend.</summary>
+    /// <summary>The Claude browser previews, one per frontend card.</summary>
     public IReadOnlyList<FrontendPreviewViewModel> Previews { get; }
 
-    /// <summary>La colonna e' nascosta (si riapre dal chip nella testata): si ricorda tra un avvio e l'altro.</summary>
+    /// <summary>The column is hidden (it reopens from the chip in the header): remembered across launches.</summary>
     public bool IsCollapsed
     {
         get => isCollapsed;
@@ -200,7 +200,7 @@ public sealed class EnvironmentViewModel : ObservableObject
         {
             if (SetProperty(ref isCollapsed, value))
             {
-                // La demo ha gli stessi numeri degli ambienti veri: le sue colonne non si ricordano.
+                // The demo uses the same numbers as real environments: its columns are not remembered.
                 if (note is not null)
                 {
                     AppSettings.Current.SetCollapsed(Number, value);
@@ -217,16 +217,16 @@ public sealed class EnvironmentViewModel : ObservableObject
 
     public ICommand ToggleCollapseCommand { get; }
 
-    /// <summary>Dopo ogni apertura o chiusura della colonna: la larghezza minima della griglia cambia.</summary>
+    /// <summary>After every opening or closing of the column: the grid's minimum width changes.</summary>
     public event Action? CollapsedChanged;
 
-    // Ogni card porta gli strumenti e le sezioni del suo tipo; il generico apre VS Code e non avvia niente.
+    // Each card carries the tools and sections of its type; a generic one opens VS Code and starts nothing.
     private static RepoCardViewModel CreateCard(int number, RepoLocation location)
     {
         var card = new RepoCardViewModel(location);
         card.Tool = location.Settings is BackendConfiguration backend
-            ? new ToolGroupViewModel("VS", $"Apre {backend.Solution} in Visual Studio")
-            : new ToolGroupViewModel("VSC", "Apre la cartella in VS Code") { HasToggle = location.Type != RepositoryType.Generic };
+            ? new ToolGroupViewModel("VS", $"Open {backend.Solution} in Visual Studio")
+            : new ToolGroupViewModel("VSC", "Open the folder in VS Code") { HasToggle = location.Type != RepositoryType.Generic };
 
         if (location.Settings.DevTunnel is not null)
         {
@@ -241,14 +241,14 @@ public sealed class EnvironmentViewModel : ObservableObject
         if (location.Type == RepositoryType.Frontend)
         {
             card.Preview = new FrontendPreviewViewModel(
-                location.IsPrimary ? $"Ambiente {number}" : $"Ambiente {number} · {location.Id}",
+                location.IsPrimary ? $"Environment {number}" : $"Environment {number} · {location.Id}",
                 location);
         }
 
         return card;
     }
 
-    /// <summary>Tutti i repository presenti nell'ambiente sono su dev: lo sfondo delle card della colonna scende al 70% di opacita'.</summary>
+    /// <summary>Every repository present in the environment is on dev: the background of the column's cards drops to 70% opacity.</summary>
     public bool AllOnDev
     {
         get => allOnDev;
@@ -261,10 +261,10 @@ public sealed class EnvironmentViewModel : ObservableObject
         }
     }
 
-    /// <summary>Dopo ogni lettura dei branch di un repository dell'ambiente: il pannello PR ricalcola quali work item ci stanno sopra.</summary>
+    /// <summary>After every branch read of a repository of the environment: the PR panel recomputes which work items sit on it.</summary>
     public event Action? BranchesChanged;
 
-    // I cloni mancanti non contano: un ambiente senza app resta "su dev" se backend e frontend lo sono.
+    // Missing clones do not count: an environment without the app is still "on dev" if backend and frontend are.
     public void RefreshAllOnDev()
     {
         var present = Repos.Where(repo => repo.ContentVisibility == "Visible").ToList();
@@ -276,13 +276,13 @@ public sealed class EnvironmentViewModel : ObservableObject
         BranchesChanged?.Invoke();
     }
 
-    /// <summary>Il branch di ogni repository presente, per la scheda del chip della testata.</summary>
+    /// <summary>The branch of every present repository, for the header chip's card.</summary>
     public IReadOnlyList<ChipBranch> ChipBranches { get; private set; } = [];
 
     /// <summary>
-    /// L'ambiente e' esattamente dove lo porterebbe «Apri in» con questi branch: ogni repository
-    /// indicato ha il clone sul suo branch, gli altri cloni presenti, generici compresi, sono su
-    /// <see cref="Soffritto.Core.GitConventions.DevelopmentBranch"/>.
+    /// The environment is exactly where “Open in” would take it with these branches: every listed
+    /// repository has its clone on its branch, and the other present clones, generic ones included,
+    /// are on <see cref="Soffritto.Core.GitConventions.DevelopmentBranch"/>.
     /// </summary>
     public bool IsOnBranches(IReadOnlyList<(string Repository, string Branch)> targets)
     {
@@ -320,8 +320,8 @@ public sealed class EnvironmentViewModel : ObservableObject
 
 
     /// <summary>
-    /// Progresso di un'azione, titolo del suo fallimento, o "pronto". Una riga per ambiente:
-    /// le azioni di scrittura dei tre repo passano dallo stesso gate.
+    /// Progress of an action, the title of its failure, or "ready". One line per environment:
+    /// write actions on the three repos go through the same gate.
     /// </summary>
     public string ActivityLine
     {
@@ -337,8 +337,8 @@ public sealed class EnvironmentViewModel : ObservableObject
     }
 
     /// <summary>
-    /// La riga di stato dell'intestazione: <see cref="ActivityLine"/>; in un ambiente Docker, a
-    /// riposo, in avvio o con un container in errore, la fase dei container.
+    /// The header status line: <see cref="ActivityLine"/>; in a Docker environment that is idle,
+    /// starting up or has a failed container, the containers' phase.
     /// </summary>
     public string StatusLine => Docker is { PhaseText.Length: > 0 } docker
         && (docker.IsWarmingUp || docker.HasFailure || activityLine == StatusText.IdleActivity)
@@ -346,8 +346,8 @@ public sealed class EnvironmentViewModel : ObservableObject
             : activityLine;
 
     /// <summary>
-    /// Pallino dell'intestazione a riposo: rosso con un container in errore, verde se l'ultima
-    /// azione e' finita bene ("pronto") e l'ambiente Docker non e' spento, grigio altrimenti.
+    /// Header dot when idle: red with a failed container, green if the last action ended well
+    /// ("ready") and the Docker environment is not off, grey otherwise.
     /// </summary>
     public string StatusColor => Docker?.HasFailure == true
         ? StatusBadge.ErrorColor
@@ -367,23 +367,23 @@ public sealed class EnvironmentViewModel : ObservableObject
         }
     }
 
-    /// <summary>Un'azione d'ambiente in corso o i container in avvio: la card dell'ambiente scorre a righe.</summary>
+    /// <summary>An environment action in progress or containers starting up: the environment card scrolls in stripes.</summary>
     public bool IsHeaderBusy => isLoading || Docker?.IsWarmingUp == true;
 
     public ICommand? RefreshCommand { get; set; }
 
-    /// <summary>Spegne tutto e, se i repository sono puliti, li riporta su dev: vedi <see cref="EnvironmentController.CheckoutAsync"/>.</summary>
+    /// <summary>Stops everything and, if the repositories are clean, brings them back to dev: see <see cref="EnvironmentController.CheckoutAsync"/>.</summary>
     public ICommand? ResetCommand { get; set; }
 
     private bool tunnelOn;
     private bool tunnelBusy;
 
-    /// <summary>L'ambiente ha il tunnel: almeno una porta del pool assegnata a un suo repository.</summary>
+    /// <summary>The environment has the tunnel: at least one pool port assigned to one of its repositories.</summary>
     public bool TunnelOn => tunnelOn;
 
     /// <summary>
-    /// Lo stato letto dalle assegnazioni. Notifica sempre, cosi' la casella torna com'era quando
-    /// il clic non ha cambiato niente (pool pieno, errore); durante un cambio resta ferma.
+    /// The state read from the assignments. It always notifies, so the checkbox goes back to how it
+    /// was when the click changed nothing (pool full, error); during a change it stays put.
     /// </summary>
     public void SetTunnelOn(bool value)
     {
@@ -397,7 +397,7 @@ public sealed class EnvironmentViewModel : ObservableObject
         OnPropertyChanged(nameof(TunnelToolTip));
     }
 
-    /// <summary>Vero mentre il tunnel si accende o si spegne: l'interruttore resta fermo.</summary>
+    /// <summary>True while the tunnel is turning on or off: the switch stays put.</summary>
     public bool TunnelBusy
     {
         get => tunnelBusy;
@@ -413,10 +413,10 @@ public sealed class EnvironmentViewModel : ObservableObject
     public bool TunnelEnabled => !tunnelBusy;
 
     public string TunnelToolTip => tunnelOn
-        ? "L'ambiente ha un tunnel del pool: gli URL sono nelle card. Togli la spunta per rilasciare le porte e restituire il tunnel"
-        : "Reclama un tunnel libero del pool, da' una porta a ogni repository che ne espone una (accesso anonimo) e accende l'host";
+        ? "The environment has a pool tunnel: the URLs are in the cards. Uncheck to release the ports and give the tunnel back"
+        : "Claims a free pool tunnel, gives a port to every repository that exposes one (anonymous access) and turns on the host";
 
-    /// <summary>Accende o spegne il tunnel dell'ambiente: vedi <see cref="Soffritto.Presentation.EnvironmentTunnel"/>.</summary>
+    /// <summary>Turns the environment's tunnel on or off: see <see cref="Soffritto.Presentation.EnvironmentTunnel"/>.</summary>
     public ICommand? TunnelCommand { get; set; }
 
     public void BeginOperation()
@@ -440,5 +440,5 @@ public sealed class EnvironmentViewModel : ObservableObject
     }
 }
 
-/// <summary>Un repository nella scheda del chip dell'ambiente: nome e branch corrente.</summary>
+/// <summary>A repository in the environment chip's card: name and current branch.</summary>
 public sealed record ChipBranch(string Repository, string Branch);

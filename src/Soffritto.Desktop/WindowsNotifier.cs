@@ -10,16 +10,15 @@ using Forms = System.Windows.Forms;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Il consumer Windows delle notifiche PR: fumetto dell'icona di sistema per ogni notifica nuova,
-/// lampeggio della barra delle applicazioni finche' la finestra non torna in primo piano, e un
-/// pallino rosso sull'icona di sistema finche' resta qualcosa da leggere. Ha la sua
-/// <see cref="PullRequestNotifications.Listen"/>, indipendente da quella del gattino.
-/// L'icona di sistema e' anche la via per riaprire la finestra nascosta dalla X e, dal suo menu,
-/// per chiudere davvero l'exe.
+/// The Windows consumer of PR notifications: a tray icon balloon for every new notification, a
+/// flashing taskbar button until the window comes back to the foreground, and a red dot on the tray
+/// icon while something is still unread. It has its own <see cref="PullRequestNotifications.Listen"/>,
+/// independent of the kitten's. The tray icon is also the way to reopen the window hidden by the X
+/// and, from its menu, to really quit the app.
 /// </summary>
 public sealed class WindowsNotifier : IDisposable
 {
-    // Il testo del fumetto di Shell_NotifyIcon si ferma a 255 caratteri.
+    // The Shell_NotifyIcon balloon text stops at 255 characters.
     private const int MaxTextLength = 255;
 
     private readonly Window window;
@@ -38,14 +37,14 @@ public sealed class WindowsNotifier : IDisposable
         this.notifications = notifications;
         listen = notifications.Listen();
 
-        // In Debug l'exe ha gia' l'icona di lava e roccia (app-debug.ico, vedi il csproj).
+        // In Debug the exe already has the lava-and-rock icon (app-debug.ico, see the csproj).
         plainIcon = Drawing.Icon.ExtractAssociatedIcon(Environment.ProcessPath!);
         badgeIcon = plainIcon is null ? null : WithBadge(plainIcon);
 
-        // Windows mostra la notifica solo se l'icona di sistema e' visibile.
+        // Windows shows the notification only if the tray icon is visible.
         icon = new Forms.NotifyIcon { Visible = true };
         icon.ContextMenuStrip = new Forms.ContextMenuStrip();
-        icon.ContextMenuStrip.Items.Add("Esci", null, (_, _) => ExitRequested?.Invoke());
+        icon.ContextMenuStrip.Items.Add("Exit", null, (_, _) => ExitRequested?.Invoke());
         icon.BalloonTipClicked += (_, _) => NotificationOpened?.Invoke();
         icon.MouseClick += (_, e) =>
         {
@@ -62,12 +61,12 @@ public sealed class WindowsNotifier : IDisposable
 
     public event Action? ExitRequested;
 
-    /// <summary>Clic sul fumetto: chi ospita la finestra la porta davanti col pannello delle notifiche.</summary>
+    /// <summary>Balloon clicked: the window host brings the window to the front with the notifications panel.</summary>
     public event Action? NotificationOpened;
 
     /// <summary>
-    /// Vero durante la demo: niente fumetti sopra i dati finti. Le notifiche restano da dire e
-    /// arrivano tutte insieme al ritorno agli ambienti veri.
+    /// True during the demo: no balloons over the fake data. The notifications stay pending and
+    /// arrive all together on returning to the real environments.
     /// </summary>
     public bool IsPaused { get; set; }
 
@@ -82,7 +81,7 @@ public sealed class WindowsNotifier : IDisposable
         timer.Stop();
         notifications.PropertyChanged -= OnNotificationsChanged;
 
-        // Senza Visible = false l'icona resta nell'area di notifica finche' non ci passa sopra il mouse.
+        // Without Visible = false the icon lingers in the notification area until the mouse passes over it.
         icon.Visible = false;
         icon.ContextMenuStrip?.Dispose();
         icon.Dispose();
@@ -109,8 +108,8 @@ public sealed class WindowsNotifier : IDisposable
         }
     }
 
-    // NotifyIcon.Text lancia oltre i 127 caratteri, e il titolo porta il percorso della cartella
-    // dati quando viene da SOFFRITTO_DATA: si accorcia il titolo, il conteggio resta intero.
+    // NotifyIcon.Text throws beyond 127 characters, and the title carries the data folder path when
+    // it comes from SOFFRITTO_DATA: the title is shortened, the count stays whole.
     private void ShowCount()
     {
         const int MaxLength = 127;
@@ -121,15 +120,15 @@ public sealed class WindowsNotifier : IDisposable
         var suffix = count switch
         {
             0 => string.Empty,
-            1 => " · 1 notifica",
-            _ => $" · {count} notifiche",
+            1 => " · 1 notification",
+            _ => $" · {count} notifications",
         };
         var room = MaxLength - suffix.Length;
         icon.Text = (title.Length > room ? title[..(room - 1)] + "…" : title) + suffix;
     }
 
-    // Le notifiche nuove dello stesso giro vanno in un fumetto solo: al ritorno dalla demo o
-    // dopo un'assenza lunga possono arrivarne parecchie insieme.
+    // New notifications from the same round go into a single balloon: on returning from the demo
+    // or after a long absence, quite a few can arrive at once.
     private void Notify()
     {
         if (IsPaused)
@@ -147,8 +146,8 @@ public sealed class WindowsNotifier : IDisposable
         Flash();
     }
 
-    // Lampeggia finche' la finestra non torna in primo piano; se e' gia' davanti, Windows non
-    // fa niente. A finestra nascosta il bottone non c'e': resta il pallino sull'icona di sistema.
+    // Flashes until the window comes back to the foreground; if it is already in front, Windows does
+    // nothing. With the window hidden there is no taskbar button: the dot on the tray icon remains.
     private void Flash()
     {
         var hwnd = new WindowInteropHelper(window).Handle;
@@ -171,7 +170,7 @@ public sealed class WindowsNotifier : IDisposable
         var text = messages[0];
         for (var i = 1; i < messages.Count; i++)
         {
-            var more = $"\n… e altre {messages.Count - i}";
+            var more = $"\n… and {messages.Count - i} more";
             var next = $"{text}\n{messages[i]}";
             if (next.Length + (i < messages.Count - 1 ? more.Length : 0) > MaxTextLength)
             {
@@ -184,8 +183,8 @@ public sealed class WindowsNotifier : IDisposable
         return text.Length > MaxTextLength ? text[..(MaxTextLength - 1)] + "…" : text;
     }
 
-    // Il pallino in alto a destra, col bordo bianco perche' si stacchi anche sulla barra scura:
-    // l'area di notifica rimpicciolisce l'icona a 16 px, quindi deve occuparne quasi meta'.
+    // The dot in the top right, with a white border so it stands out on a dark taskbar too: the
+    // notification area shrinks the icon to 16 px, so the dot must take up almost half of it.
     private static Drawing.Icon WithBadge(Drawing.Icon source)
     {
         using var bitmap = new Drawing.Bitmap(source.ToBitmap());

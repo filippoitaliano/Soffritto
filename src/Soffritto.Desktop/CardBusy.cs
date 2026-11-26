@@ -5,10 +5,10 @@ using System.Windows.Media.Animation;
 
 namespace Soffritto.Desktop;
 
-// Card al lavoro: lo sfondo diventa a righe a 45 gradi, inclinate verso destra, di due tinte
-// vicine che scorrono, come i bottoni di garden.filippoitaliano.com/atmosfere con una traccia in
-// riproduzione (righe da 20 px, 200 px in 3,6 s), sul crema delle card e piu' tenue. Il pennello e' nuovo a ogni accensione:
-// quello dello stile Section e' congelato e non si anima. Allo spegnimento torna lo stile.
+// Busy card: the background turns into 45-degree stripes, slanted to the right, in two close
+// shades that scroll, like the buttons of garden.filippoitaliano.com/atmosfere while a track is
+// playing (20 px stripes, 200 px in 3.6 s), on the card cream and softer. The brush is new each time it turns on:
+// the Section style's brush is frozen and cannot be animated. When it turns off, the style comes back.
 public static class CardBusy
 {
     public static readonly DependencyProperty IsBusyProperty = DependencyProperty.RegisterAttached(
@@ -17,8 +17,8 @@ public static class CardBusy
         typeof(CardBusy),
         new PropertyMetadata(false, OnIsBusyChanged));
 
-    // Il gradiente corre in diagonale: 40 px di periodo lungo la diagonale danno righe da 20 px, e
-    // in orizzontale il disegno si ripete ogni 40·√2 px, che e' lo scorrimento di un giro.
+    // The gradient runs diagonally: a 40 px period along the diagonal gives 20 px stripes, and
+    // horizontally the pattern repeats every 40·√2 px, which is the scroll of one cycle.
     private const double Period = 40;
     private static readonly double Step = Period / Math.Sqrt(2);
     private static readonly double Loop = Period * Math.Sqrt(2);
@@ -36,7 +36,7 @@ public static class CardBusy
 
         if ((bool)e.NewValue)
         {
-            // Le tinte vengono dal tema delle card (Theme.BusyLight/BusyWarm), giorno o notte.
+            // The shades come from the card theme (Theme.BusyLight/BusyWarm), day or night.
             border.Background = Stripes(
                 border.TryFindResource("Theme.BusyLight") as Color? ?? Colors.White,
                 border.TryFindResource("Theme.BusyWarm") as Color? ?? Colors.White);

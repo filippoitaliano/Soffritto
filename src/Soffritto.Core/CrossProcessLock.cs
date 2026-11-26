@@ -1,9 +1,9 @@
 namespace Soffritto.Core;
 
 /// <summary>
-/// Un lock fra processi su un file di lock della cartella dati: exe, VSIX, CLI e server MCP lo
-/// prendono prima di scrivere lo stesso file di stato. Il lock e' il file aperto senza
-/// condivisione; si rilascia con <see cref="Dispose"/> o con la fine del processo.
+/// A cross-process lock on a lock file in the data folder: the app, VSIX, CLI and MCP server
+/// take it before writing the same state file. The lock is the file opened without
+/// sharing; it is released by <see cref="Dispose"/> or when the process ends.
 /// </summary>
 public sealed class CrossProcessLock : IDisposable
 {
@@ -13,7 +13,7 @@ public sealed class CrossProcessLock : IDisposable
 
     private CrossProcessLock(FileStream stream) => this.stream = stream;
 
-    /// <summary>Attende il lock fino a <paramref name="timeout"/>; poi <see cref="TimeoutException"/>.</summary>
+    /// <summary>Waits for the lock up to <paramref name="timeout"/>; then <see cref="TimeoutException"/>.</summary>
     public static CrossProcessLock Acquire(string lockPath, TimeSpan timeout)
     {
         var deadline = DateTime.UtcNow + timeout;
@@ -26,14 +26,14 @@ public sealed class CrossProcessLock : IDisposable
 
             if (DateTime.UtcNow >= deadline)
             {
-                throw new TimeoutException($"{lockPath} e' tenuto da un altro processo da piu' di {timeout.TotalSeconds:0} s");
+                throw new TimeoutException($"{lockPath} has been held by another process for more than {timeout.TotalSeconds:0} s");
             }
 
             Thread.Sleep(RetryDelay);
         }
     }
 
-    /// <summary>Come <see cref="Acquire"/>, senza bloccare il thread durante l'attesa.</summary>
+    /// <summary>Like <see cref="Acquire"/>, without blocking the thread while waiting.</summary>
     public static async Task<CrossProcessLock> AcquireAsync(string lockPath, TimeSpan timeout, CancellationToken ct = default)
     {
         var deadline = DateTime.UtcNow + timeout;
@@ -46,7 +46,7 @@ public sealed class CrossProcessLock : IDisposable
 
             if (DateTime.UtcNow >= deadline)
             {
-                throw new TimeoutException($"{lockPath} e' tenuto da un altro processo da piu' di {timeout.TotalSeconds:0} s");
+                throw new TimeoutException($"{lockPath} has been held by another process for more than {timeout.TotalSeconds:0} s");
             }
 
             await Task.Delay(RetryDelay, ct).ConfigureAwait(false);

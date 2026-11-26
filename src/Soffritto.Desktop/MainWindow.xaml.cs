@@ -18,12 +18,12 @@ public partial class MainWindow : Window
     private SnipShortcutHook? snipHook;
     private bool exiting;
 
-    // Col gradiente il colore viene dal tema (Theme.ChromeGradient): espresso di giorno, piu' scuro di notte.
+    // With the gradient the color comes from the theme (Theme.ChromeGradient): espresso by day, darker at night.
     private readonly SolidColorBrush chrome = new(Color.FromRgb(0x3A, 0x31, 0x28));
 
-    /// <param name="setupNotice">Cosa e' successo alla configurazione all'avvio (import, errori): lo dice il setup.</param>
-    /// <param name="openSetup">Nessuna configurazione usabile: il setup si apre subito e non si chiude.</param>
-    /// <param name="firstRun">Prima apertura dopo il Setup.exe: il setup si apre sulla scheda Componenti.</param>
+    /// <param name="setupNotice">What happened to the configuration at startup (import, errors): the setup reports it.</param>
+    /// <param name="openSetup">No usable configuration: the setup opens right away and cannot be closed.</param>
+    /// <param name="firstRun">First opening after Setup.exe: the setup opens on the Components tab.</param>
     public MainWindow(MainViewModel viewModel, string? setupNotice, bool openSetup, bool firstRun = false)
     {
         this.viewModel = viewModel;
@@ -31,8 +31,8 @@ public partial class MainWindow : Window
         DataContext = viewModel;
         InitializeComponent();
         Footer.Background = chrome;
-        // La barra del titolo segue il footer anche durante la dissolvenza: il pennello animato
-        // notifica Changed a ogni fotogramma.
+        // The title bar follows the footer during the fade too: the animated brush
+        // raises Changed on every frame.
         chrome.Changed += (_, _) => TitleBar.SetCaption(this, chrome.Color);
         Overlay.HeaderBackground = chrome;
         Scenery.AppearanceChanged += () =>
@@ -50,8 +50,8 @@ public partial class MainWindow : Window
         Meeting.DataContext = viewModel.Meeting;
         Meeting.CloseRequested += HideMeeting;
 
-        // Gattino e Windows ascoltano le notifiche ognuno per conto suo: il gattino le dice solo
-        // quando e' visibile, Windows anche a finestra nascosta.
+        // The kitten and Windows listen to notifications each on their own: the kitten speaks them only
+        // when visible, Windows even with the window hidden.
         Cat.NewMessages = viewModel.Notifications.Listen();
         viewModel.Notifications.Opened += ShowInPullRequests;
         notifier = new WindowsNotifier(this, viewModel.WindowTitle, viewModel.Notifications);
@@ -65,18 +65,18 @@ public partial class MainWindow : Window
         SourceInitialized += (_, _) => TitleBar.Apply(this, chrome.Color);
         Loaded += (_, _) =>
         {
-            // WindowState="Maximized" nello XAML a volte non viene rispettato all'avvio (la
-            // finestra parte normale o ridotta a icona): lo si riapplica a finestra caricata.
+            // WindowState="Maximized" in the XAML is sometimes ignored at startup (the window
+            // starts normal or minimized): it is reapplied once the window has loaded.
             WindowState = WindowState.Maximized;
             viewModel.Start();
             notifier.Start();
 
-            // Win+Shift+S: il gattino, se visibile, saluta chi fa lo screenshot. La callback
-            // dell'hook deve tornare subito a Windows: il saluto parte al giro dopo.
+            // Win+Shift+S: the kitten, if visible, waves at whoever takes the screenshot. The hook
+            // callback must return to Windows right away: the wave starts on the next round.
             snipHook = new SnipShortcutHook();
             snipHook.Pressed += () => Dispatcher.BeginInvoke(Cat.Wave);
 
-            // Gattino e paesaggio misurano la finestra all'accensione: si applicano a layout fatto.
+            // The kitten and the scenery measure the window when turned on: they are applied once layout is done.
             ApplySettings();
             settings.PropertyChanged += OnSettingsChanged;
 
@@ -105,7 +105,7 @@ public partial class MainWindow : Window
         Tomato.CloseRequested += HideTomato;
     }
 
-    // Il «+» della testata: il riquadro di creazione rilegge numero e branch a ogni apertura.
+    // The header's “+”: the creation pane reloads number and branches every time it opens.
     private void OpenDocker_Click(object sender, RoutedEventArgs e)
     {
         if (demo is not null)
@@ -139,7 +139,7 @@ public partial class MainWindow : Window
 
     private void OnSettingsChanged(object? sender, PropertyChangedEventArgs e) => ApplySettings();
 
-    // Le scorciatoie e le preferenze del setup scrivono le impostazioni; qui si allinea cio' che si vede.
+    // Shortcuts and setup preferences write the settings; here what is on screen catches up.
     private void ApplySettings()
     {
         if (settings.ShowCat != Cat.IsActive)
@@ -161,10 +161,10 @@ public partial class MainWindow : Window
 
     public void BringToFront() => notifier.BringToFront();
 
-    /// <summary>Il setup ha salvato una configurazione nuova: l'exe va riaperto.</summary>
+    /// <summary>The setup saved a new configuration: the exe must be reopened.</summary>
     public event Action? RestartRequested;
 
-    /// <summary>Chiude come «Esci» (con la conferma se c'e' una scrittura in corso). Falso se l'utente ha annullato.</summary>
+    /// <summary>Closes like “Exit” (with confirmation if a write is in progress). False if the user cancelled.</summary>
     public bool ExitForRestart()
     {
         Exit();
@@ -173,15 +173,15 @@ public partial class MainWindow : Window
 
     private void OpenSetup_Click(object sender, RoutedEventArgs e) => ShowSetup(null);
 
-    // Ogni apertura riparte dalla configurazione attiva: cio' che non si era salvato si perde.
+    // Every opening starts again from the active configuration: anything unsaved is lost.
     private void ShowSetup(string? notice)
     {
         Setup.DataContext = new SetupViewModel(ActiveConfiguration.Current, notice, () =>
         {
-            // Un riavvio a meta' di «Allinea seed» o di una creazione lascerebbe container e worktree a meta'.
+            // A restart halfway through “Align seed” or a creation would leave containers and worktrees half done.
             if (viewModel.Docker.IsWorking)
             {
-                return "c'e' un'operazione Docker in corso (Allinea seed, creazione di un ambiente o pool dei tunnel): l'exe non si riavvia ora; a operazione finita premi di nuovo Salva";
+                return "a Docker operation is in progress (Align seed, environment creation or tunnel pool): the app won't restart now; when it's done, press Save again";
             }
 
             RestartRequested?.Invoke();
@@ -212,8 +212,8 @@ public partial class MainWindow : Window
         SetupBackdrop.BeginAnimation(OpacityProperty, fade);
     }
 
-    // Chiudere la riunione la nasconde soltanto: riaprendola si ritrova il turno e il timer.
-    // Il tema della riunione si cambia dentro la riunione, ma ogni apertura riparte da quello dell'exe.
+    // Closing the meeting only hides it: reopening it brings back the turn and the timer.
+    // The meeting theme is changed inside the meeting, but every opening starts from the app's theme.
     private void OpenMeeting_Click(object sender, RoutedEventArgs e)
     {
         (demo?.Meeting ?? viewModel.Meeting).IsLight = !ThemeManager.IsDark;
@@ -235,8 +235,8 @@ public partial class MainWindow : Window
         MeetingBackdrop.BeginAnimation(OpacityProperty, fade);
     }
 
-    // La voce di menu apre e chiude il pannello. Le PR le legge il refresh globale: aprirlo e'
-    // immediato.
+    // The menu item opens and closes the panel. The global refresh reads the PRs: opening it is
+    // instant.
     private void OpenPullRequests_Click(object sender, RoutedEventArgs e)
     {
         if (PullRequests.Visibility == Visibility.Visible)
@@ -277,8 +277,8 @@ public partial class MainWindow : Window
 
     private void HideNotifications() => HideFloating(Notifications);
 
-    // La card si cerca nell'insieme che si sta guardando (vero o demo). Lo scroll aspetta il
-    // layout: il pannello e il corpo della card appena aperta non sono ancora misurati.
+    // The card is looked up in the set being viewed (real or demo). Scrolling waits for
+    // layout: the panel and the body of the card just expanded are not measured yet.
     private void ShowInPullRequests(PullRequestNotification notification)
     {
         HideNotifications();
@@ -294,9 +294,9 @@ public partial class MainWindow : Window
         }
     }
 
-    // Il lato vale finche' l'exe resta aperto: all'avvio il pannello torna a sinistra. Il
-    // pannello passa subito all'altro lato e lo scivolamento parte dalla posizione vecchia:
-    // attraversa la finestra accelerando e frenando.
+    // The side holds while the app stays open: at startup the panel goes back to the left. The
+    // panel switches side at once and the slide starts from the old position:
+    // it crosses the window speeding up and slowing down.
     private void SwitchPullRequestsSide()
     {
         var parent = (UIElement)PullRequests.Parent;
@@ -338,10 +338,10 @@ public partial class MainWindow : Window
         ShowFloating(Tomato);
     }
 
-    // Il pomodoro non si nasconde come gli altri pannelli: con Collapsed Chromium considera la
-    // pagina nascosta e dopo qualche minuto rallenta i suoi timer, e l'allarme potrebbe suonare
-    // in ritardo. Resta visibile ma trasparente e non cliccabile, e il focus torna alla finestra
-    // perche' la tastiera non finisca in una pagina che non si vede.
+    // The Pomodoro is not hidden like the other panels: with Collapsed, Chromium treats the
+    // page as hidden and after a few minutes throttles its timers, so the alarm could ring
+    // late. It stays visible but transparent and not clickable, and focus goes back to the window
+    // so the keyboard does not end up in a page nobody can see.
     private void HideTomato()
     {
         if (!tomatoOpen)
@@ -361,8 +361,8 @@ public partial class MainWindow : Window
 
     private void HidePullRequests() => HideFloating(PullRequests);
 
-    // I pannelli galleggianti (PR e notifiche) entrano con una piccola scala e uno scivolamento
-    // dal loro lato, ed escono sfumando: abbastanza per sentirli morbidi, non tanto da far aspettare.
+    // Floating panels (PRs and notifications) come in with a slight scale and a slide
+    // from their side, and fade out: enough to feel smooth, not so much that you wait.
     private static void ShowFloating(FrameworkElement panel)
     {
         panel.Visibility = Visibility.Visible;
@@ -379,7 +379,7 @@ public partial class MainWindow : Window
         slide.BeginAnimation(TranslateTransform.XProperty, new DoubleAnimation(panel.HorizontalAlignment == HorizontalAlignment.Left ? -24 : 24, 0, duration) { EasingFunction = ease });
     }
 
-    // Un pannello gia' chiuso resta com'e': la sfumatura partirebbe da opacita' piena.
+    // A panel already closed stays as it is: the fade would start from full opacity.
     private static void HideFloating(FrameworkElement panel)
     {
         if (panel.Visibility != Visibility.Visible)
@@ -397,9 +397,9 @@ public partial class MainWindow : Window
         panel.BeginAnimation(OpacityProperty, fade);
     }
 
-    // Un clic fuori da un pannello lo chiude e basta: non arriva a cio' che sta sotto, cosi'
-    // chiudere non avvia per sbaglio un'azione di una card. Il bottone che lo apre resta escluso:
-    // chiude da se'. Il menu «Apri in» e' un popup, fuori da questa finestra.
+    // A click outside a panel just closes it: it does not reach what lies beneath, so
+    // closing never triggers a card action by mistake. The button that opens it is excluded:
+    // it closes the panel itself. The “Open in” menu is a popup, outside this window.
     private void OnPreviewMouseDown(object sender, MouseButtonEventArgs e)
     {
         if (SetupBackdrop.Visibility == Visibility.Visible || MeetingBackdrop.Visibility == Visibility.Visible)
@@ -407,11 +407,11 @@ public partial class MainWindow : Window
             return;
         }
 
-        // I bottoni dei due pannelli passano sempre: aprono il loro e chiudono l'altro.
+        // The two panels' buttons always get through: they open their own and close the other.
         var onPanelButton = PullRequestsButton.IsMouseOver || NotificationsButton.IsMouseOver || TomatoButton.IsMouseOver || NewDockerButton.IsMouseOver;
 
-        // Il riquadro «Nuovo ambiente Docker» non si chiude con un clic fuori: la creazione deve
-        // restare visibile mentre si guardano le colonne. Lo chiudono X, Esc e il «+».
+        // The “New Docker environment” pane does not close on an outside click: the creation must
+        // stay visible while you look at the columns. X, Esc and the “+” close it.
 
         if (PullRequests.Visibility == Visibility.Visible && !onPanelButton && !Contains(PullRequests, e))
         {
@@ -446,12 +446,12 @@ public partial class MainWindow : Window
         }
     }
 
-    // Preview: la tendina dei branch e' una casella di testo e la scorciatoia deve valere
-    // anche quando ha il focus.
+    // Preview: the branch drop-down is a text box and the shortcut must work
+    // even when it has focus.
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)
     {
-        // Esc chiude l'anteprima ingrandita: nel browser di Claude non arriva quindi alla pagina,
-        // che lo riceve dalla card.
+        // Esc closes the enlarged preview: so in Claude's browser it never reaches the page,
+        // which gets it from the card.
         if (SetupBackdrop.Visibility == Visibility.Visible)
         {
             if (e.Key == Key.Escape)
@@ -516,9 +516,9 @@ public partial class MainWindow : Window
         }
     }
 
-    // Le letture vere continuano sotto: tornando dalla demo la finestra le ritrova aggiornate.
-    // Pannello, badge e gattino seguono le notifiche dell'insieme che si sta guardando; Windows
-    // parla solo delle notifiche vere, quindi tace finche' dura la demo.
+    // Real reads go on underneath: coming back from the demo the window finds them up to date.
+    // Panel, badge and kitten follow the notifications of the set being viewed; Windows
+    // only speaks about real notifications, so it stays quiet while the demo lasts.
     private void ToggleDemo()
     {
         Overlay.Close();
@@ -548,9 +548,9 @@ public partial class MainWindow : Window
         }
     }
 
-    // In prima riga: bottoni dei pannelli, chip, risorse della macchina e comandi. Se non ci stanno,
-    // chip e risorse scendono insieme nella seconda riga (chip a sinistra, risorse a destra); le
-    // risorse vanno nella terza solo se accanto ai chip non c'e' posto.
+    // First row: panel buttons, chips, machine resources and commands. If they don't fit,
+    // chips and resources drop together to the second row (chips on the left, resources on the right);
+    // resources go to the third row only if there is no room next to the chips.
     private void TopBar_SizeChanged(object sender, SizeChangedEventArgs e)
     {
         const double afterButtons = 12;
@@ -570,8 +570,8 @@ public partial class MainWindow : Window
         TopBarMeter.Margin = new Thickness(0, meterRow == 0 ? 0 : 8, meterRow == 0 ? TopBarRight.ActualWidth + meterSide : meterSide, 0);
     }
 
-    // Il chip dell'ambiente nella testata mostra o nasconde la colonna; mostrandola la porta in vista.
-    // Lo scroll aspetta il layout: la colonna appena riaperta non e' ancora misurata.
+    // The environment chip in the header shows or hides the column; showing it scrolls it into view.
+    // Scrolling waits for layout: the column just reopened is not measured yet.
     private void StatusChip_Click(object sender, RoutedEventArgs e) => ToggleColumn((sender as FrameworkElement)?.DataContext);
 
     private void ChipCardToggle_Click(object sender, RoutedEventArgs e) => ToggleColumn(ChipCard.DataContext);
@@ -580,8 +580,8 @@ public partial class MainWindow : Window
     private System.Windows.Threading.DispatcherTimer? chipCardClose;
     private FrameworkElement? chipCardTarget;
 
-    // La scheda del chip si apre dopo una breve sosta del mouse; se e' gia' aperta su un altro chip
-    // ci si sposta subito, cosi' scorrere i chip non la fa lampeggiare.
+    // The chip's card opens after the mouse rests briefly; if it is already open on another chip
+    // it moves over at once, so sweeping across the chips does not make it flicker.
     private void StatusChip_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e)
     {
         if (sender is not FrameworkElement chip)
@@ -604,7 +604,7 @@ public partial class MainWindow : Window
 
     private void ChipCard_MouseEnter(object sender, System.Windows.Input.MouseEventArgs e) => chipCardClose?.Stop();
 
-    // Lasciando chip o scheda la chiusura aspetta un attimo: il tempo di passare dall'uno all'altra.
+    // Leaving the chip or the card, closing waits a moment: time to move from one to the other.
     private void ChipCard_MouseLeave(object sender, System.Windows.Input.MouseEventArgs e)
     {
         EnsureChipCardTimers();
@@ -654,7 +654,7 @@ public partial class MainWindow : Window
         ChipCard.PlacementTarget = chipCardTarget;
         if (ChipCard.IsOpen)
         {
-            // Una variazione dell'offset fa ricalcolare la posizione sotto il nuovo chip.
+            // Changing the offset makes it recompute the position under the new chip.
             ChipCard.HorizontalOffset = ChipCard.HorizontalOffset == 0 ? 0.01 : 0;
             return;
         }
@@ -680,8 +680,8 @@ public partial class MainWindow : Window
             System.Windows.Threading.DispatcherPriority.Loaded);
     }
 
-    // Solo «Esci» dell'icona di sistema chiude davvero: la X nasconde la finestra e le letture
-    // continuano. Se la chiusura viene annullata la X torna a nascondere.
+    // Only “Exit” on the tray icon really closes: the X hides the window and reads
+    // go on. If closing is cancelled, the X goes back to hiding.
     private void Exit()
     {
         exiting = true;
@@ -689,8 +689,8 @@ public partial class MainWindow : Window
         exiting = false;
     }
 
-    // Chiudere interrompe l'azione in corso: per un database update vuol dire poter lasciare il
-    // database a meta' di una migrazione, quindi la scelta torna a chi chiude.
+    // Closing interrupts the running action: for a database update that can leave the
+    // database halfway through a migration, so the choice is left to whoever closes.
     private void OnClosing(object? sender, CancelEventArgs e)
     {
         if (!exiting)
@@ -707,10 +707,10 @@ public partial class MainWindow : Window
             var confirmed = ConfirmDialog.Ask(
                 this,
                 new Soffritto.Presentation.Confirmation(
-                    "Operazione di scrittura in corso",
-                    "Chiudendo ora l'operazione si interrompe: un dotnet ef database update interrotto può lasciare il database a metà di una migrazione.",
-                    [new("In corso", [new(description)])],
-                    "Chiudi comunque"));
+                    "Write operation in progress",
+                    "Closing now interrupts the operation: an interrupted dotnet ef database update can leave the database halfway through a migration.",
+                    [new("In progress", [new(description)])],
+                    "Close anyway"));
 
             if (!confirmed)
             {

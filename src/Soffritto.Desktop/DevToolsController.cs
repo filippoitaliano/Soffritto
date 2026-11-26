@@ -7,16 +7,16 @@ using Soffritto.Presentation;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Gli strumenti delle card di una colonna, secondo il tipo del repository: il backend apre Visual
-/// Studio e avvia Kestrel (via <see cref="BackendTools"/> condiviso con la VSIX), il frontend il
-/// dev server, l'app l'app e Metro, il generico solo VS Code; ogni card con un dev tunnel si
-/// condivide con una porta del pool, servita dall'host del suo tunnel. Tutto parte in console staccate dall'exe, e lo stato si ricava dai processi (vedi
-/// <see cref="ConsoleServices"/>). I marcatori usano la chiave della card: il numero
-/// dell'ambiente per il predefinito, come sempre, "N-id" per gli altri.
+/// The tools of a column's cards, by repository type: the backend opens Visual Studio and starts
+/// Kestrel (through <see cref="BackendTools"/>, shared with the VSIX), the frontend runs the dev
+/// server, the app runs the app and Metro, a generic repository gets VS Code only; every card with a
+/// dev tunnel is shared through a pool port, served by its tunnel's host. Everything starts in consoles detached from the exe, and the state is derived from the processes (see
+/// <see cref="ConsoleServices"/>). Markers use the card key: the environment number for the
+/// primary repository, as always, "N-id" for the others.
 /// </summary>
 public sealed class DevToolsController
 {
-    // Glifo Segoe Fluent Icons del globo con il cursore: il dev server su localhost.
+    // Segoe Fluent Icons glyph of the globe with a cursor: the dev server on localhost.
     private const string LocalhostGlyph = "";
 
     private readonly EnvironmentViewModel vm;
@@ -32,8 +32,8 @@ public sealed class DevToolsController
     private DockerReadiness.Phase lastPhase = DockerReadiness.Phase.Off;
     private readonly CancellationToken lifetime;
 
-    /// <param name="refreshTunnel">Rilegge il solo dev tunnel di una card (vedi <see cref="EnvironmentController.RefreshTunnel"/>).</param>
-    /// <param name="lifetime">La vita della colonna: ferma la lettura dei log dei container.</param>
+    /// <param name="refreshTunnel">Reads again only a card's dev tunnel (see <see cref="EnvironmentController.RefreshTunnel"/>).</param>
+    /// <param name="lifetime">The column's lifetime: stops reading the container logs.</param>
     public DevToolsController(EnvironmentViewModel vm, Action requestScan, Action<RepoCardViewModel> refreshTunnel, CancellationToken lifetime = default)
     {
         this.vm = vm;
@@ -52,13 +52,13 @@ public sealed class DevToolsController
         }
 
         var stack = vm.Tools.Stack;
-        stack.StartCommand = new AsyncCommand(() => RunStack("avvio dell'ambiente…", () => Execute("avviati", StackStarts(lastScan)).Line, DockerReadiness.ComposeAction.Starting));
-        stack.StopCommand = new AsyncCommand(() => RunStack("arresto dell'ambiente…", () => Execute("fermati", StackStops(lastScan)).Line, DockerReadiness.ComposeAction.Stopping));
+        stack.StartCommand = new AsyncCommand(() => RunStack("starting the environment…", () => Execute("started", StackStarts(lastScan)).Line, DockerReadiness.ComposeAction.Starting));
+        stack.StopCommand = new AsyncCommand(() => RunStack("stopping the environment…", () => Execute("stopped", StackStops(lastScan)).Line, DockerReadiness.ComposeAction.Stopping));
         vm.TunnelCommand = new AsyncCommand(() => Run(ToggleTunnel));
     }
 
-    // L'interruttore «Tunnel» dell'intestazione: acceso reclama un tunnel del pool e da' una porta
-    // a ogni repository che ne espone una, spento le rilascia tutte (EnvironmentTunnel).
+    // The header's “Tunnel” switch: turning it on claims a pool tunnel and gives a port to every
+    // repository that exposes one, turning it off releases them all (EnvironmentTunnel).
     private void ToggleTunnel()
     {
         var c = ActiveConfiguration.Current;
@@ -74,19 +74,19 @@ public sealed class DevToolsController
         UiThread.Run(() => vm.TunnelBusy = true);
         try
         {
-            Report(on ? "tunnel: rilascio le porte del pool…" : "tunnel: reclamo un tunnel del pool…");
+            Report(on ? "tunnel: releasing the pool ports…" : "tunnel: claiming a pool tunnel…");
             var error = (on
                 ? EnvironmentTunnel.DisableAsync(c, vm.Number, Log)
                 : EnvironmentTunnel.EnableAsync(c, vm.Number, Log)).GetAwaiter().GetResult();
             Log(error is not null
-                ? $"tunnel non {(on ? "spento" : "acceso")}: {error}"
-                : on ? "tunnel spento" : "tunnel acceso");
+                ? $"tunnel not turned {(on ? "off" : "on")}: {error}"
+                : on ? "tunnel off" : "tunnel on");
         }
         finally
         {
             var now = EnvironmentTunnel.IsOn(vm.Number);
-            // La rilettura completa dell'ambiente, come il suo pulsante Aggiorna: porte e URL
-            // nelle card, env riscritti, stato dell'host.
+            // A full re-read of the environment, like its Refresh button: ports and URLs
+            // in the cards, env files rewritten, host status.
             UiThread.Run(() =>
             {
                 vm.TunnelBusy = false;
@@ -97,16 +97,16 @@ public sealed class DevToolsController
         }
     }
 
-    /// <summary>Rilegge le card della colonna (git locale e migrazioni): la imposta chi crea il controller.</summary>
+    /// <summary>Reads the column's cards again (local git and migrations): set by whoever creates the controller.</summary>
     public Action? RefreshColumn { get; set; }
 
     /// <summary>
-    /// Perche' le migrazioni dell'ambiente Docker non si leggono (database spento, in avvio, fermo);
-    /// null se il database risponde o se l'ambiente e' locale. Letta dalle sessioni fuori dal thread della UI.
+    /// Why the Docker environment's migrations cannot be read (database off, starting, down);
+    /// null if the database answers or the environment is local. Read by sessions off the UI thread.
     /// </summary>
     public string? DatabaseOffline => databaseOffline;
 
-    /// <summary>Sonda db, api e web dei container accesi: fuori dal thread della UI, prima di <see cref="Apply"/>.</summary>
+    /// <summary>Probes db, api and web of the running containers: off the UI thread, before <see cref="Apply"/>.</summary>
     public Task ProbeAsync(Soffritto.Core.Docker.DockerStatus? docker, CancellationToken ct)
         => readiness is null || docker is null ? Task.CompletedTask : readiness.ProbeAsync(docker, ct);
 
@@ -117,12 +117,12 @@ public sealed class DevToolsController
         var tools = new CardTools(card);
         var tool = card.Tool!;
 
-        // La sezione del tunnel della card mostra solo la porta del pool del repository: il tunnel
-        // si accende e si spegne per tutto l'ambiente, dall'intestazione (ToggleTunnel).
+        // The card's tunnel section shows only the repository's pool port: the tunnel is turned
+        // on and off for the whole environment, from the header (ToggleTunnel).
         tools.IsPoolTunnel = card.Tunnel is not null;
 
-        // Le card nei container passano da compose prima dello switch per tipo: non hanno
-        // BackendTools, e il ramo del backend li userebbe (tools.Backend!).
+        // Container cards go through compose before the switch on type: they have no
+        // BackendTools, and the backend branch would use them (tools.Backend!).
         if (vm.Docker?.Slot is { } slot && ServiceOf(slot, location) is { } service)
         {
             WireContainer(card, tools, slot, service);
@@ -142,26 +142,26 @@ public sealed class DevToolsController
                 tools.ServiceMarker = ConsoleServices.Marker("frontend", key);
                 tools.IsService = p => RepoProcesses.IsFrontend(p, location.Path, frontend);
                 tool.OpenCommand = new AsyncCommand(() => Run(() => OpenVisualStudioCode(location)));
-                tool.StartCommand = new AsyncCommand(() => Run(() => StartConsole(location.Path, tools.ServiceMarker, frontend.StartCommand, $"{frontend.StartCommand} avviato")));
-                tool.StopCommand = new AsyncCommand(() => Run(() => Stop(tools.ServiceMarker, tools.IsService, "dev server del frontend fermato")));
+                tool.StartCommand = new AsyncCommand(() => Run(() => StartConsole(location.Path, tools.ServiceMarker, frontend.StartCommand, $"{frontend.StartCommand} started")));
+                tool.StopCommand = new AsyncCommand(() => Run(() => Stop(tools.ServiceMarker, tools.IsService, "frontend dev server stopped")));
 
                 if (ExtraCommand.Of(frontend) is { } extra)
                 {
                     var word = ExtraCommand.Name(extra);
                     tool.ExtraText = LaneTags.Capitalize(word);
-                    tool.ExtraToolTip = $"{extra} in una console";
+                    tool.ExtraToolTip = $"{extra} in a console";
                     tool.ExtraCommand = new AsyncCommand(() => Run(() =>
-                        StartConsole(location.Path, ConsoleServices.Marker(word, key), ExtraCommand.CommandLine(extra, EnvironmentKind.Local), $"{extra} avviato")));
+                        StartConsole(location.Path, ConsoleServices.Marker(word, key), ExtraCommand.CommandLine(extra, EnvironmentKind.Local), $"{extra} started")));
                 }
 
                 if (card.Preview is { } preview)
                 {
-                    // Il dev server su localhost, senza passare dal tunnel: il globo resta ai dev tunnel.
+                    // The dev server on localhost, bypassing the tunnel: the globe stays reserved for dev tunnels.
                     tool.SideGlyph = LocalhostGlyph;
                     tool.SideCommand = new AsyncCommand(() => Run(() => OpenInBrowser(preview.FrontendUrl)));
                     ShowPreviewUrl(tool, preview);
 
-                    // L'indirizzo si legge al clic, sul thread della UI: dipende dalla vista scelta in quel momento.
+                    // The address is read on click, on the UI thread: it depends on the view chosen at that moment.
                     preview.OpenExternalCommand = new AsyncCommand(() =>
                     {
                         var url = preview.ExternalUrl;
@@ -177,17 +177,17 @@ public sealed class DevToolsController
                 tools.IsService = p => RepoProcesses.IsApp(p, location.Path);
                 tools.IsMetro = p => RepoProcesses.IsMetro(p, location.Path);
                 tool.OpenCommand = new AsyncCommand(() => Run(() => OpenVisualStudioCode(location)));
-                tool.StartCommand = new AsyncCommand(() => Run(() => StartConsole(location.Path, tools.ServiceMarker, app.StartCommand, $"{app.StartCommand} avviato")));
+                tool.StartCommand = new AsyncCommand(() => Run(() => StartConsole(location.Path, tools.ServiceMarker, app.StartCommand, $"{app.StartCommand} started")));
                 tool.StopCommand = new AsyncCommand(() => Run(() =>
                 {
                     ConsoleServices.Stop(ConsoleServices.Pids(lastScan, tools.MetroMarker, tools.IsMetro));
-                    Stop(tools.ServiceMarker, tools.IsService, "app fermata");
+                    Stop(tools.ServiceMarker, tools.IsService, "app stopped");
                 }));
 
                 if (app.BundlerCommand.Length > 0)
                 {
                     tool.SideText = "Metro";
-                    tool.SideCommand = new AsyncCommand(() => Run(() => StartConsole(location.Path, tools.MetroMarker, app.BundlerCommand, $"{app.BundlerCommand} (bundler) avviato")));
+                    tool.SideCommand = new AsyncCommand(() => Run(() => StartConsole(location.Path, tools.MetroMarker, app.BundlerCommand, $"{app.BundlerCommand} (bundler) started")));
                 }
 
                 break;
@@ -200,8 +200,8 @@ public sealed class DevToolsController
         return tools;
     }
 
-    // Il servizio compose della card: l'api per il backend predefinito, il web per il frontend
-    // predefinito; null per le card che restano locali (app, generici, altri repository).
+    // The card's compose service: the api for the primary backend, the web for the primary
+    // frontend; null for cards that stay local (app, generic, other repositories).
     private static string? ServiceOf(Soffritto.Core.Docker.DockerSlot slot, RepoLocation location)
     {
         if (slot.Backend is { } backend && string.Equals(backend.Id, location.Id, StringComparison.OrdinalIgnoreCase))
@@ -226,19 +226,19 @@ public sealed class DevToolsController
             ? new AsyncCommand(() => Run(() => OpenVisualStudio(location, backend)))
             : new AsyncCommand(() => Run(() => OpenVisualStudioCode(location)));
 
-        // Il web porta con se' la console del Compose Watch: si apre solo dopo un up riuscito e si
-        // chiude prima dello stop, con i processi letti al momento e non dall'ultima scansione.
-        tool.StartCommand = new AsyncCommand(() => RunStack($"avvio di {service}…", () => ContainerStart(service), DockerReadiness.ComposeAction.Starting, card));
-        tool.StopCommand = new AsyncCommand(() => RunStack($"arresto di {service}…", () => ContainerStop(service), DockerReadiness.ComposeAction.Stopping, card));
+        // The web brings the Compose Watch console along: it opens only after a successful up and
+        // closes before the stop, with processes read on the spot rather than from the last scan.
+        tool.StartCommand = new AsyncCommand(() => RunStack($"starting {service}…", () => ContainerStart(service), DockerReadiness.ComposeAction.Starting, card));
+        tool.StopCommand = new AsyncCommand(() => RunStack($"stopping {service}…", () => ContainerStop(service), DockerReadiness.ComposeAction.Stopping, card));
 
-        card.ContainerLog = new LogSectionViewModel($"Log di {service}")
+        card.ContainerLog = new LogSectionViewModel($"{service} logs")
         {
-            ConsoleToolTip = $"docker compose logs -f del servizio {service} in una console",
+            ConsoleToolTip = $"docker compose logs -f of the {service} service in a console",
             ConsoleCommand = new AsyncCommand(() => Run(() => StartConsole(
                 slot.ComposeFolder,
                 ConsoleServices.Marker($"log-{service}", DockerWatchConsole.Key(slot)),
                 Soffritto.Core.Docker.DockerEnvironmentProvisioner.LogsCommand(slot, service),
-                $"log di {service} in una console"))),
+                $"{service} logs in a console"))),
         };
         var containerLog = card.ContainerLog;
         var following = new int[1];
@@ -253,17 +253,17 @@ public sealed class DevToolsController
             }
         };
 
-        // Le dipendenze installate nel worktree al primo uso servono anche a VS Code (import, ESLint).
+        // Dependencies installed in the worktree on first use also serve VS Code (imports, ESLint).
         if (location.Settings is FrontendConfiguration frontend && ExtraCommand.Of(frontend) is { } extra)
         {
             var word = ExtraCommand.Name(extra);
             tool.ExtraText = LaneTags.Capitalize(word);
-            tool.ExtraToolTip = $"{extra} in una console; senza node_modules nel worktree prima npm ci";
+            tool.ExtraToolTip = $"{extra} in a console; without node_modules in the worktree, npm ci first";
             tool.ExtraCommand = new AsyncCommand(() => Run(() => StartConsole(
                 location.Path,
                 ConsoleServices.Marker(word, location.Key),
                 ExtraCommand.CommandLine(extra, EnvironmentKind.Docker),
-                $"{extra} avviato")));
+                $"{extra} started")));
         }
 
         if (card.Preview is { } preview)
@@ -281,11 +281,11 @@ public sealed class DevToolsController
 
     private const int ContainerLogLines = 200;
 
-    // Finche' la sezione resta aperta rilegge le ultime righe del servizio ogni pochi secondi: un
-    // container ricreato da compose up si segue da solo, e a sezione chiusa non gira niente.
+    // While the section stays open it reads the service's last lines again every few seconds: a
+    // container recreated by compose up is followed automatically, and nothing runs once the section is closed.
     private async Task FollowContainerLogAsync(LogSectionViewModel log, Soffritto.Core.Docker.DockerSlot slot, string service)
     {
-        log.Replace(log.Text, "lettura…");
+        log.Replace(log.Text, "reading…");
         try
         {
             while (log.Expander.IsExpanded && !lifetime.IsCancellationRequested)
@@ -300,12 +300,12 @@ public sealed class DevToolsController
                 {
                     var text = outcome.StandardOutput.TrimEnd();
                     log.Replace(
-                        text.Length > 0 ? text : "nessuna riga: il container non c'e' o non ha ancora scritto",
-                        $"ultime {ContainerLogLines} righe, {DateTime.Now:HH:mm:ss}");
+                        text.Length > 0 ? text : "no lines: the container does not exist or has not written anything yet",
+                        $"last {ContainerLogLines} lines, {DateTime.Now:HH:mm:ss}");
                 }
                 else
                 {
-                    log.Replace(log.Text, $"log non letto: {outcome.Tail(1)}");
+                    log.Replace(log.Text, $"logs not read: {outcome.Tail(1)}");
                 }
 
                 await Task.Delay(TimeSpan.FromSeconds(3), lifetime).ConfigureAwait(false);
@@ -318,12 +318,12 @@ public sealed class DevToolsController
 
     private static void ShowPreviewUrl(ToolGroupViewModel tool, FrontendPreviewViewModel preview)
     {
-        tool.SetSide(true, $"Apre {preview.FrontendUrl} nel browser");
+        tool.SetSide(true, $"Opens {preview.FrontendUrl} in the browser");
         preview.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(FrontendPreviewViewModel.FrontendUrl))
             {
-                tool.SetSide(true, $"Apre {preview.FrontendUrl} nel browser");
+                tool.SetSide(true, $"Opens {preview.FrontendUrl} in the browser");
             }
         };
     }
@@ -340,8 +340,8 @@ public sealed class DevToolsController
         }
 
         return slot.HasContainerizedFrontend && service == slot.WebService
-            ? $"{service} avviato; {DockerWatchConsole.Start(ProcessTable.Read([]), slot)}"
-            : $"{service} avviato";
+            ? $"{service} started; {DockerWatchConsole.Start(ProcessTable.Read([]), slot)}"
+            : $"{service} started";
     }
 
     private string ContainerStop(string service)
@@ -353,14 +353,14 @@ public sealed class DevToolsController
         var error = Soffritto.Core.Docker.DockerEnvironmentProvisioner
             .StopServiceAsync(ActiveConfiguration.Current, vm.Number, service, line => Report($"{service}: {line}"))
             .GetAwaiter().GetResult();
-        return error ?? $"{watch}{service} fermato";
+        return error ?? $"{watch}{service} stopped";
     }
 
     private Soffritto.Core.Docker.PoolAssignment? AssignmentOf(CardTools tools, IReadOnlyList<Soffritto.Core.Docker.PoolAssignment> assignments)
         => assignments.FirstOrDefault(a => a.Environment == vm.Number && string.Equals(a.Repository, tools.Card.Id, StringComparison.OrdinalIgnoreCase));
 
-    // Fase dell'ambiente Docker nella card dell'ambiente. Quando cambia lo stato del database la
-    // colonna si rilegge, cosi' le migrazioni passano da «in avvio» a lette.
+    // Docker environment phase in the environment card. When the database state changes the
+    // column is read again, so migrations go from “starting” to read.
     private void ApplyPhase(Soffritto.Core.Docker.DockerStatus? docker)
     {
         if (readiness is null || vm.Docker is not { } dockerVm)
@@ -377,7 +377,7 @@ public sealed class DevToolsController
             RefreshColumn?.Invoke();
         }
 
-        // Le porte del pool sondate durante l'avvio dicono «nessuna risposta»: a servizi pronti si rileggono.
+        // Pool ports probed during startup say “no answer”: they are read again once services are ready.
         if (snapshot.Phase == DockerReadiness.Phase.Ready && lastPhase != DockerReadiness.Phase.Ready)
         {
             foreach (var card in vm.Repos.Where(card => card.Tunnel is not null))
@@ -389,8 +389,8 @@ public sealed class DevToolsController
         lastPhase = snapshot.Phase;
     }
 
-    /// <summary>Ricalcola stato e pulsanti dalla fotografia dei processi. Va chiamato sul thread della UI.</summary>
-    /// <param name="docker">I container dalla stessa scansione; null se nessun ambiente e' Docker.</param>
+    /// <summary>Recomputes state and buttons from the process snapshot. Must be called on the UI thread.</summary>
+    /// <param name="docker">The containers from the same scan; null if no environment is Docker.</param>
     public void Apply(IReadOnlyList<ProcessRow> scan, Soffritto.Core.Docker.DockerStatus? docker = null)
     {
         lastScan = scan;
@@ -431,7 +431,7 @@ public sealed class DevToolsController
                     tool.SetActions(
                         canStart: view.Kestrel == ServiceState.Stopped,
                         canStop: view.Kestrel != ServiceState.Stopped,
-                        startToolTip: $"Avvia Kestrel (dotnet run --launch-profile {backend.LaunchProfile}) in una console");
+                        startToolTip: $"Starts Kestrel (dotnet run --launch-profile {backend.LaunchProfile}) in a console");
                     break;
                 }
 
@@ -442,7 +442,7 @@ public sealed class DevToolsController
                     tool.SetActions(
                         canStart: state == ServiceState.Stopped,
                         canStop: state != ServiceState.Stopped,
-                        startToolTip: $"{frontend.StartCommand} in una console");
+                        startToolTip: $"{frontend.StartCommand} in a console");
                     break;
                 }
 
@@ -453,24 +453,24 @@ public sealed class DevToolsController
                     tool.SetActions(
                         canStart: state == ServiceState.Stopped,
                         canStop: state != ServiceState.Stopped,
-                        startToolTip: $"{app.StartCommand} in una console");
+                        startToolTip: $"{app.StartCommand} in a console");
 
                     var metro = ConsoleServices.StateOf(scan, tools.MetroMarker, tools.IsMetro);
                     tool.SetSide(
                         metro == ServiceState.Stopped,
                         metro == ServiceState.Stopped
-                            ? $"{app.BundlerCommand} in una console: avvia il bundler"
-                            : "Il bundler e' gia' acceso: lo ferma il bottone di stop dell'app");
+                            ? $"{app.BundlerCommand} in a console: starts the bundler"
+                            : "The bundler is already running: the app's stop button stops it");
                     break;
                 }
             }
         }
 
-        // Play finche' manca qualcosa da avviare, stop solo a pila tutta accesa: in uno stato misto
-        // (per esempio Kestrel da Visual Studio e frontend spento) il pulsante completa, non spegne.
+        // Play while something is left to start, stop only once the whole stack is running: in a mixed
+        // state (for example Kestrel from Visual Studio and the frontend off) the button completes, it does not stop.
         if (Volatile.Read(ref stackRunning) == 1)
         {
-            vm.Tools.Stack.SetActions(canStart: false, canStop: false, startToolTip: "Un avvio o un arresto e' gia' in corso");
+            vm.Tools.Stack.SetActions(canStart: false, canStop: false, startToolTip: "A start or stop is already in progress");
             return;
         }
 
@@ -480,17 +480,17 @@ public sealed class DevToolsController
             canStart: missing.Count > 0,
             canStop: missing.Count == 0 && stoppable.Count > 0,
             startToolTip: missing.Count > 0
-                ? $"Avvia {string.Join(", ", missing.Select(s => s.Name))} (l'app no)"
-                : "Niente da avviare",
-            stopToolTip: $"Ferma {string.Join(", ", stoppable.Select(s => s.Name))}");
+                ? $"Starts {string.Join(", ", missing.Select(s => s.Name))} (not the app)"
+                : "Nothing to start",
+            stopToolTip: $"Stops {string.Join(", ", stoppable.Select(s => s.Name))}");
     }
 
-    // La pila dell'ambiente, card per card in ordine di colonna: Kestrel e dev server. Avvia solo
-    // cio' che e' spento; ferma cio' che e' acceso. L'avvio salta l'app, pesante e spesso non
-    // richiesta; lo stop ferma anche lei e il bundler.
-    // In un ambiente Docker i container sono un passo solo («container», compose up dell'intero
-    // slot) seguito dal watch del web, che parte solo se l'up e' riuscito; l'host del tunnel
-    // dell'ambiente entra solo nell'avvio, per riaccendere un host caduto.
+    // The environment stack, card by card in column order: Kestrel and dev server. Start only
+    // what is off; stop what is running. Starting skips the app, which is heavy and often not
+    // needed; stopping also stops it and the bundler.
+    // In a Docker environment the containers are a single step (“container”, compose up of the whole
+    // slot) followed by the web watch, which starts only if the up succeeded; the environment's
+    // tunnel host joins only the start, to bring back a host that went down.
     private List<(string Name, Action Act)> StackStarts(IReadOnlyList<ProcessRow> scan)
     {
         var starts = new List<(string Name, Action Act)>();
@@ -522,7 +522,7 @@ public sealed class DevToolsController
                 {
                     if (!containerStarted)
                     {
-                        throw new InvalidOperationException("container non avviati");
+                        throw new InvalidOperationException("containers not started");
                     }
 
                     DockerWatchConsole.Start(ProcessTable.Read([]), slot);
@@ -530,14 +530,14 @@ public sealed class DevToolsController
             }
         }
 
-        // L'host del tunnel dell'ambiente, se l'ambiente ha il tunnel e l'host e' caduto o chiuso.
+        // The environment's tunnel host, if the environment has the tunnel and the host went down or was closed.
         foreach (var tunnel in Soffritto.Core.Docker.TunnelPool.Read().Where(a => a.Environment == vm.Number).GroupBy(a => a.TunnelDescription))
         {
             var host = PoolHosts.Tools(tunnel.Key);
             var tunnelId = tunnel.First().TunnelId;
             if (host.Evaluate(scan, tunnelId, hostConnected: false, string.Empty).State == ServiceState.Stopped)
             {
-                starts.Add(($"host del tunnel {tunnel.Key}", () => host.Start(ProcessTable.Read([]), tunnelId, hostConnected: false)));
+                starts.Add(($"tunnel host {tunnel.Key}", () => host.Start(ProcessTable.Read([]), tunnelId, hostConnected: false)));
             }
         }
 
@@ -571,8 +571,8 @@ public sealed class DevToolsController
         return starts;
     }
 
-    // Il watch si chiude prima dei container, con i processi letti quando il passo parte: una
-    // regola rebuild non deve riaccendere il web a meta' stop.
+    // The watch closes before the containers, with processes read when the step starts: a
+    // rebuild rule must not restart the web halfway through the stop.
     private List<(string Name, Action Act)> StackStops(IReadOnlyList<ProcessRow> scan)
     {
         var stops = new List<(string Name, Action Act)>();
@@ -584,8 +584,8 @@ public sealed class DevToolsController
                 stops.Add(("watch", () => DockerWatchConsole.Stop(ProcessTable.Read([]), slot)));
             }
 
-            // Docker che non risponde non dice niente dei container: lo stop si tenta, e il suo
-            // esito decide se il checkout puo' procedere.
+            // A Docker that does not answer says nothing about the containers: the stop is attempted, and its
+            // outcome decides whether the checkout can go ahead.
             if (lastDocker is not { IsReachable: true } docker
                 || docker.OfProject(slot.Project).Any(c => c.RunState != Soffritto.Core.Docker.ContainerRunState.Stopped))
             {
@@ -639,10 +639,10 @@ public sealed class DevToolsController
     }
 
     /// <summary>
-    /// Ferma tutto cio' che l'ambiente ha acceso, app e bundler compresi, dall'ultima fotografia
-    /// dei processi: in un ambiente Docker anche watch e container, in quest'ordine. Restituisce
-    /// l'esito e se si e' fermato tutto; negli ambienti locali vale sempre vero, come prima.
-    /// Lo usano il reset e il checkout delle PR prima di git.
+    /// Stops everything the environment has running, app and bundler included, from the last process
+    /// snapshot: in a Docker environment also watch and containers, in that order. Returns the
+    /// outcome and whether everything stopped; in local environments it is always true, as before.
+    /// Used by reset and PR checkout before git.
     /// </summary>
     public Task<(string Outcome, bool AllStopped)> StopEverythingAsync() => Task.Run(() =>
     {
@@ -650,7 +650,7 @@ public sealed class DevToolsController
         composeAction = (int)DockerReadiness.ComposeAction.Stopping;
         try
         {
-            var (line, failed) = Execute("fermati", StackStops(lastScan));
+            var (line, failed) = Execute("stopped", StackStops(lastScan));
             return (line, vm.Docker is null || failed == 0);
         }
         finally
@@ -666,16 +666,16 @@ public sealed class DevToolsController
         return tools.Backend!.Evaluate(scan, tunnel?.Id, tunnel?.HostConnected == true, tunnel?.ReadStamp ?? string.Empty);
     }
 
-    // I predefiniti si chiamano come sempre; per gli altri l'id dice di quale repository si tratta.
+    // Primary repositories keep their usual names; for the others the id says which repository it is.
     private static string NameOf(RepoCardViewModel card, string service)
         => card.IsPrimary ? service : $"{service} ({card.Id})";
 
-    // Un servizio che fallisce non ferma gli altri: la riga di attivita' riporta entrambi gli esiti.
+    // A failing service does not stop the others: the activity line reports both outcomes.
     private static (string Line, int Failed) Execute(string verb, List<(string Name, Action Act)> steps)
     {
         if (steps.Count == 0)
         {
-            return ($"niente da fare: nessun servizio da {(verb == "avviati" ? "avviare" : "fermare")}", 0);
+            return ($"nothing to do: no service to {(verb == "started" ? "start" : "stop")}", 0);
         }
 
         var done = new List<string>();
@@ -694,7 +694,7 @@ public sealed class DevToolsController
         }
 
         var line = done.Count > 0 ? $"{verb}: {string.Join(", ", done)}" : string.Empty;
-        return (failed.Count > 0 ? $"{line}{(line.Length > 0 ? "; " : string.Empty)}non riusciti: {string.Join(", ", failed)}" : line, failed.Count);
+        return (failed.Count > 0 ? $"{line}{(line.Length > 0 ? "; " : string.Empty)}failed: {string.Join(", ", failed)}" : line, failed.Count);
     }
 
     private static Soffritto.Core.Docker.DockerContainer? ContainerOf(Soffritto.Core.Docker.DockerStatus docker, Soffritto.Core.Docker.DockerSlot slot, string? service)
@@ -707,14 +707,14 @@ public sealed class DevToolsController
         _ => ServiceState.Stopped,
     };
 
-    // Lo stato di una card container viene da docker ps; il web acceso senza il suo watch e'
-    // arancio, e Avvia (che ricostruisce l'immagine e riapre la console) e' l'azione proposta.
+    // A container card's state comes from docker ps; a running web without its watch is
+    // orange, and Start (which rebuilds the image and reopens the console) is the suggested action.
     private void ApplyContainer(CardTools tools, IReadOnlyList<ProcessRow> scan, Soffritto.Core.Docker.DockerStatus? docker, Soffritto.Core.Docker.DockerSlot slot)
     {
         var tool = tools.Card.Tool!;
         if (docker is null || !docker.IsReachable)
         {
-            var reason = docker?.Error ?? "stato dei container non ancora letto";
+            var reason = docker?.Error ?? "container status not read yet";
             tool.SetDescribedState(ServiceState.Stopped, reason);
             tool.SetActions(canStart: false, canStop: false, startToolTip: reason);
             return;
@@ -725,29 +725,29 @@ public sealed class DevToolsController
         var name = $"container {tools.Service}";
         if (tools.IsWeb && state == ServiceState.Running && DockerWatchConsole.StateOf(scan, slot) != ServiceState.Running)
         {
-            const string watchOff = "container acceso, watch spento: le modifiche del worktree non arrivano al container; Avvia lo riapre";
+            const string watchOff = "container running, watch off: worktree changes do not reach the container; Start reopens it";
             tool.SetDescribedState(ServiceState.WindowOnly, watchOff);
             tool.SetActions(canStart: true, canStop: false, startToolTip: watchOff);
             return;
         }
 
-        tool.SetDescribedState(state, $"{name}: {container?.Status ?? "assente"}");
+        tool.SetDescribedState(state, $"{name}: {container?.Status ?? "missing"}");
         tool.SetActions(
             canStart: state == ServiceState.Stopped,
             canStop: state != ServiceState.Stopped,
-            startToolTip: tools.IsWeb ? $"docker compose up --build {tools.Service} e la console del Compose Watch" : $"docker compose up --build {tools.Service}",
-            stopToolTip: tools.IsWeb ? $"Chiude il watch e ferma il container {tools.Service}" : $"Ferma il container {tools.Service}");
+            startToolTip: tools.IsWeb ? $"docker compose up --build {tools.Service} and the Compose Watch console" : $"docker compose up --build {tools.Service}",
+            stopToolTip: tools.IsWeb ? $"Closes the watch and stops the {tools.Service} container" : $"Stops the {tools.Service} container");
     }
 
-    // La sezione del tunnel della card c'e' solo se il repository ha una porta del pool: mostra
-    // la porta con il suo URL, e il pallino dice se l'host del tunnel dell'ambiente e' acceso.
+    // The card's tunnel section exists only if the repository has a pool port: it shows the
+    // port with its URL, and the dot says whether the environment's tunnel host is running.
     private void ApplyPoolHost(CardTools tools, TunnelSection section, IReadOnlyList<ProcessRow> scan, IReadOnlyList<Soffritto.Core.Docker.PoolAssignment> assignments)
     {
         var assignment = AssignmentOf(tools, assignments);
         tools.Card.TunnelShared = assignment is not null;
         if (assignment is null)
         {
-            section.Host.SetDescribedState(ServiceState.Stopped, "senza tunnel: si accende con «Tunnel» nell'intestazione dell'ambiente");
+            section.Host.SetDescribedState(ServiceState.Stopped, "no tunnel: turn it on with “Tunnel” in the environment header");
             return;
         }
 
@@ -755,49 +755,49 @@ public sealed class DevToolsController
         var view = PoolHosts.Tools(description).Evaluate(scan, assignment.TunnelId, hostConnected: false, section.State.ReadStamp);
         if (view.State == ServiceState.Running)
         {
-            section.Host.SetDescribedState(ServiceState.Running, $"host del tunnel {description} acceso: la porta {assignment.Port} e' raggiungibile se il servizio e' acceso");
+            section.Host.SetDescribedState(ServiceState.Running, $"tunnel host {description} running: port {assignment.Port} is reachable if the service is running");
         }
         else
         {
-            section.Host.SetDescribedState(ServiceState.WindowOnly, $"host del tunnel {description} spento: l'URL non risponde; lo riaccende l'avvio dell'ambiente");
+            section.Host.SetDescribedState(ServiceState.WindowOnly, $"tunnel host {description} off: the URL does not answer; starting the environment brings it back");
         }
     }
 
     private void OpenVisualStudio(RepoLocation location, BackendConfiguration backend)
     {
         var solution = System.IO.Path.Combine(location.Path, backend.Solution);
-        var devenv = DevTools.VisualStudio() ?? throw new InvalidOperationException("Visual Studio non trovato (vswhere).");
+        var devenv = DevTools.VisualStudio() ?? throw new InvalidOperationException("Visual Studio not found (vswhere).");
 
         Launch($"\"{devenv}\" \"{solution}\"", location.Path);
-        Report($"Visual Studio aperto su {location.FolderName}");
+        Report($"Visual Studio opened on {location.FolderName}");
     }
 
     private void OpenVisualStudioCode(RepoLocation location)
     {
-        var code = DevTools.VisualStudioCode() ?? throw new InvalidOperationException("VS Code non trovato.");
+        var code = DevTools.VisualStudioCode() ?? throw new InvalidOperationException("VS Code not found.");
 
         Launch($"\"{code}\" \"{location.Path}\"", location.Path);
-        Report($"VS Code aperto su {location.FolderName}");
+        Report($"VS Code opened on {location.FolderName}");
     }
 
-    // Il browser predefinito parte da rundll32 e non da ShellExecute: cosi' passa da Launch,
-    // fuori dal job, e non si chiude insieme all'exe.
+    // The default browser starts through rundll32 rather than ShellExecute: that way it goes through
+    // Launch, outside the job, and does not close together with the exe.
     private void OpenInBrowser(Uri url)
     {
         Launch($"rundll32.exe url.dll,FileProtocolHandler {url.AbsoluteUri}", System.IO.Path.GetTempPath());
-        Report($"{url.AbsoluteUri} aperto nel browser");
+        Report($"{url.AbsoluteUri} opened in the browser");
     }
 
     private void StartConsole(string workingDirectory, string marker, string command, string notice)
         => Report(ConsoleServices.StartConsole(workingDirectory, marker, command)
             ? notice
-            : $"{notice} dentro il job dell'exe: si chiudera' insieme all'app");
+            : $"{notice} inside the exe's job: it will close together with the app");
 
     private void Launch(string commandLine, string workingDirectory)
     {
         if (!DetachedLauncher.Start(commandLine, workingDirectory, newConsole: false))
         {
-            Report("avviato dentro il job dell'exe: si chiudera' insieme all'app");
+            Report("started inside the exe's job: it will close together with the app");
         }
     }
 
@@ -823,11 +823,11 @@ public sealed class DevToolsController
         }
     });
 
-    // Pila e container possono durare minuti (compose up -d --build): senza questa guardia ogni clic
-    // in piu' lanciava un altro compose in parallelo sullo stesso slot. Finche' gira, il pallino
-    // dell'ambiente pulsa e il play resta spento; i clic sugli altri bottoni compose sono ignorati.
-    // La card su cui si agisce scorre a righe; l'azione dice a DockerReadiness se i servizi stanno
-    // partendo (in attesa, non in errore) o vengono fermati apposta (spenti, non in errore).
+    // Stack and container actions can take minutes (compose up -d --build): without this guard every
+    // extra click launched another compose in parallel on the same slot. While it runs, the environment
+    // dot pulses and play stays disabled; clicks on the other compose buttons are ignored.
+    // The card being acted on shows moving stripes; the action tells DockerReadiness whether services are
+    // starting (waiting, not failed) or being stopped on purpose (off, not failed).
     private Task RunStack(string pending, Func<string> action, DockerReadiness.ComposeAction kind, RepoCardViewModel? card = null, string? service = null)
     {
         if (Interlocked.Exchange(ref stackRunning, 1) == 1)
@@ -882,7 +882,7 @@ public sealed class DevToolsController
 
     private void Report(string line) => vm.Report(line);
 
-    /// <summary>Gli strumenti e lo stato di una card: marcatori, riconoscimento dei processi, tunnel.</summary>
+    /// <summary>A card's tools and state: markers, process recognition, tunnel.</summary>
     private sealed class CardTools(RepoCardViewModel card)
     {
         public RepoCardViewModel Card { get; } = card;
@@ -897,15 +897,15 @@ public sealed class DevToolsController
 
         public Func<ProcessRow, bool> IsMetro { get; set; } = _ => false;
 
-        /// <summary>Backend o frontend predefinito di un ambiente Docker: gira in un container del compose.</summary>
+        /// <summary>Primary backend or frontend of a Docker environment: runs in a compose container.</summary>
         public bool IsContainer { get; set; }
 
-        /// <summary>Il servizio compose della card container (api, web).</summary>
+        /// <summary>The container card's compose service (api, web).</summary>
         public string Service { get; set; } = string.Empty;
 
         public bool IsWeb { get; set; }
 
-        /// <summary>La card ha la sezione del tunnel, per la porta del pool del repository.</summary>
+        /// <summary>The card has the tunnel section, for the repository's pool port.</summary>
         public bool IsPoolTunnel { get; set; }
     }
 }

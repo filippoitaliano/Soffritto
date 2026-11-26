@@ -4,8 +4,8 @@ using System.Windows.Media;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// L'anello del cronometro della riunione punti storia: la parte piena e' <see cref="Ratio"/>, in
-/// senso orario partendo da mezzogiorno. Il contenuto (il tempo) gli sta sopra, in XAML.
+/// The timer ring of the story points meeting: the filled part is <see cref="Ratio"/>, clockwise
+/// from twelve o'clock. The content (the time) sits on top of it, in XAML.
 /// </summary>
 public sealed class CountdownRing : FrameworkElement
 {

@@ -5,12 +5,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 
-    <!-- Una sola versione per tutta la soluzione: VSIX ed exe Desktop restano allineati (il
-         footer dell'exe e del pannello la mostrano). Il manifest della VSIX la prende da qui
-         (ExtensionAssemblyVersion): reinstallare senza cambiarla non aggiorna niente, perche'
-         l'installer trova la stessa versione gia' presente ed esce con successo lasciando in
-         Program Files i binari vecchi. Va alzata a ogni installazione che deve arrivare davvero
-         in Visual Studio. -->
-    <Version>2.0.194</Version>
+    <!-- A single version for the whole solution: the VSIX and the Desktop exe stay aligned (the
+         footer of the exe and of the tool window show it). The VSIX manifest takes it from here
+         (ExtensionAssemblyVersion): reinstalling without changing it updates nothing, because
+         the installer finds the same version already present and exits successfully, leaving
+         the old binaries in Program Files. Bump it for every install that must actually reach
+         Visual Studio. -->
+    <Version>2.0.195</Version>
+    <!-- English is the only language: without this, publish output carries the WPF, WinForms
+         and SqlClient message translations in thirteen languages. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
 </Project>

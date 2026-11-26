@@ -3,33 +3,33 @@ using Microsoft.Data.SqlClient;
 namespace Soffritto.Core.Docker;
 
 /// <summary>
-/// Le guardie sul database di un ambiente Docker: prima di leggere migrazioni, aggiornare,
-/// ripristinare o avviare l'api, la connessione deve puntare al SQL Server del suo slot.
-/// I messaggi dicono file, server e database, mai la password.
+/// The guards on a Docker environment's database: before reading migrations, updating,
+/// restoring or starting the api, the connection must point to its slot's SQL Server.
+/// Messages state file, server and database, never the password.
 /// </summary>
 public static class DatabaseGuard
 {
     private static readonly string[] LocalHosts = ["127.0.0.1", "localhost"];
 
     /// <summary>
-    /// La connessione che il worktree usa (il primo appsettings con la connection string, come
-    /// <see cref="ConnectionStringLocator"/>) punta a 127.0.0.1,&lt;port&gt; e al database atteso. Errore o null.
+    /// The connection the worktree uses (the first appsettings with the connection string, like
+    /// <see cref="ConnectionStringLocator"/>) points to 127.0.0.1,&lt;port&gt; and to the expected database. Error or null.
     /// </summary>
     public static string? Check(string root, ProbeOptions probe, int port, string database)
     {
         var (connection, file, error) = ConnectionStringLocator.Find(root, probe);
         if (connection is null)
         {
-            return $"database dello slot non verificabile in {root}: {error}";
+            return $"cannot verify the slot database in {root}: {error}";
         }
 
-        return Compare(connection, $"{file} di {root}", HostMatches(port), $"127.0.0.1,{port}", database);
+        return Compare(connection, $"{file} in {root}", HostMatches(port), $"127.0.0.1,{port}", database);
     }
 
     /// <summary>
-    /// La porta del SQL Server sulla macchina (127.0.0.1,&lt;porta&gt; o localhost,&lt;porta&gt;) a cui
-    /// punta la connessione del clone; null se punta altrove o non si legge. Un ambiente locale
-    /// puo' usare cosi' il database nel container di uno slot Docker.
+    /// The port of the SQL Server on this machine (127.0.0.1,&lt;port&gt; or localhost,&lt;port&gt;) that
+    /// the clone's connection points to; null if it points elsewhere or cannot be read. This way a local
+    /// environment can use the database in a Docker slot's container.
     /// </summary>
     public static int? LocalPortOf(string root, ProbeOptions probe)
     {
@@ -54,13 +54,13 @@ public static class DatabaseGuard
         }
     }
 
-    /// <summary>Una connessione dall'host (es. al container temporaneo del seed) punta a 127.0.0.1,&lt;port&gt; e al database atteso.</summary>
+    /// <summary>A connection from the host (e.g. to the temporary seed container) points to 127.0.0.1,&lt;port&gt; and to the expected database.</summary>
     public static string? CheckConnectionString(string connectionString, int port, string database)
-        => Compare(connectionString, "la connessione", HostMatches(port), $"127.0.0.1,{port}", database);
+        => Compare(connectionString, "the connection", HostMatches(port), $"127.0.0.1,{port}", database);
 
     /// <summary>
-    /// L'ambiente del container dell'api (nome → valore, come lo risolve compose) ha
-    /// ConnectionStrings__&lt;nome&gt; sul servizio del database dello slot e sul database atteso.
+    /// The api container's environment (name → value, as compose resolves it) has
+    /// ConnectionStrings__&lt;name&gt; pointing to the slot's database service and to the expected database.
     /// </summary>
     public static string? CheckContainer(IReadOnlyDictionary<string, string> container, string connectionStringName, string dbService, string database)
     {
@@ -68,12 +68,12 @@ public static class DatabaseGuard
         var value = container.FirstOrDefault(p => string.Equals(p.Key, name, StringComparison.OrdinalIgnoreCase)).Value;
         if (string.IsNullOrWhiteSpace(value))
         {
-            return $"il container dell'api non ha {name}: senza, userebbe la connessione dei file dell'immagine e non il database dello slot";
+            return $"the api container has no {name}: without it, it would use the connection from the image's files instead of the slot database";
         }
 
         return Compare(
             value,
-            $"{name} del container",
+            $"the container's {name}",
             server => string.Equals(server, dbService, StringComparison.OrdinalIgnoreCase) || string.Equals(server, $"{dbService},1433", StringComparison.OrdinalIgnoreCase),
             $"{dbService},1433",
             database);
@@ -91,7 +91,7 @@ public static class DatabaseGuard
         }
         catch (Exception ex) when (ex is ArgumentException or FormatException or KeyNotFoundException)
         {
-            return $"{where}: connection string non leggibile";
+            return $"{where}: unreadable connection string";
         }
 
         var server = Normalize(builder.DataSource);
@@ -101,7 +101,7 @@ public static class DatabaseGuard
             return null;
         }
 
-        return $"{where} punta a {DisplayOrMissing(builder.DataSource)} / {DisplayOrMissing(catalog)}, non al database dello slot {expectedServer} / {database}: operazione fermata";
+        return $"{where} points to {DisplayOrMissing(builder.DataSource)} / {DisplayOrMissing(catalog)}, not to the slot database {expectedServer} / {database}: operation stopped";
     }
 
     private static string Normalize(string dataSource)
@@ -110,5 +110,5 @@ public static class DatabaseGuard
         return server.StartsWith("tcp:", StringComparison.OrdinalIgnoreCase) ? server[4..] : server;
     }
 
-    private static string DisplayOrMissing(string value) => value.Length > 0 ? value : "(vuoto)";
+    private static string DisplayOrMissing(string value) => value.Length > 0 ? value : "(empty)";
 }

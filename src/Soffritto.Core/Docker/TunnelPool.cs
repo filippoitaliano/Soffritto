@@ -3,10 +3,10 @@ using Soffritto.Core.Configuration;
 
 namespace Soffritto.Core.Docker;
 
-/// <summary>Una porta di un tunnel del pool assegnata a un repository di un ambiente.</summary>
+/// <summary>A pool tunnel port assigned to a repository of an environment.</summary>
 public sealed record PoolAssignment(string TunnelDescription, string TunnelId, int Port, int Environment, string Repository);
 
-/// <summary>Un tunnel del pool come lo vede devtunnel, con le differenze tra porte e assegnazioni.</summary>
+/// <summary>A pool tunnel as devtunnel sees it, with the differences between ports and assignments.</summary>
 public sealed record PoolTunnelState(
     int Index,
     string Description,
@@ -17,25 +17,25 @@ public sealed record PoolTunnelState(
     string? Error);
 
 /// <summary>
-/// Il pool di dev tunnel creati dall'utente: porte assegnate su richiesta agli ambienti, con
-/// accesso anonimo per porta, e rilasciate alla distruzione. Le assegnazioni stanno in
-/// &lt;cartella dati&gt;\tunnel-pool.json. Un tunnel si aggiunge, si toglie e si rinnova da qui.
+/// The pool of user-created dev tunnels: ports assigned to environments on request, with
+/// anonymous access per port, and released when the environment is destroyed. Assignments live in
+/// &lt;data folder&gt;\tunnel-pool.json. Tunnels are added, removed and renewed from here.
 /// </summary>
 public static class TunnelPool
 {
-    /// <summary>R-a di P02: 10 porte per tunnel misurate, una di margine.</summary>
+    /// <summary>R-a of P02: 10 ports per tunnel measured, one kept as margin.</summary>
     public const int MaxPortsPerTunnel = 9;
 
-    /// <summary>R-b di P02: un host acceso non ospita le porte aggiunte dopo il suo avvio.</summary>
+    /// <summary>R-b of P02: a running host does not serve ports added after it started.</summary>
     public const bool RestartHostOnAssign = true;
 
-    /// <summary>R-c (B3): i tunnel del pool sono «Owner only»; l'accesso anonimo si da' per porta, come gli ambienti locali.</summary>
+    /// <summary>R-c (B3): pool tunnels are "Owner only"; anonymous access is granted per port, as in local environments.</summary>
     public const bool GrantPortAccess = true;
 
     public const string HostService = "tunnel-pool";
 
-    /// <summary>L'errore di <see cref="AssignAsync"/> quando nessun tunnel puo' ospitare la porta dell'ambiente.</summary>
-    public const string PoolFull = "pool pieno: ogni tunnel utilizzabile e' gia' di un altro ambiente; aggiungi un tunnel al pool nel setup";
+    /// <summary>The <see cref="AssignAsync"/> error when no tunnel can host the environment's port.</summary>
+    public const string PoolFull = "pool full: every usable tunnel already belongs to another environment; add a tunnel to the pool in setup";
 
     private static readonly SemaphoreSlim Gate = new(1, 1);
 
@@ -43,24 +43,24 @@ public static class TunnelPool
 
     public static string FilePath => Path.Combine(ConfigurationFiles.DataFolder, "tunnel-pool.json");
 
-    // Assegnazioni e rilasci arrivano anche da altri processi (exe e server MCP): Gate serializza
-    // quelli di questo processo, il file di lock quelli fra processi.
+    // Assignments and releases also come from other processes (the app and the MCP server): Gate serializes
+    // this process's ones, the lock file the cross-process ones.
     private static string LockPath => Path.Combine(ConfigurationFiles.DataFolder, "tunnel-pool.lock");
 
     private static readonly TimeSpan LockTimeout = TimeSpan.FromMinutes(3);
 
-    /// <summary>Servizio e chiave del marcatore della console dell'host del tunnel con quella Description: "tunnel-pool", "pool-1".</summary>
+    /// <summary>Service and key of the console marker of the host of the tunnel with that Description: "tunnel-pool", "pool-1".</summary>
     public static (string Service, string Key) HostKey(string description) => (HostService, description);
 
-    /// <summary>L'assegnazione del repository dell'ambiente in tunnel-pool.json; null se non e' condiviso.</summary>
+    /// <summary>The assignment of the environment's repository in tunnel-pool.json; null if it is not shared.</summary>
     public static PoolAssignment? AssignmentOf(int environment, string repositoryId)
         => Read().FirstOrDefault(a => a.Environment == environment && SameId(a.Repository, repositoryId));
 
     /// <summary>
-    /// Le posizioni in <paramref name="states"/> dei tunnel su cui provare la porta, nell'ordine
-    /// del pool. Un tunnel e' di un solo ambiente: se l'ambiente ha gia' porte su un tunnel
-    /// leggibile valgono solo i suoi tunnel, altrimenti solo quelli senza assegnazioni. Fuori i
-    /// tunnel non trovati, in errore, pieni o che hanno gia' la porta.
+    /// The positions in <paramref name="states"/> of the tunnels to try the port on, in pool
+    /// order. A tunnel belongs to a single environment: if the environment already has ports on a readable
+    /// tunnel only its tunnels count, otherwise only those without assignments. Tunnels that are
+    /// not found, in error, full or already have the port are left out.
     /// </summary>
     public static IReadOnlyList<int> Order(IReadOnlyList<PoolTunnelState> states, int environment, int port)
     {
@@ -75,15 +75,15 @@ public static class TunnelPool
             .ToList();
     }
 
-    /// <summary>La label di un tunnel del pool nuovo, se il pool non ne ha gia' una.</summary>
+    /// <summary>The label of a new pool tunnel, if the pool does not have one yet.</summary>
     public const string DefaultLabel = "SoffrittoPool";
 
     private const string DescriptionPrefix = "pool-";
 
     /// <summary>
-    /// Crea un tunnel del pool sulla prima Description «pool-K» che ne' <paramref name="c"/> ne'
-    /// l'account hanno, e lo aggiunge a config.json; <paramref name="c"/> non cambia, lo aggiorna
-    /// chi chiama. Il tunnel creato o l'errore (anche la quota dell'account esaurita).
+    /// Creates a pool tunnel on the first "pool-K" Description that neither <paramref name="c"/> nor
+    /// the account has, and adds it to config.json; <paramref name="c"/> does not change, the caller
+    /// updates it. The created tunnel or the error (including an exhausted account quota).
     /// </summary>
     public static async Task<(PoolTunnelConfiguration? Tunnel, string? Error)> AddTunnelAsync(AppConfiguration c, Action<string> log, CancellationToken ct = default)
     {
@@ -111,7 +111,7 @@ public static class TunnelPool
             return (null, createError);
         }
 
-        log($"tunnel del pool {tunnel.Description} creato: {tunnelId}");
+        log($"pool tunnel {tunnel.Description} created: {tunnelId}");
         var written = ConfigurationFiles.Update(
             file =>
             {
@@ -125,18 +125,18 @@ public static class TunnelPool
             ConfigurationFileFallback.Refuse);
         return written is null
             ? (tunnel, null)
-            : (null, $"tunnel {tunnel.Description} creato ma non scritto in config.json ({written}): aggiungilo dal setup");
+            : (null, $"tunnel {tunnel.Description} created but not written to config.json ({written}): add it from setup");
     }
 
     /// <summary>
-    /// Toglie dal pool il tunnel con quella Description e lo cancella dall'account; rifiuta se ha
-    /// porte assegnate. <paramref name="c"/> non cambia, lo aggiorna chi chiama. Errore o null.
+    /// Removes the tunnel with that Description from the pool and deletes it from the account; refuses if it has
+    /// assigned ports. <paramref name="c"/> does not change, the caller updates it. Error or null.
     /// </summary>
     public static async Task<string?> RemoveTunnelAsync(AppConfiguration c, string description, Action<string> log, CancellationToken ct = default)
     {
         if (Read().Where(a => a.TunnelDescription == description).ToList() is { Count: > 0 } assigned)
         {
-            return $"{description} ha {assigned.Count} porte assegnate: rilasciale prima";
+            return $"{description} has {assigned.Count} assigned ports: release them first";
         }
 
         var (account, listError) = await DevTunnelProvisioner.ListTunnelsAsync(ct).ConfigureAwait(false);
@@ -152,11 +152,11 @@ public static class TunnelPool
                 return deleteError;
             }
 
-            log($"tunnel {description} ({found.Id}) cancellato dall'account");
+            log($"tunnel {description} ({found.Id}) deleted from the account");
         }
         else
         {
-            log($"tunnel {description} non trovato nell'account: tolto solo dal pool");
+            log($"tunnel {description} not found in the account: removed from the pool only");
         }
 
         return ConfigurationFiles.Update(
@@ -169,8 +169,8 @@ public static class TunnelPool
     }
 
     /// <summary>
-    /// Riporta al massimo la scadenza dei tunnel del pool che l'account ha: un tunnel scade dopo
-    /// 30 giorni senza uso e il servizio non ne accetta di piu' lunghe.
+    /// Resets to the maximum the expiration of the pool tunnels the account has: a tunnel expires after
+    /// 30 days without use and the service accepts no longer expiration.
     /// </summary>
     public static async Task RenewAsync(AppConfiguration c, Action<string> log, CancellationToken ct = default)
     {
@@ -182,7 +182,7 @@ public static class TunnelPool
         var (account, listError) = await DevTunnelProvisioner.ListTunnelsAsync(ct).ConfigureAwait(false);
         if (account is null)
         {
-            log($"scadenza dei tunnel del pool non rinnovata: {listError}");
+            log($"pool tunnel expiration not renewed: {listError}");
             return;
         }
 
@@ -191,7 +191,7 @@ public static class TunnelPool
         {
             if (await DevTunnelProvisioner.RenewAsync(tunnel.Id, ct).ConfigureAwait(false) is { } error)
             {
-                log($"scadenza di {tunnel.Description} non rinnovata: {error}");
+                log($"expiration of {tunnel.Description} not renewed: {error}");
             }
             else
             {
@@ -199,13 +199,13 @@ public static class TunnelPool
             }
         }
 
-        log($"scadenza rinnovata a {DevTunnelProvisioner.MaxExpiration} per {renewed} tunnel del pool");
+        log($"expiration renewed to {DevTunnelProvisioner.MaxExpiration} for {renewed} pool tunnels");
     }
 
     /// <summary>
-    /// Vero se l'assegnazione non ha piu' la sua porta: il tunnel con quella Description manca
-    /// dall'account, ha un altro id o non ha la porta. Falso se lo stato del tunnel non e' stato
-    /// letto (errore di devtunnel list o show): una lettura fallita non scarta assegnazioni vive.
+    /// True if the assignment no longer has its port: the tunnel with that Description is missing
+    /// from the account, has another id or lacks the port. False if the tunnel's state could not be
+    /// read (devtunnel list or show error): a failed read never discards live assignments.
     /// </summary>
     public static bool IsOrphan(PoolAssignment a, IReadOnlyList<PoolTunnelState> states)
     {
@@ -219,8 +219,8 @@ public static class TunnelPool
     }
 
     /// <summary>
-    /// Interroga <paramref name="urlOf"/> (default <see cref="UrlOfAsync"/>) ogni 2 s fino a
-    /// <paramref name="timeout"/> (default 30 s): l'URL della porta appena pubblicato, o null.
+    /// Polls <paramref name="urlOf"/> (default <see cref="UrlOfAsync"/>) every 2 s up to
+    /// <paramref name="timeout"/> (default 30 s): the URL of the port as soon as it is published, or null.
     /// </summary>
     public static async Task<string?> WaitUrlAsync(
         PoolAssignment a,
@@ -270,12 +270,12 @@ public static class TunnelPool
     }
 
     /// <summary>
-    /// La porta del pool per il repository dell'ambiente: quella gia' assegnata se e' ancora sul
-    /// suo tunnel, oppure una nuova sul tunnel scelto da <see cref="Order"/>, con il protocollo
-    /// della porta locale e l'accesso anonimo della porta. Un'assegnazione orfana si scarta; con
-    /// un errore di lettura del suo tunnel il file non cambia e l'esito e' quell'errore.
-    /// <paramref name="restartHost"/> riceve l'indice del tunnel e riavvia il suo host se e' acceso
-    /// (lo fa il Desktop, che possiede le console): vero se l'ha riavviato.
+    /// The pool port for the environment's repository: the one already assigned if it is still on
+    /// its tunnel, or a new one on the tunnel chosen by <see cref="Order"/>, with the local port's
+    /// protocol and anonymous access on the port. An orphan assignment is discarded; with
+    /// a read error on its tunnel the file does not change and the outcome is that error.
+    /// <paramref name="restartHost"/> receives the tunnel index and restarts its host if it is running
+    /// (the Desktop does it, since it owns the consoles): true if it restarted it.
     /// </summary>
     public static async Task<(PoolAssignment? Assignment, string? Error)> AssignAsync(
         AppConfiguration c,
@@ -288,7 +288,7 @@ public static class TunnelPool
         if (await LockAsync(ct).ConfigureAwait(false) is not { } fileLock)
         {
             Gate.Release();
-            return (null, $"{FilePath} e' occupato da un altro processo: riprova");
+            return (null, $"{FilePath} is busy in another process: try again");
         }
 
         try
@@ -297,7 +297,7 @@ public static class TunnelPool
             var number = entry.Environment.Number;
             if (DevTunnelReader.ResolveExecutable() is not { } exe)
             {
-                return (null, "devtunnel.exe non trovato");
+                return (null, "devtunnel.exe not found");
             }
 
             var states = await ReadStatesAsync(c, assignments, exe, ct).ConfigureAwait(false);
@@ -323,12 +323,12 @@ public static class TunnelPool
 
                 assignments.Remove(existing);
                 Write(assignments);
-                log($"assegnazione orfana della porta {existing.Port} su {existing.TunnelDescription} scartata");
+                log($"orphan assignment of port {existing.Port} on {existing.TunnelDescription} discarded");
             }
 
             if (DevTunnelProvisioner.PortsFor(entry, c).FirstOrDefault() is not { } port)
             {
-                return (null, $"{entry.Id} dell'ambiente {number} non ha una porta da esporre");
+                return (null, $"{entry.Id} of environment {number} has no port to expose");
             }
 
             foreach (var state in Order(states, number, port.Number).Select(i => states[i]))
@@ -337,9 +337,9 @@ public static class TunnelPool
                 var created = await DevTunnelReader.DevTunnelAsync(exe, $"port create {id} -p {port.Number} --protocol {port.Protocol}", Temp, ct).ConfigureAwait(false);
                 if (!created.Success)
                 {
-                    // La CLI rifiuta la porta oltre il massimo con «Rate limit exceeded» (P02): e' un
-                    // tunnel pieno, non un limite di frequenza, quindi si passa al tunnel dopo.
-                    log($"porta {port.Number} non creata su {state.Description}: {created.Tail(2)}");
+                    // Past the maximum the CLI refuses the port with "Rate limit exceeded" (P02): it is a
+                    // full tunnel, not a rate limit, so we move on to the next tunnel.
+                    log($"port {port.Number} not created on {state.Description}: {created.Tail(2)}");
                     continue;
                 }
 
@@ -348,24 +348,24 @@ public static class TunnelPool
                     var access = await DevTunnelReader.DevTunnelAsync(exe, $"access create {id} -p {port.Number} --anonymous", Temp, ct).ConfigureAwait(false);
                     if (!access.Success)
                     {
-                        log($"accesso anonimo della porta {port.Number} su {state.Description} non dato: {access.Tail(2)}");
+                        log($"anonymous access for port {port.Number} on {state.Description} not granted: {access.Tail(2)}");
                         var delete = await DevTunnelReader.DevTunnelAsync(exe, $"port delete {id} -p {port.Number}", Temp, ct).ConfigureAwait(false);
                         if (!delete.Success)
                         {
-                            log($"porta {port.Number} su {state.Description} non cancellata: {delete.Tail(2)}");
+                            log($"port {port.Number} on {state.Description} not deleted: {delete.Tail(2)}");
                         }
 
-                        return (null, $"porta {port.Number} su {state.Description} senza accesso anonimo: assegnazione annullata");
+                        return (null, $"port {port.Number} on {state.Description} has no anonymous access: assignment cancelled");
                     }
                 }
 
                 var assignment = new PoolAssignment(state.Description, id, port.Number, number, entry.Id);
                 assignments.Add(assignment);
                 Write(assignments);
-                log($"porta {port.Number} del tunnel {state.Description} assegnata a {entry.Id} dell'ambiente {number}");
+                log($"port {port.Number} of tunnel {state.Description} assigned to {entry.Id} of environment {number}");
                 if (RestartHostOnAssign && restartHost?.Invoke(state.Index) == true)
                 {
-                    log($"host del tunnel {state.Index + 1} riavviato: gli altri ambienti sul tunnel si ricollegano");
+                    log($"host of tunnel {state.Index + 1} restarted: the other environments on the tunnel reconnect");
                 }
 
                 return (assignment, null);
@@ -381,10 +381,10 @@ public static class TunnelPool
     }
 
     /// <summary>
-    /// Rilascia le porte dell'ambiente, o la sola del repository <paramref name="repositoryId"/>:
-    /// accesso anonimo tolto, porta cancellata, assegnazione rimossa. Un'assegnazione orfana esce
-    /// dal file senza comandi; con un errore di lettura del suo tunnel resta. Errore o null.
-    /// <paramref name="states"/>: gli stati dei tunnel gia' letti; null = lettura con devtunnel.
+    /// Releases the environment's ports, or only the one of repository <paramref name="repositoryId"/>:
+    /// anonymous access removed, port deleted, assignment removed. An orphan assignment leaves
+    /// the file without commands; with a read error on its tunnel it stays. Error or null.
+    /// <paramref name="states"/>: the tunnel states already read; null = read with devtunnel.
     /// </summary>
     public static async Task<string?> ReleaseAsync(
         AppConfiguration c,
@@ -398,7 +398,7 @@ public static class TunnelPool
         if (await LockAsync(ct).ConfigureAwait(false) is not { } fileLock)
         {
             Gate.Release();
-            return $"{FilePath} e' occupato da un altro processo: riprova";
+            return $"{FilePath} is busy in another process: try again";
         }
 
         try
@@ -415,7 +415,7 @@ public static class TunnelPool
             {
                 if (exe is null)
                 {
-                    return "devtunnel.exe non trovato";
+                    return "devtunnel.exe not found";
                 }
 
                 states = await ReadStatesAsync(c, assignments, exe, ct).ConfigureAwait(false);
@@ -428,7 +428,7 @@ public static class TunnelPool
                 if (StateOf(assignment, states) is { } state && ReadError(state) is { } readError)
                 {
                     error = readError;
-                    log($"porta {assignment.Port} su {assignment.TunnelDescription} non rilasciata: {readError}");
+                    log($"port {assignment.Port} on {assignment.TunnelDescription} not released: {readError}");
                     continue;
                 }
 
@@ -436,13 +436,13 @@ public static class TunnelPool
                 {
                     assignments.Remove(assignment);
                     changed = true;
-                    log($"porta {assignment.Port} su {assignment.TunnelDescription} gia' rilasciata");
+                    log($"port {assignment.Port} on {assignment.TunnelDescription} already released");
                     continue;
                 }
 
                 if (exe is null)
                 {
-                    error = "devtunnel.exe non trovato";
+                    error = "devtunnel.exe not found";
                     continue;
                 }
 
@@ -451,7 +451,7 @@ public static class TunnelPool
                     var reset = await DevTunnelReader.DevTunnelAsync(exe, $"access reset {assignment.TunnelId} -p {assignment.Port}", Temp, ct).ConfigureAwait(false);
                     if (!reset.Success)
                     {
-                        log($"accesso della porta {assignment.Port} su {assignment.TunnelDescription} non tolto: {reset.Tail(2)}");
+                        log($"access for port {assignment.Port} on {assignment.TunnelDescription} not removed: {reset.Tail(2)}");
                     }
                 }
 
@@ -460,11 +460,11 @@ public static class TunnelPool
                 {
                     assignments.Remove(assignment);
                     changed = true;
-                    log($"porta {assignment.Port} del tunnel {assignment.TunnelDescription} rilasciata");
+                    log($"port {assignment.Port} of tunnel {assignment.TunnelDescription} released");
                 }
                 else
                 {
-                    error = $"porta {assignment.Port} su {assignment.TunnelDescription} non cancellata: {delete.Tail(2)}";
+                    error = $"port {assignment.Port} on {assignment.TunnelDescription} not deleted: {delete.Tail(2)}";
                     log(error);
                 }
             }
@@ -483,7 +483,7 @@ public static class TunnelPool
         }
     }
 
-    // Null se il lock fra processi non arriva entro LockTimeout.
+    // Null if the cross-process lock is not acquired within LockTimeout.
     private static async Task<CrossProcessLock?> LockAsync(CancellationToken ct)
     {
         try
@@ -496,7 +496,7 @@ public static class TunnelPool
         }
     }
 
-    /// <summary>L'URL pubblico della porta (portUri di devtunnel show); null finche' un host non l'ha ospitata.</summary>
+    /// <summary>The port's public URL (portUri from devtunnel show); null until a host has served it.</summary>
     public static async Task<string?> UrlOfAsync(PoolAssignment assignment, CancellationToken ct = default)
     {
         if (DevTunnelReader.ResolveExecutable() is not { } exe)
@@ -508,12 +508,12 @@ public static class TunnelPool
         return ports?.FirstOrDefault(p => p.Number == assignment.Port).Uri is { Length: > 0 } uri ? uri : null;
     }
 
-    /// <summary>Lo stato di ogni tunnel del pool, con le differenze tra porte e assegnazioni (F-14).</summary>
+    /// <summary>The state of every pool tunnel, with the differences between ports and assignments (F-14).</summary>
     public static async Task<IReadOnlyList<PoolTunnelState>> StatusAsync(AppConfiguration c, CancellationToken ct = default)
     {
         if (DevTunnelReader.ResolveExecutable() is not { } exe)
         {
-            return c.TunnelPool.Tunnels.Select((t, i) => new PoolTunnelState(i, t.Description, null, [], [], [], "devtunnel.exe non trovato")).ToList();
+            return c.TunnelPool.Tunnels.Select((t, i) => new PoolTunnelState(i, t.Description, null, [], [], [], "devtunnel.exe not found")).ToList();
         }
 
         return await ReadStatesAsync(c, Read(), exe, ct).ConfigureAwait(false);
@@ -537,8 +537,8 @@ public static class TunnelPool
             }
             else if (list.Success)
             {
-                // Un elenco illeggibile non e' un account senza tunnel: le assegnazioni non diventano orfane.
-                listError = "devtunnel list: output non riconosciuto";
+                // An unreadable list is not an account without tunnels: assignments do not become orphans.
+                listError = "devtunnel list: unrecognized output";
             }
         }
 
@@ -568,15 +568,15 @@ public static class TunnelPool
             }
 
             var numbers = ports.Select(p => p.Number).ToList();
-            var differences = numbers.Where(n => mine.All(a => a.Port != n)).Select(n => $"porta {n} su {description} senza assegnazione")
-                .Concat(mine.Where(a => !numbers.Contains(a.Port)).Select(a => $"assegnazione della porta {a.Port} (ambiente {a.Environment}, {a.Repository}) senza porta su {description}"))
+            var differences = numbers.Where(n => mine.All(a => a.Port != n)).Select(n => $"port {n} on {description} without assignment")
+                .Concat(mine.Where(a => !numbers.Contains(a.Port)).Select(a => $"assignment of port {a.Port} (environment {a.Environment}, {a.Repository}) without a port on {description}"))
                 .Concat(gone)
                 .ToList();
             states.Add(new PoolTunnelState(i, description, id, numbers, mine, differences, null));
         }
 
-        // Assegnazioni su tunnel tolti dal pool nel setup: stati in coda, in errore (Order li
-        // salta) ma visibili e rilasciabili; porte lette se il tunnel e' ancora nell'account.
+        // Assignments on tunnels removed from the pool in setup: states appended at the end, in error (Order
+        // skips them) but visible and releasable; ports read if the tunnel is still in the account.
         var outside = assignments
             .Where(a => !c.TunnelPool.Tunnels.Any(t => t.Description == a.TunnelDescription))
             .GroupBy(a => a.TunnelDescription, StringComparer.Ordinal)
@@ -608,18 +608,18 @@ public static class TunnelPool
     private static List<string> Gone(AppConfiguration c, IEnumerable<PoolAssignment> assignments)
         => assignments
             .Where(a => c.Environment(a.Environment) is not { } e || !e.Repositories.Contains(a.Repository, StringComparer.OrdinalIgnoreCase))
-            .Select(a => $"assegnazione della porta {a.Port} (ambiente {a.Environment}, {a.Repository}) di un ambiente che non c'e' piu'")
+            .Select(a => $"assignment of port {a.Port} (environment {a.Environment}, {a.Repository}) of an environment that no longer exists")
             .ToList();
 
-    private static string MissingError(string description) => $"nessun tunnel con Description {description}: crealo o toglilo dal pool";
+    private static string MissingError(string description) => $"no tunnel with Description {description}: create it or remove it from the pool";
 
-    private static string OutOfPoolError(string description) => $"tunnel {description} non piu' nel pool";
+    private static string OutOfPoolError(string description) => $"tunnel {description} no longer in the pool";
 
     private static PoolTunnelState? StateOf(PoolAssignment a, IReadOnlyList<PoolTunnelState> states)
         => states.FirstOrDefault(s => s.Description == a.TunnelDescription);
 
-    // L'errore di lettura del tunnel (devtunnel list o show non riusciti), che impedisce di dire se
-    // un'assegnazione e' orfana. Un tunnel che manca dall'account o che e' fuori dal pool e' letto.
+    // The tunnel's read error (devtunnel list or show failed), which makes it impossible to tell whether
+    // an assignment is an orphan. A tunnel missing from the account or outside the pool counts as read.
     private static string? ReadError(PoolTunnelState state)
         => state.Error is { } error && error != MissingError(state.Description) && error != OutOfPoolError(state.Description) ? error : null;
 

@@ -2,8 +2,8 @@ using System.Windows;
 
 namespace Soffritto.Desktop;
 
-// Proprieta' ereditata lungo l'albero visuale: la colonna la imposta una volta e lo stile
-// Section la legge su ogni card, qualunque sia il DataContext della card (repo, backend, anteprima).
+// Property inherited down the visual tree: the column sets it once and the Section style
+// reads it on every card, whatever the card's DataContext (repo, backend, preview).
 public static class CardTint
 {
     public static readonly DependencyProperty AllOnDevProperty = DependencyProperty.RegisterAttached(

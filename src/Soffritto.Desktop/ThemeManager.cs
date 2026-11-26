@@ -3,7 +3,7 @@ using Microsoft.Win32;
 
 namespace Soffritto.Desktop;
 
-/// <summary>Come si sceglie il tema chiaro o scuro dell'exe (Preferenze del setup).</summary>
+/// <summary>How the app's light or dark theme is chosen (Preferences in the setup).</summary>
 public enum ThemeMode
 {
     System,
@@ -13,10 +13,10 @@ public enum ThemeMode
 }
 
 /// <summary>
-/// Tema chiaro o scuro di tutta l'exe: sostituisce ThemeLight.xaml con ThemeDark.xaml tra i
-/// dizionari dell'applicazione, e ogni colore Theme.* preso con DynamicResource si aggiorna.
-/// La scelta viene da AppSettings.Theme; per «Sistema» si legge il tema delle app di Windows,
-/// per «In base allo sfondo» la scena di Ctrl+T (PixelScenery.IsDark).
+/// Light or dark theme for the whole app: swaps ThemeLight.xaml for ThemeDark.xaml among the
+/// application dictionaries, and every Theme.* colour taken with DynamicResource updates.
+/// The choice comes from AppSettings.Theme; for “System” the Windows app theme is read,
+/// for “Match the background” the Ctrl+T scene (PixelScenery.IsDark).
 /// </summary>
 public static class ThemeManager
 {
@@ -48,7 +48,7 @@ public static class ThemeManager
             }
         };
 
-        // Il cambio di tema delle app di Windows arriva come preferenza «General».
+        // A change of the Windows app theme arrives as the “General” preference.
         SystemEvents.UserPreferenceChanged += (_, e) =>
         {
             if (e.Category == UserPreferenceCategory.General)
@@ -96,7 +96,7 @@ public static class ThemeManager
         Changed?.Invoke();
     }
 
-    // AppsUseLightTheme = 0 vuol dire app scure; senza chiave (Windows vecchi) vale chiaro.
+    // AppsUseLightTheme = 0 means dark apps; without the key (older Windows) it is light.
     private static bool SystemIsDark()
     {
         using var key = Registry.CurrentUser.OpenSubKey(PersonalizeKey);

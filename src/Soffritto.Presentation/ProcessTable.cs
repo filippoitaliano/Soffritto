@@ -5,17 +5,17 @@ namespace Soffritto.Presentation;
 
 public sealed record ProcessRow(int ProcessId, string Name, string CommandLine, string ExecutablePath);
 
-/// <summary>Fotografia dei soli processi che gli strumenti sanno riconoscere (console, node, devtunnel, Kestrel).</summary>
+/// <summary>Snapshot of only the processes the tools can recognise (console, node, devtunnel, Kestrel).</summary>
 public static class ProcessTable
 {
-    /// <param name="apiProcess">Il processo dell'API del backend (es. MyApp.Web.Api.exe); vuoto se non configurato.</param>
+    /// <param name="apiProcess">The backend API process (e.g. MyApp.Web.Api.exe); empty if not configured.</param>
     public static IReadOnlyList<ProcessRow> Read(string apiProcess) => Read([apiProcess]);
 
-    /// <param name="apiProcesses">I processi delle API di tutti i backend; i vuoti si ignorano.</param>
+    /// <param name="apiProcesses">The API processes of all backends; empty ones are ignored.</param>
     public static IReadOnlyList<ProcessRow> Read(IEnumerable<string> apiProcesses)
         => OperatingSystem.IsWindows() ? ReadWindows(apiProcesses) : [];
 
-    /// <summary>Tutti i processi della macchina, per chi cerca chi tiene aperta una cartella.</summary>
+    /// <summary>All the machine's processes, for finding who is holding a folder open.</summary>
     public static IReadOnlyList<ProcessRow> ReadAll()
         => OperatingSystem.IsWindows() ? Query("SELECT ProcessId, Name, CommandLine, ExecutablePath FROM Win32_Process") : [];
 
@@ -23,7 +23,7 @@ public static class ProcessTable
     private static List<ProcessRow> ReadWindows(IEnumerable<string> apiProcesses)
     {
         var names = new List<string> { "cmd.exe", "node.exe", "devtunnel.exe", "docker-compose.exe" };
-        // Il nome finisce dentro la query WQL: un apice la romperebbe.
+        // The name ends up inside the WQL query: a single quote would break it.
         names.AddRange(apiProcesses
             .Where(p => p.Length > 0 && !p.Contains('\''))
             .Distinct(StringComparer.OrdinalIgnoreCase)

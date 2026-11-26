@@ -8,9 +8,9 @@ using Velopack.Sources;
 namespace Soffritto.Desktop.Infrastructure;
 
 /// <summary>
-/// L'installazione fatta con il Setup.exe di Velopack: prima apertura dopo il setup e
-/// aggiornamenti dalla release. Una build lanciata da bin\ o da publish\ non e' installata e qui
-/// non fa niente.
+/// The installation made with the Velopack Setup.exe: first launch after setup and updates
+/// from the release. A build launched from bin\ or publish\ is not installed, and here it
+/// does nothing.
 /// </summary>
 public static class Installation
 {
@@ -18,35 +18,35 @@ public static class Installation
     private static bool applyOnExit = true;
 
     /// <summary>
-    /// Update.exe deve sopravvivere all'exe che lo lancia: il job kill-on-close dell'exe
-    /// (ChildProcessJob) lo chiuderebbe proprio mentre aspetta quell'uscita per installare.
+    /// Update.exe must outlive the exe that launches it: the exe's kill-on-close job
+    /// (ChildProcessJob) would close it right while it waits for that exit to install.
     /// </summary>
     public static IVelopackLocator Locator { get; } = new WindowsVelopackLocator(new DetachedProcess(), null);
 
-    /// <summary>Prima apertura dopo il Setup.exe: il setup parte dalla scheda Componenti.</summary>
+    /// <summary>First launch after the Setup.exe: the setup opens on the Components tab.</summary>
     public static bool IsFirstRun { get; set; }
 
     public static bool IsInstalled => Locator.CurrentlyInstalledVersion is not null;
 
-    /// <summary>La release da cui arrivano gli aggiornamenti: la fissa release.ps1 al momento del pacchetto.</summary>
+    /// <summary>The release that updates come from: release.ps1 sets it when packaging.</summary>
     public static string? UpdateRepository { get; } = typeof(Installation).Assembly
         .GetCustomAttributes<AssemblyMetadataAttribute>()
         .FirstOrDefault(a => a.Key == "UpdateRepository")?.Value is { Length: > 0 } url ? url : null;
 
-    /// <summary>La versione scaricata e non ancora installata, null se non c'e'.</summary>
+    /// <summary>The version downloaded and not yet installed, null if there is none.</summary>
     public static string? PendingVersion => pending?.Version.ToString();
 
-    /// <summary>Cerca e scarica l'ultima release. Restituisce il testo da mostrare.</summary>
+    /// <summary>Checks for and downloads the latest release. Returns the text to show.</summary>
     public static async Task<string> CheckForUpdatesAsync()
     {
         if (!IsInstalled)
         {
-            return "Questa build non viene dal Setup.exe: si aggiorna ricompilandola.";
+            return "This build does not come from the Setup.exe: update it by rebuilding.";
         }
 
         if (UpdateRepository is null)
         {
-            return "Il pacchetto non indica una release da cui aggiornarsi.";
+            return "The package does not name a release to update from.";
         }
 
         var manager = new UpdateManager(new GithubSource(UpdateRepository, accessToken: null, prerelease: false), locator: Locator);
@@ -54,7 +54,7 @@ public static class Installation
         if (update is null)
         {
             return pending is null
-                ? $"v{Locator.CurrentlyInstalledVersion}: è la versione più recente."
+                ? $"v{Locator.CurrentlyInstalledVersion}: this is the latest version."
                 : PendingText();
         }
 
@@ -63,11 +63,11 @@ public static class Installation
         return PendingText();
     }
 
-    private static string PendingText() => $"La v{pending!.Version} è scaricata: si installa alla chiusura dell'exe.";
+    private static string PendingText() => $"v{pending!.Version} is downloaded: it installs when the app closes.";
 
     /// <summary>
-    /// Il riavvio dopo un Salva del setup apre subito l'exe nuovo: installare in quel momento
-    /// sostituirebbe i file sotto i piedi della copia appena partita.
+    /// The restart after a setup Save opens the new exe right away: installing at that moment
+    /// would replace the files under the feet of the copy that just started.
     /// </summary>
     public static void SkipApplyOnExit() => applyOnExit = false;
 
@@ -85,7 +85,7 @@ public static class Installation
         }
         catch
         {
-            // L'aggiornamento resta scaricato: Velopack lo riprende al prossimo avvio.
+            // The update stays downloaded: Velopack picks it up at the next start.
         }
     }
 
@@ -103,7 +103,7 @@ public static class Installation
 
         public void Exit(int exitCode) => Environment.Exit(exitCode);
 
-        // Le regole di CommandLineToArgvW: le barre prima di una virgoletta si raddoppiano.
+        // The CommandLineToArgvW rules: backslashes before a quote are doubled.
         private static string Quote(string arg)
         {
             if (arg.Length > 0 && arg.IndexOfAny([' ', '\t', '"']) < 0)

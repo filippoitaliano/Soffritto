@@ -4,7 +4,7 @@ namespace Soffritto.Core;
 
 public static class StatusProbe
 {
-    /// <param name="tunnel">La porta del pool del repository: il tunnel si legge da li', con la sola porta assegnata.</param>
+    /// <param name="tunnel">The repository's pool port: the tunnel is read from there, with only the assigned port.</param>
     public static async Task<StatusReport> RunAsync(
         string solutionRoot,
         ProbeOptions options,
@@ -18,7 +18,7 @@ public static class StatusProbe
         var tunnelTask = !probeDevTunnel
             ? null
             : tunnel is null
-                ? Task.FromResult(DevTunnelStatus.NotShared("non condiviso"))
+                ? Task.FromResult(DevTunnelStatus.NotShared("not shared"))
                 : DevTunnelReader.ReadAsync(solutionRoot, tunnel.TunnelDescription, cancellationToken, tunnel.Port);
 
         var report = await RunMigrationsAsync(solutionRoot, options, cancellationToken).ConfigureAwait(false);
@@ -31,13 +31,13 @@ public static class StatusProbe
     }
 
     /// <summary>
-    /// Solo migrazioni e database, senza git ne' dev tunnel (Git resta al suo default):
-    /// permette a chi orchestra di applicare ogni sezione appena la sua lettura finisce.
+    /// Only migrations and database, without git or dev tunnel (Git keeps its default):
+    /// lets the orchestrator apply each section as soon as its read finishes.
     /// </summary>
     /// <param name="databaseOffline">
-    /// Il database e' gia' noto come spento o in avvio (container di un ambiente Docker): niente
-    /// connessione, le migrazioni del codice restano non lette e il motivo va in
-    /// <see cref="StatusReport.DatabaseOffline"/>, non tra gli errori.
+    /// The database is already known to be stopped or starting (a Docker environment's container): no
+    /// connection, the code's migrations stay unread and the reason goes into
+    /// <see cref="StatusReport.DatabaseOffline"/>, not among the errors.
     /// </param>
     public static async Task<StatusReport> RunMigrationsAsync(
         string solutionRoot,
@@ -64,8 +64,8 @@ public static class StatusProbe
         {
             var known = knownByContext[definition.Name];
 
-            // Frontiera oltre la quale una migrazione non applicata e' semplicemente "nuova":
-            // sotto di essa e' un buco lasciato da un branch parallelo.
+            // The boundary past which an unapplied migration is simply "new":
+            // below it, it is a gap left by a parallel branch.
             var lastAppliedForContext = known
                 .Where(m => appliedById.ContainsKey(m.MigrationId))
                 .Select(m => m.MigrationId)
@@ -97,9 +97,9 @@ public static class StatusProbe
                 entries));
         }
 
-        // I due context condividono la stessa __EFMigrationsHistory: una riga e' davvero
-        // sconosciuta solo se non appartiene a NESSUN set noto, altrimenti le migrazioni
-        // di Identity risulterebbero sconosciute all'altro context e viceversa.
+        // The two contexts share the same __EFMigrationsHistory: a row is truly
+        // unknown only if it belongs to NONE of the known sets, otherwise the Identity
+        // migrations would look unknown to the other context and vice versa.
         var allKnown = knownByContext.Values
             .SelectMany(migrations => migrations)
             .Select(m => m.MigrationId)
@@ -125,7 +125,7 @@ public static class StatusProbe
             DatabaseReached: history.Connected);
     }
 
-    // Server e database dalla connection string, senza connettersi: la card li mostra comunque.
+    // Server and database from the connection string, without connecting: the card shows them anyway.
     private static HistoryReadResult OfflineHistory(string connectionString)
     {
         try

@@ -6,8 +6,8 @@ using Soffritto.Desktop.Infrastructure;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Risorse della macchina per il riquadro della testata: spazio del disco di sistema e RAM
-/// fisica, riletti ogni <see cref="Interval"/>.
+/// Machine resources for the header box: system disk space and physical RAM, read again
+/// every <see cref="Interval"/>.
 /// </summary>
 public sealed class SystemLoad : ObservableObject
 {
@@ -23,11 +23,11 @@ public sealed class SystemLoad : ObservableObject
     private double ramPercent;
     private string diskText = "…";
     private string ramText = "…";
-    private string toolTip = "Risorse della macchina: prima lettura in corso";
+    private string toolTip = "Machine resources: first reading in progress";
 
     public static SystemLoad Current { get; } = new();
 
-    /// <summary>Il disco di sistema, senza barra finale: "C:".</summary>
+    /// <summary>The system disk, without a trailing backslash: "C:".</summary>
     public string DiskLabel { get; } = SystemDrive.TrimEnd('\\');
 
     public double DiskPercent { get => diskPercent; private set => SetProperty(ref diskPercent, value); }
@@ -83,9 +83,9 @@ public sealed class SystemLoad : ObservableObject
         if (disk is { Total: > 0 } space)
         {
             DiskPercent = 100.0 * (space.Total - space.Free) / space.Total;
-            DiskText = $"{space.Free:0} GB liberi";
+            DiskText = $"{space.Free:0} GB free";
             OnPropertyChanged(nameof(DiskBrush));
-            lines.Add($"Disco {DiskLabel} {space.Total - space.Free:0.0} GB usati, {space.Free:0.0} GB liberi su {space.Total:0.0} GB ({DiskPercent:0}% usato)");
+            lines.Add($"Disk {DiskLabel} {space.Total - space.Free:0.0} GB used, {space.Free:0.0} GB free of {space.Total:0.0} GB ({DiskPercent:0}% used)");
         }
 
         if (memory is { TotalPhysical: > 0 } status)
@@ -95,10 +95,10 @@ public sealed class SystemLoad : ObservableObject
             RamPercent = 100.0 * (total - free) / total;
             RamText = $"{total - free:0.0}/{total:0} GB";
             OnPropertyChanged(nameof(RamBrush));
-            lines.Add($"RAM: {total - free:0.0} GB usati, {free:0.0} GB liberi su {total:0.0} GB ({RamPercent:0}% usata)");
+            lines.Add($"RAM: {total - free:0.0} GB used, {free:0.0} GB free of {total:0.0} GB ({RamPercent:0}% used)");
         }
 
-        lines.Add($"Si aggiorna ogni {Interval.TotalSeconds:0} secondi · ultima lettura {DateTime.Now:HH:mm:ss}");
+        lines.Add($"Refreshes every {Interval.TotalSeconds:0} seconds · last reading {DateTime.Now:HH:mm:ss}");
         ToolTip = string.Join(Environment.NewLine, lines);
     }
 

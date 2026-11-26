@@ -3,21 +3,21 @@ using Soffritto.Core.Docker;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// La fase di un ambiente Docker (spento, avvio, pronto) e lo stato di db, api e web, dai container
-/// di docker ps e dalle sonde di <see cref="DockerReadinessProbe"/>. Le sonde girano fuori dal
-/// thread della UI (<see cref="ProbeAsync"/>), la valutazione sul thread della UI (<see cref="Evaluate"/>).
+/// The phase of a Docker environment (off, starting, ready) and the state of db, api and web, from the
+/// docker ps containers and the <see cref="DockerReadinessProbe"/> probes. Probes run off the UI
+/// thread (<see cref="ProbeAsync"/>), evaluation runs on the UI thread (<see cref="Evaluate"/>).
 /// </summary>
 internal sealed class DockerReadiness(DockerSlot slot)
 {
-    // Oltre questo tempo un container acceso che non risponde non e' piu' «in avvio»: e' un errore.
+    // Past this time a running container that does not answer is no longer “starting”: it is an error.
     private static readonly TimeSpan NoAnswerLimit = TimeSpan.FromMinutes(5);
 
     private readonly object gate = new();
     private readonly Dictionary<string, (string ContainerId, bool Ready)> probed = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, (string ContainerId, DateTimeOffset Since)> runningSince = new(StringComparer.OrdinalIgnoreCase);
 
-    // Servizi fermati apposta (stop della card o della pila): spenti non sono un errore. Alla prima
-    // lettura chi e' gia' spento conta come fermato apposta, perche' l'intenzione non si conosce.
+    // Services stopped on purpose (stop from the card or the stack): being off is not an error for them. On
+    // the first read whatever is already off counts as stopped on purpose, since the intent is unknown.
     private readonly HashSet<string> stoppedOnPurpose = new(StringComparer.OrdinalIgnoreCase);
     private bool evaluated;
 
@@ -37,7 +37,7 @@ internal sealed class DockerReadiness(DockerSlot slot)
         Failed,
     }
 
-    /// <summary>L'azione compose in corso sull'ambiente, dai pulsanti dell'exe.</summary>
+    /// <summary>The compose action running on the environment, from the app's buttons.</summary>
     public enum ComposeAction
     {
         None,
@@ -47,7 +47,7 @@ internal sealed class DockerReadiness(DockerSlot slot)
 
     public sealed record Service(string Name, ServiceState State, string Detail);
 
-    /// <param name="DatabaseOffline">Perche' le migrazioni non si leggono (database spento o in avvio); null se il database risponde o ha un errore vero da mostrare.</param>
+    /// <param name="DatabaseOffline">Why migrations cannot be read (database off or starting); null if the database answers or has a real error to show.</param>
     public sealed record Snapshot(
         Phase Phase,
         IReadOnlyList<Service> Services,
@@ -57,8 +57,8 @@ internal sealed class DockerReadiness(DockerSlot slot)
         public bool IsWarmingUp => Phase == Phase.Warmup;
     }
 
-    /// <summary>Prima della prima lettura di docker ps: nessuna connessione al database.</summary>
-    public static Snapshot NotRead { get; } = new(Phase.Off, [], string.Empty, "Stato dei container non ancora letto");
+    /// <summary>Before the first docker ps read: no database connection.</summary>
+    public static Snapshot NotRead { get; } = new(Phase.Off, [], string.Empty, "Container status not read yet");
 
     private IEnumerable<(string Name, bool IsDatabase, int Port)> Services()
     {
@@ -75,7 +75,7 @@ internal sealed class DockerReadiness(DockerSlot slot)
         }
     }
 
-    /// <summary>Uno stop chiesto dall'exe: <paramref name="service"/> null vale per tutti i servizi. Sul thread della UI.</summary>
+    /// <summary>A stop requested from the app: a null <paramref name="service"/> means every service. On the UI thread.</summary>
     public void MarkStopped(string? service)
     {
         foreach (var name in service is null ? Services().Select(s => s.Name) : [service])
@@ -84,7 +84,7 @@ internal sealed class DockerReadiness(DockerSlot slot)
         }
     }
 
-    /// <summary>Un avvio chiesto dall'exe: <paramref name="service"/> null vale per tutti i servizi. Sul thread della UI.</summary>
+    /// <summary>A start requested from the app: a null <paramref name="service"/> means every service. On the UI thread.</summary>
     public void MarkStarted(string? service)
     {
         if (service is null)
@@ -97,8 +97,8 @@ internal sealed class DockerReadiness(DockerSlot slot)
     }
 
     /// <summary>
-    /// Sonda i container accesi. Un servizio pronto resta pronto finche' resta acceso lo stesso
-    /// container: la sonda riparte solo con un container nuovo (compose up lo ricrea).
+    /// Probes the running containers. A ready service stays ready as long as the same container keeps
+    /// running: probing restarts only with a new container (compose up recreates it).
     /// </summary>
     public async Task ProbeAsync(DockerStatus docker, CancellationToken ct)
     {
@@ -150,12 +150,12 @@ internal sealed class DockerReadiness(DockerSlot slot)
 
         if (!docker.IsReachable)
         {
-            return new Snapshot(Phase.Off, [], string.Empty, "Docker non raggiungibile");
+            return new Snapshot(Phase.Off, [], string.Empty, "Docker unreachable");
         }
 
         if (action == ComposeAction.Stopping)
         {
-            return new Snapshot(Phase.Off, [], "arresto dei container…", "Database in arresto");
+            return new Snapshot(Phase.Off, [], "stopping containers…", "Database stopping");
         }
 
         var services = Services().Select(service => Observe(docker, service.Name, now)).ToList();
@@ -168,26 +168,26 @@ internal sealed class DockerReadiness(DockerSlot slot)
             }
         }
 
-        // Ambiente in avvio o acceso: un servizio spento e' in attesa mentre compose lavora, resta
-        // spento se fermato apposta, altrimenti e' caduto (container uscito o mai creato).
+        // Environment starting or running: an off service is waiting while compose works, stays off
+        // if stopped on purpose, otherwise it has gone down (container exited or never created).
         services = services
             .Select(s => s.State != ServiceState.Off
                 ? s
                 : action == ComposeAction.Starting && !stoppedOnPurpose.Contains(s.Name)
-                    ? s with { State = ServiceState.Starting, Detail = "in attesa di compose" }
+                    ? s with { State = ServiceState.Starting, Detail = "waiting for compose" }
                     : stoppedOnPurpose.Contains(s.Name)
-                        ? s with { Detail = "fermato" }
+                        ? s with { Detail = "stopped" }
                         : s with { State = ServiceState.Failed })
             .ToList();
 
         var up = services.Where(s => s.State != ServiceState.Off).ToList();
         if (up.Count == 0)
         {
-            return new Snapshot(Phase.Off, services, "spento: ▷ per avviare", "Database spento");
+            return new Snapshot(Phase.Off, services, "off: ▷ to start", "Database off");
         }
 
         var db = services[0];
-        // Un servizio caduto non e' un avvio in corso: niente righe animate, testo «errore».
+        // A service that went down is not a start in progress: no animated stripes, text “error”.
         var phase = up.Any(s => s.State == ServiceState.Failed) || db.State == ServiceState.Failed
             ? Phase.Failed
             : up.All(s => s.State == ServiceState.Ready) ? Phase.Ready : Phase.Warmup;
@@ -195,14 +195,14 @@ internal sealed class DockerReadiness(DockerSlot slot)
         var offline = db.State switch
         {
             ServiceState.Ready => null,
-            ServiceState.Off => "Database spento",
-            ServiceState.Failed => "Database fermo",
-            _ => "Database in avvio",
+            ServiceState.Off => "Database off",
+            ServiceState.Failed => "Database down",
+            _ => "Database starting",
         };
 
         var text = phase == Phase.Ready && up.Count == services.Count
-            ? "pronto"
-            : $"{phase switch { Phase.Ready => "acceso", Phase.Failed => "errore", _ => "avvio" }}: {string.Join(" · ", services.Select(s => $"{s.Name} {Describe(s)}"))}";
+            ? "ready"
+            : $"{phase switch { Phase.Ready => "running", Phase.Failed => "error", _ => "starting" }}: {string.Join(" · ", services.Select(s => $"{s.Name} {Describe(s)}"))}";
         return new Snapshot(phase, services, text, offline);
     }
 
@@ -229,34 +229,34 @@ internal sealed class DockerReadiness(DockerSlot slot)
 
                 if (ready)
                 {
-                    return new Service(name, ServiceState.Ready, "pronto");
+                    return new Service(name, ServiceState.Ready, "ready");
                 }
 
                 return now - since > NoAnswerLimit
-                    ? new Service(name, ServiceState.Failed, $"acceso ma non risponde da {(int)NoAnswerLimit.TotalMinutes} minuti")
-                    : new Service(name, ServiceState.Starting, "acceso, non risponde ancora");
+                    ? new Service(name, ServiceState.Failed, $"running but not answering for {(int)NoAnswerLimit.TotalMinutes} minutes")
+                    : new Service(name, ServiceState.Starting, "running, not answering yet");
             }
 
             case ContainerRunState.Starting:
                 return new Service(name, ServiceState.Starting, container.Status);
 
             default:
-                // Un container creato e mai partito non e' caduto: resta spento finche' non lo si avvia.
+                // A container created but never started has not gone down: it stays off until someone starts it.
                 if (container is { State: "created" })
                 {
                     stoppedOnPurpose.Add(name);
                 }
 
-                return new Service(name, ServiceState.Off, container is null ? "container assente" : container.Status);
+                return new Service(name, ServiceState.Off, container is null ? "no container" : container.Status);
         }
     }
 
     private static string Describe(Service service) => service.State switch
     {
-        ServiceState.Ready => "pronto",
-        ServiceState.Failed => $"in errore ({service.Detail})",
-        ServiceState.Off => "spento",
-        _ => "in avvio",
+        ServiceState.Ready => "ready",
+        ServiceState.Failed => $"failed ({service.Detail})",
+        ServiceState.Off => "off",
+        _ => "starting",
     };
 
     private DockerContainer? ContainerOf(DockerStatus docker, string service)

@@ -10,7 +10,7 @@ namespace Soffritto.Desktop;
 public partial class LoadingIsland : UserControl
 {
     public static readonly DependencyProperty LabelProperty = DependencyProperty.Register(
-        nameof(Label), typeof(string), typeof(LoadingIsland), new PropertyMetadata("letture in corso"));
+        nameof(Label), typeof(string), typeof(LoadingIsland), new PropertyMetadata("loading"));
 
     public static readonly DependencyProperty IsActiveProperty = DependencyProperty.Register(
         nameof(IsActive), typeof(bool), typeof(LoadingIsland), new PropertyMetadata(false, (d, _) => ((LoadingIsland)d).OnIsActiveChanged()));
@@ -23,7 +23,7 @@ public partial class LoadingIsland : UserControl
 
     private const double EntryOffset = 36;
 
-    // Quanto il mouse puo' avvicinarsi all'isola prima che si sposti.
+    // How close the mouse can get to the island before it moves away.
     private const double DodgeMargin = 14;
 
     private Window? window;
@@ -45,14 +45,14 @@ public partial class LoadingIsland : UserControl
         set => SetValue(LabelProperty, value);
     }
 
-    /// <summary>Legata a IsLoading del DataContext: accende e spegne l'isola.</summary>
+    /// <summary>Bound to the DataContext's IsLoading: turns the island on and off.</summary>
     public bool IsActive
     {
         get => (bool)GetValue(IsActiveProperty);
         set => SetValue(IsActiveProperty, value);
     }
 
-    /// <summary>L'isola sta in basso: entra salendo e se ne va scendendo.</summary>
+    /// <summary>The island sits at the bottom: it rises in and sinks out.</summary>
     public bool FromBottom
     {
         get => (bool)GetValue(FromBottomProperty);
@@ -60,8 +60,8 @@ public partial class LoadingIsland : UserControl
     }
 
     /// <summary>
-    /// Col mouse sopra l'isola scivola sul lato opposto del contenitore e torna indietro allo
-    /// stesso modo: va allineata a sinistra, e il lato destro lo calcola dalla larghezza del padre.
+    /// With the mouse over it, the island slides to the opposite side of its container and comes back
+    /// the same way: it must be left-aligned, and the right side is computed from the parent's width.
     /// </summary>
     public bool DodgesMouse
     {
@@ -114,8 +114,8 @@ public partial class LoadingIsland : UserControl
         }
     }
 
-    // Si allarga come una goccia: la larghezza arriva con un piccolo rimbalzo elastico,
-    // l'altezza e la posizione con un'uscita morbida.
+    // It spreads out like a drop: the width arrives with a small elastic bounce,
+    // the height and position with a soft ease-out.
     private void Show()
     {
         Shell.Visibility = Visibility.Visible;
@@ -148,8 +148,8 @@ public partial class LoadingIsland : UserControl
         Shell.BeginAnimation(OpacityProperty, fade);
     }
 
-    // I puntini salgono e scendono a onda, l'alone respira, il riflesso attraversa la pillola:
-    // tutto su curve sinusoidali, cosi' niente scatta. Girano solo mentre l'isola si vede.
+    // The dots rise and fall in a wave, the halo breathes, the sheen sweeps across the pill:
+    // all on sine curves, so nothing jerks. They run only while the island is visible.
     private void StartLoops()
     {
         var dots = new[] { Dot1, Dot2, Dot3 };
@@ -204,8 +204,8 @@ public partial class LoadingIsland : UserControl
         }
     }
 
-    // Scivola con partenza e arrivo dolci; a meta' corsa si allunga e si appiattisce un poco,
-    // come una goccia trascinata.
+    // It slides with a gentle start and finish; halfway it stretches and flattens a little,
+    // like a dragged drop.
     private void SlideTo(bool right)
     {
         onRight = right;
@@ -229,7 +229,7 @@ public partial class LoadingIsland : UserControl
         },
     };
 
-    // A destra la distanza dal bordo resta quella che il margine da' a sinistra.
+    // On the right, the distance from the edge stays the one the margin gives on the left.
     private double SideOffset(bool right)
     {
         if (!right || Parent is not FrameworkElement parent)
@@ -240,7 +240,7 @@ public partial class LoadingIsland : UserControl
         return Math.Max(0, parent.ActualWidth - ActualWidth - 2 * Margin.Left);
     }
 
-    // Finestra ridimensionata o etichetta cambiata con l'isola a destra: si riallinea al bordo.
+    // Window resized or label changed while the island is on the right: it realigns to the edge.
     private void KeepSide()
     {
         if (!onRight || moving)

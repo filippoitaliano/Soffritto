@@ -19,14 +19,14 @@ public partial class ConfirmDialog : Window
     }
 
     /// <summary>
-    /// Chiede conferma con una finestra modale sopra <paramref name="owner"/>. Vero solo con il
-    /// clic sul bottone di conferma: Esc, Invio e la chiusura valgono come annulla.
+    /// Asks for confirmation with a modal window over <paramref name="owner"/>. True only when the
+    /// confirm button is clicked: Esc, Enter and closing the window count as cancel.
     /// </summary>
     public static bool Ask(Window? owner, Confirmation confirmation, string cancelText = "Annulla")
     {
         var dialog = new ConfirmDialog(confirmation, cancelText);
 
-        // Una finestra mai mostrata non puo' fare da proprietaria; nascosta o ridotta a icona non da' un centro.
+        // A window never shown cannot be an owner; a hidden or minimized one gives no center.
         if (owner is { IsLoaded: true })
         {
             dialog.Owner = owner;

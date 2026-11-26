@@ -3,7 +3,7 @@ using Soffritto.Core.Configuration;
 
 namespace Soffritto.Core.Env;
 
-/// <summary>Righe "NOME=valore" di un .env; le righe che iniziano con # sono commenti.</summary>
+/// <summary>"NAME=value" lines of a .env file; lines starting with # are comments.</summary>
 public sealed class DotenvEnvAdapter : IEnvAdapter
 {
     private static readonly Regex Line = new(@"^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_.]*)\s*=\s*(.*?)\s*$");

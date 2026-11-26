@@ -9,26 +9,25 @@ using System.Windows.Threading;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Easter egg di Ctrl+G: un gattino in pixel art che passeggia avanti e indietro coi piedi sul
-/// footer, oppure si ferma a scodinzolare, sbattere le palpebre, sonnecchiare o mandare un cuore.
-/// Quando <see cref="NewMessages"/> porta qualcosa di nuovo si ferma e lo dice in un fumetto;
-/// con <see cref="Wave"/> saluta con la zampa.
+/// Ctrl+G easter egg: a pixel-art kitten that strolls back and forth with its feet on the footer,
+/// or stops to wag its tail, blink, doze off or send a heart. When <see cref="NewMessages"/> brings
+/// something new it stops and says it in a speech bubble; with <see cref="Wave"/> it waves a paw.
 /// </summary>
 public sealed class PixelCat : Canvas
 {
-    // Lo sprite e' una griglia di caratteri, uno per colore della palette, disegnata rivolta a
-    // destra. Il contorno scuro non si disegna: Build lo aggiunge attorno a tutto cio' che e'
-    // pieno, cosi' zampe e coda che si spostano restano sempre contornate.
-    // Due colonne oltre il muso: servono alla zampa del saluto e al suo contorno.
+    // The sprite is a grid of characters, one per palette colour, drawn facing right. The dark
+    // outline is not drawn: Build adds it around everything that is filled, so moving paws and tail
+    // always stay outlined.
+    // Two columns past the muzzle: they hold the waving paw and its outline.
     private const int SpriteWidth = 28;
     private const int SpriteHeight = 24;
     private const int CatTop = 6;
     private const int PixelSize = 3;
 
-    // Colonna centrale della testa nello sprite rivolto a destra: la codina del fumetto punta li'.
+    // Centre column of the head in the right-facing sprite: the bubble's tail points there.
     private const double HeadCenter = 19.5;
 
-    // Il fumetto finisce sopra le orecchie (riga 18 px dello sprite) con la punta della codina.
+    // The bubble ends above the ears (sprite row 18 px) with the tip of its tail.
     private const double BubbleBottom = 6;
     private const int ListenEveryTicks = 8;
 
@@ -58,20 +57,20 @@ public sealed class PixelCat : Canvas
         ".CCCCCCC.",
     ];
 
-    private static readonly string[] Interjections = ["Miao!", "Psst…", "Mrrr…", "Ehi!"];
+    private static readonly string[] Interjections = ["Meow!", "Psst…", "Mrrr…", "Hey!"];
 
     private static readonly string[] Greetings =
     [
-        "Ciao! Vengo bene in foto?",
+        "Hi! Do I look good in pictures?",
         "Cheese!",
-        "Prendimi dal lato buono, quello col baffo.",
-        "Ciao! Per gli autografi c'è la coda.",
-        "Foto? Arrivo, mi sistemo il pelo.",
+        "Get my good side, the one with the whiskers.",
+        "Hi! Autographs, please queue up.",
+        "A photo? Coming, just fixing my fur.",
     ];
 
-    // La zampa del saluto, al posto della zampa anteriore vicina: il braccio esce dal petto e sale
-    // accanto alla faccia, staccato di una riga e di una colonna perche' il contorno li separi.
-    // Le due pose (zampa alta e zampa bassa) si alternano ogni due giri.
+    // The waving paw, in place of the near front paw: the arm comes out of the chest and rises next
+    // to the face, one row and one column apart so the outline separates them.
+    // The two poses (paw up and paw down) alternate every two rounds.
     private static readonly (int X, int Y, char C)[][] WavePaw = [WavePose(pawTop: 4), WavePose(pawTop: 7)];
 
     private const int WaveDuration = 26;
@@ -94,8 +93,8 @@ public sealed class PixelCat : Canvas
     private static readonly (int X, int Y)[] Stripes =
         [(8, 5), (8, 6), (11, 5), (11, 6), (11, 7), (14, 5), (14, 6), (6, 8), (6, 9)];
 
-    // Le zampe lontane vanno prima, cosi' quelle vicine le coprono. Nella camminata le coppie
-    // diagonali si muovono insieme e quella che torna avanti si alza di un pixel.
+    // The far paws come first, so the near ones cover them. When walking, diagonal pairs move
+    // together and the pair swinging forward lifts by one pixel.
     private static readonly Leg[] IdleLegs = [new(8, false, false), new(13, false, false), new(6, true, false), new(15, true, false)];
 
     private static readonly Leg[][] WalkLegs =
@@ -141,8 +140,8 @@ public sealed class PixelCat : Canvas
         Height = sprite.Height;
         IsHitTestVisible = false;
 
-        // Hidden e non Collapsed: il Canvas resta misurato e alla prima comparsa conosce gia'
-        // la larghezza su cui camminare.
+        // Hidden rather than Collapsed: the Canvas stays measured and on its first appearance it
+        // already knows the width to walk across.
         Visibility = Visibility.Hidden;
         sprite.RenderTransform = flip;
         RenderOptions.SetBitmapScalingMode(sprite, BitmapScalingMode.NearestNeighbor);
@@ -162,10 +161,10 @@ public sealed class PixelCat : Canvas
             Visibility = Visibility.Collapsed,
         };
 
-        // Due triangoli sovrapposti: quello scuro fa il bordo della codina, quello bianco copre
-        // il tratto di bordo del fumetto dove la codina si attacca. Il bianco parte 3 px dentro il
-        // fumetto, sugli stessi lati: se partisse a filo del bordo, l'antialiasing lascerebbe
-        // una riga scura tra fumetto e codina.
+        // Two overlapping triangles: the dark one draws the tail's border, the white one covers the
+        // stretch of bubble border where the tail joins. The white one starts 3 px inside the
+        // bubble, on the same sides: if it started flush with the border, antialiasing would leave
+        // a dark line between bubble and tail.
         bubbleTail = new Polygon { Fill = ink, Points = [new(0, 0), new(14, 0), new(3, 11)], Visibility = Visibility.Collapsed };
         bubbleTailFill = new Polygon { Fill = Brushes.White, Points = [new(1.3, -3), new(14.2, -3), new(3.6, 7)], Visibility = Visibility.Collapsed };
         Children.Add(bubble);
@@ -175,13 +174,13 @@ public sealed class PixelCat : Canvas
         timer.Tick += (_, _) => Step();
     }
 
-    /// <summary>Le segnalazioni nuove da dire: interrogata circa una volta al secondo mentre il gattino e' visibile.</summary>
+    /// <summary>New messages to say: polled about once a second while the kitten is visible.</summary>
     public Func<IReadOnlyList<string>>? NewMessages
     {
         get => newMessages;
         set
         {
-            // Una fonte nuova (la demo di Ctrl+D e ritorno): cio' che restava da dire non vale piu'.
+            // A new source (the Ctrl+D demo and back): whatever was left to say no longer applies.
             newMessages = value;
             messages.Clear();
             speakTicks = 0;
@@ -214,8 +213,8 @@ public sealed class PixelCat : Canvas
     }
 
     /// <summary>
-    /// Saluta con la zampa e un fumetto, solo se e' gia' visibile e solo una volta su
-    /// <see cref="WaveOdds"/>. Se sta dicendo una segnalazione saluta senza fumetto, per non coprirla.
+    /// Waves a paw with a speech bubble, only if already visible and only once in
+    /// <see cref="WaveOdds"/>. If it is saying a message it waves without a bubble, so as not to cover it.
     /// </summary>
     public void Wave()
     {
@@ -266,7 +265,7 @@ public sealed class PixelCat : Canvas
             }
         }
 
-        // Il saluto vince sulla prossima mossa scelta qui sopra: resta fermo finche' agita la zampa.
+        // The wave wins over the next move chosen above: it stands still while waving the paw.
         var wave = -1;
         if (waveTicks > 0)
         {
@@ -329,7 +328,7 @@ public sealed class PixelCat : Canvas
             messages.Enqueue(message);
         }
 
-        // Smette subito di camminare o di dormire: chi ha qualcosa da dire si ferma a dirlo.
+        // Stops walking or sleeping right away: whoever has something to say stops to say it.
         if (speakTicks == 0)
         {
             ticksLeft = Math.Min(ticksLeft, 2);

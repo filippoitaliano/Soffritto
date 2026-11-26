@@ -5,8 +5,8 @@ using Soffritto.Desktop.Infrastructure;
 namespace Soffritto.Desktop.ViewModels;
 
 /// <summary>
-/// La parte Docker di una colonna: lo slot (porte, progetto, database), la fase dei container,
-/// gli avvisi di docker e degli env, e i comandi che agiscono sull'ambiente intero.
+/// The Docker part of a column: the slot (ports, project, database), the container phase,
+/// the docker and env warnings, and the commands that act on the whole environment.
 /// </summary>
 public sealed class DockerEnvironmentViewModel : ObservableObject
 {
@@ -17,7 +17,7 @@ public sealed class DockerEnvironmentViewModel : ObservableObject
     private bool hasFailure;
     private bool isOff = true;
 
-    /// <param name="slot">Null se la configurazione non permette di calcolarlo: <paramref name="slotError"/> dice perche'.</param>
+    /// <param name="slot">Null if the configuration does not allow computing it: <paramref name="slotError"/> says why.</param>
     public DockerEnvironmentViewModel(DockerSlot? slot, string? slotError)
     {
         Slot = slot;
@@ -28,7 +28,7 @@ public sealed class DockerEnvironmentViewModel : ObservableObject
 
     public string? SlotError { get; }
 
-    /// <summary>«Docker non raggiungibile» con il motivo; vuoto quando docker risponde.</summary>
+    /// <summary>“Docker unreachable” with the reason; empty when docker answers.</summary>
     public string UnreachableText
     {
         get => unreachableText;
@@ -43,7 +43,7 @@ public sealed class DockerEnvironmentViewModel : ObservableObject
 
     public string UnreachableVisibility => unreachableText.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Gli avvisi degli env dello slot (per esempio una variabile {poolUrl:&lt;id&gt;} senza porta del pool): solo nomi, mai valori.</summary>
+    /// <summary>Warnings about the slot's env files (for example a {poolUrl:&lt;id&gt;} variable without a pool port): names only, never values.</summary>
     public string EnvWarningText
     {
         get => envWarningText;
@@ -58,16 +58,16 @@ public sealed class DockerEnvironmentViewModel : ObservableObject
 
     public string EnvWarningVisibility => envWarningText.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Fase dei container a parole: «pronto», «spento: ▷ per avviare», «avvio: db pronto · api in avvio · web in avvio».</summary>
+    /// <summary>Container phase in words: “ready”, “off: ▷ to start”, “starting: db ready · api starting · web starting”.</summary>
     public string PhaseText { get => phaseText; private set => SetProperty(ref phaseText, value); }
 
-    /// <summary>Container in avvio: il pallino dell'ambiente pulsa, la card dell'ambiente scorre a righe.</summary>
+    /// <summary>Containers starting: the environment dot pulses and the environment card shows moving stripes.</summary>
     public bool IsWarmingUp { get => isWarmingUp; private set => SetProperty(ref isWarmingUp, value); }
 
-    /// <summary>Un container in errore (uscito da solo, o acceso senza rispondere): pallino dell'ambiente rosso.</summary>
+    /// <summary>A failed container (exited by itself, or running without answering): red environment dot.</summary>
     public bool HasFailure { get => hasFailure; private set => SetProperty(ref hasFailure, value); }
 
-    /// <summary>Tutti i container spenti: il pallino dell'ambiente resta grigio.</summary>
+    /// <summary>All containers off: the environment dot stays grey.</summary>
     public bool IsOff { get => isOff; private set => SetProperty(ref isOff, value); }
 
     internal void ApplyPhase(DockerReadiness.Snapshot snapshot)
@@ -82,6 +82,6 @@ public sealed class DockerEnvironmentViewModel : ObservableObject
 
     public ICommand? RepairEnvCommand { get; set; }
 
-    /// <summary>L'esito dell'ultima lettura di docker ps: <paramref name="dockerError"/> se docker non risponde.</summary>
+    /// <summary>The result of the last docker ps read: <paramref name="dockerError"/> if docker does not answer.</summary>
     public void ApplyDocker(string? dockerError) => UnreachableText = dockerError ?? string.Empty;
 }

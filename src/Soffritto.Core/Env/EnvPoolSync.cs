@@ -3,48 +3,48 @@ using Soffritto.Core.Docker;
 
 namespace Soffritto.Core.Env;
 
-/// <summary>Quali variabili sincronizzare: quelle del pool, oppure anche l'URL dell'api locale («Allinea env»).</summary>
+/// <summary>Which variables to sync: the pool ones, or also the local api URL ("Align env").</summary>
 public enum EnvSyncScope
 {
-    /// <summary>Le variabili con {poolUrl} o {poolUrl:&lt;id&gt;}: dopo un'assegnazione o un rilascio.</summary>
+    /// <summary>The variables with {poolUrl} or {poolUrl:&lt;id&gt;}: after an assignment or a release.</summary>
     PoolDependent,
 
-    /// <summary>In piu', negli ambienti locali, le variabili che valgono esattamente {apiHostUrl}.</summary>
+    /// <summary>In addition, in local environments, the variables whose value is exactly {apiHostUrl}.</summary>
     All,
 }
 
-/// <summary>Una riga di env della sincronizzazione; vecchio e nuovo valore solo per i valori gestiti (URL).</summary>
-/// <param name="Outcome">Uno tra scritto, invariato, a mano, non risolvibile, senza target.</param>
+/// <summary>An env line of the sync; old and new value only for managed values (URLs).</summary>
+/// <param name="Outcome">One of written, unchanged, manual, unresolvable, no target.</param>
 public sealed record EnvSyncChange(string Repository, string File, string Name, string? OldValue, string? NewValue, string Outcome)
 {
-    /// <summary>Il motivo per cui la riga non si scrive (avviso del pool, valore a mano, file assente); null altrimenti.</summary>
+    /// <summary>Why the line is not written (pool warning, manual value, missing file); null otherwise.</summary>
     public string? Detail { get; init; }
 }
 
 /// <summary>
-/// Riscrive negli env di un ambiente, locale o Docker, solo le variabili che dipendono dal pool di
-/// tunnel (e con «Allinea env» l'URL dell'api locale), e solo se il valore attuale e' gestito:
-/// assente, vuoto, o un URL verso *.devtunnels.ms, localhost o 127.0.0.1. Le altre righe del file
-/// restano come sono; un file senza righe da scrivere non si apre in scrittura.
+/// Rewrites in an environment's env files, local or Docker, only the variables that depend on the tunnel
+/// pool (and with "Align env" the local api URL), and only if the current value is managed:
+/// missing, empty, or a URL to *.devtunnels.ms, localhost or 127.0.0.1. The file's other lines
+/// stay as they are; a file with no lines to write is not opened for writing.
 /// </summary>
 public static class EnvPoolSync
 {
-    public const string Written = "scritto";
+    public const string Written = "written";
 
-    public const string Unchanged = "invariato";
+    public const string Unchanged = "unchanged";
 
-    public const string ByHand = "a mano";
+    public const string ByHand = "manual";
 
-    public const string Unresolvable = "non risolvibile";
+    public const string Unresolvable = "unresolvable";
 
-    public const string NoTarget = "senza target";
+    public const string NoTarget = "no target";
 
-    // Connessioni e porte non dipendono mai dal pool: anche in un valore misto la riga non si tocca.
+    // Connections and ports never depend on the pool: even in a mixed value the line is left alone.
     private static readonly string[] Excluded = ["{hostConnection}", "{containerConnection}", "{hostPort}", "{containerPort}"];
 
-    /// <summary>Le righe che la sincronizzazione scriverebbe o lascerebbe, senza scrivere niente.</summary>
-    /// <param name="repository">Con <see cref="EnvSyncScope.PoolDependent"/>: solo le variabili che dipendono dalla porta di quel repository.</param>
-    /// <param name="poolUrls">Id del repository → URL della porta del pool; null = letti dalle assegnazioni.</param>
+    /// <summary>The lines the sync would write or leave, without writing anything.</summary>
+    /// <param name="repository">With <see cref="EnvSyncScope.PoolDependent"/>: only the variables that depend on that repository's port.</param>
+    /// <param name="poolUrls">Repository id → pool port URL; null = read from the assignments.</param>
     public static async Task<IReadOnlyList<EnvSyncChange>> PlanAsync(
         AppConfiguration c,
         int number,
@@ -55,8 +55,8 @@ public static class EnvPoolSync
         => (await PlanItemsAsync(c, number, scope, repository, ct, poolUrls).ConfigureAwait(false)).Select(i => i.Change).ToList();
 
     /// <summary>
-    /// <see cref="PlanAsync"/>, poi scrive con l'adapter del repository le sole righe "scritto";
-    /// nel log una riga per variabile e i riavvii che servono perche' il valore nuovo si legga.
+    /// <see cref="PlanAsync"/>, then writes only the "written" lines with the repository's adapter;
+    /// the log gets one line per variable and the restarts needed for the new value to be read.
     /// </summary>
     public static async Task<IReadOnlyList<EnvSyncChange>> ApplyAsync(
         AppConfiguration c,
@@ -82,35 +82,35 @@ public static class EnvPoolSync
         {
             var change = item.Change;
             log(change.Outcome == Written
-                ? $"{change.Repository}: {change.Name} in {change.File} scritto: {change.NewValue}"
+                ? $"{change.Repository}: {change.Name} in {change.File} written: {change.NewValue}"
                 : change.Detail ?? $"{change.Repository}: {change.Name} in {change.File} {change.Outcome}");
         }
 
         foreach (var name in items.Where(i => i.Type == RepositoryType.App && i.Change.Outcome == Written).Select(i => i.Change.Name).Distinct(StringComparer.OrdinalIgnoreCase))
         {
-            log($"riavvia Metro perche' l'app legga {name}");
+            log($"restart Metro so the app reads {name}");
         }
 
-        // Il dev server legge l'env solo all'avvio: ogni variabile riscritta chiede un riavvio, e
-        // il comando accessorio del frontend, se c'e', legge lo stesso file.
+        // The dev server reads the env only at startup: every rewritten variable calls for a restart, and
+        // the frontend's extra command, if any, reads the same file.
         foreach (var frontend in items.Where(i => i.Type == RepositoryType.Frontend && i.Change.Outcome == Written).GroupBy(i => i.Change.Repository, StringComparer.OrdinalIgnoreCase))
         {
             var names = string.Join(", ", frontend.Select(i => i.Change.Name).Distinct(StringComparer.OrdinalIgnoreCase));
             var extra = c.Repository(frontend.Key) is FrontendConfiguration { ExtraCommand.Length: > 0 } configured
-                ? $" (e {configured.ExtraCommand} legge i valori nuovi)"
+                ? $" (and {configured.ExtraCommand} reads the new values)"
                 : string.Empty;
-            log($"riavvia il dev server di {frontend.Key} perche' legga {names}{extra}");
+            log($"restart the {frontend.Key} dev server so it reads {names}{extra}");
         }
 
         foreach (var item in items.Where(i => i.ToContainer && i.Change.Outcome != Unresolvable))
         {
-            log($"{item.Change.Name} di {item.Change.Repository} arriva al container al prossimo Avvia");
+            log($"{item.Change.Name} of {item.Change.Repository} reaches the container on the next Start");
         }
 
         return items.Select(i => i.Change).ToList();
     }
 
-    /// <summary>Vero per un valore che l'exe puo' riscrivere: assente, vuoto, o un URL verso *.devtunnels.ms, localhost o 127.0.0.1.</summary>
+    /// <summary>True for a value the app may rewrite: missing, empty, or a URL to *.devtunnels.ms, localhost or 127.0.0.1.</summary>
     internal static bool IsManaged(string? value)
         => string.IsNullOrWhiteSpace(value)
             || (Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri)
@@ -159,7 +159,7 @@ public static class EnvPoolSync
                 foreach (var variable in chosen)
                 {
                     items.Add(new Item(
-                        new EnvSyncChange(entry.Id, target, variable.Name, null, null, NoTarget) { Detail = $"{entry.Id}: {target} non c'e', niente scritto" },
+                        new EnvSyncChange(entry.Id, target, variable.Name, null, null, NoTarget) { Detail = $"{entry.Id}: {target} does not exist, nothing written" },
                         env.Adapter,
                         entry.Type,
                         ToContainer(variable, isDocker)));
@@ -179,7 +179,7 @@ public static class EnvPoolSync
                 var change = value is null
                     ? new EnvSyncChange(entry.Id, target, variable.Name, null, null, Unresolvable) { Detail = UnresolvableText(variable, entry, missing, number) }
                     : !IsManaged(old)
-                        ? new EnvSyncChange(entry.Id, target, variable.Name, null, null, ByHand) { Detail = $"{variable.Name} di {entry.Id} ha un valore scritto a mano ({HostOf(old!)}): non toccato" }
+                        ? new EnvSyncChange(entry.Id, target, variable.Name, null, null, ByHand) { Detail = $"{variable.Name} of {entry.Id} has a hand-written value ({HostOf(old!)}): left alone" }
                         : new EnvSyncChange(entry.Id, target, variable.Name, old, value, old == value ? Unchanged : Written);
                 items.Add(new Item(change, env.Adapter, entry.Type, ToContainer(variable, isDocker)));
             }
@@ -205,15 +205,15 @@ public static class EnvPoolSync
     private static bool ToContainer(EnvSlotVariable variable, bool isDocker)
         => isDocker && variable.Container.Contains("{poolUrl", StringComparison.Ordinal);
 
-    // L'api del backend predefinito dell'ambiente locale, come la raggiungono sulla stessa macchina
-    // il proxy del dev server e la barra del frontend: la prima porta https di Kestrel.
+    // The api of the local environment's primary backend, as the dev server proxy and the frontend's
+    // address bar reach it on the same machine: the first Kestrel https port.
     private static string? LocalApiUrl(IReadOnlyList<EnvironmentRepository> entries)
         => entries.FirstOrDefault(e => e.Type == RepositoryType.Backend && e.IsPrimary) is { Repository: BackendConfiguration backend } entry
             && DevTunnelProvisioner.KestrelPorts(entry.Path, backend).FirstOrDefault() is { } port
                 ? $"https://localhost:{port.Number}"
                 : null;
 
-    // Negli ambienti locali si sostituiscono solo {poolUrl}, {poolUrl:<id>}, {apiHostUrl} e {n}.
+    // In local environments only {poolUrl}, {poolUrl:<id>}, {apiHostUrl} and {n} are substituted.
     private static (string? Value, string? Missing) SubstituteLocal(string text, EnvironmentRepository entry, int number, IReadOnlyDictionary<string, string> poolUrls, string? apiHostUrl)
     {
         string? missing = null;
@@ -245,8 +245,8 @@ public static class EnvPoolSync
                 entry.Id,
                 missing.StartsWith("{" + EnvConfiguration.PoolUrlPrefix, StringComparison.Ordinal) ? missing[(EnvConfiguration.PoolUrlPrefix.Length + 1)..^1] : entry.Id,
                 number)
-            : $"{variable.Name} di {entry.Id}: valore non risolvibile ({missing ?? variable.Local})";
+            : $"{variable.Name} of {entry.Id}: unresolvable value ({missing ?? variable.Local})";
 
     private static string HostOf(string value)
-        => Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri) && uri.Host.Length > 0 ? uri.Host : "valore non URL";
+        => Uri.TryCreate(value.Trim(), UriKind.Absolute, out var uri) && uri.Host.Length > 0 ? uri.Host : "not a URL";
 }

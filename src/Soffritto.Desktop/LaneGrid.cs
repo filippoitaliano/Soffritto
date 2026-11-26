@@ -4,13 +4,13 @@ using System.Windows.Controls;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Elenco delle card (porte, migrazioni, tunnel; stile in App.xaml): un solo riquadro con il bordo
-/// delle lane, le righe dentro separate da un filo sottile. Con un elemento solo e' identico a una
-/// lane. Gli elementi sono di solito <see cref="Lane"/>, la riga senza bordo.
+/// List inside the cards (ports, migrations, tunnels; style in App.xaml): a single box with the lane
+/// border, the rows inside separated by a thin line. With a single item it looks just like a
+/// lane. The items are usually <see cref="Lane"/>, the borderless row.
 /// </summary>
 /// <remarks>
-/// Il filo sta in cima a ogni riga tranne la prima: la riga lo sa da AlternationIndex, che WPF
-/// tiene aggiornato quando le voci cambiano (pagine delle migrazioni, porte che compaiono).
+/// The line sits at the top of every row except the first: the row knows from AlternationIndex, which
+/// WPF keeps up to date when the items change (migration pages, ports appearing).
 /// </remarks>
 public sealed class LaneGrid : ItemsControl
 {
@@ -24,7 +24,7 @@ public sealed class LaneGrid : ItemsControl
     protected override bool IsItemItsOwnContainerOverride(object item) => item is LaneGridRow;
 }
 
-/// <summary>Contenitore di una riga di <see cref="LaneGrid"/>: il filo di separazione e la riga.</summary>
+/// <summary>Container of a <see cref="LaneGrid"/> row: the separator line and the row.</summary>
 public sealed class LaneGridRow : ContentControl
 {
 }

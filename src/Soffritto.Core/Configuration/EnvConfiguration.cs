@@ -2,47 +2,47 @@ using System.Text.RegularExpressions;
 
 namespace Soffritto.Core.Configuration;
 
-/// <summary>Il formato del file di env di un repository: decide come si legge e come si scrive.</summary>
+/// <summary>The format of a repository's env file: decides how it is read and written.</summary>
 public enum EnvAdapterKind
 {
-    /// <summary>Nessun file: solo le variabili scritte nel setup.</summary>
+    /// <summary>No file: only the variables written in setup.</summary>
     Manual,
 
-    /// <summary>@set / set di un .bat.</summary>
+    /// <summary>@set / set lines of a .bat.</summary>
     Bat,
 
-    /// <summary>NOME=valore di un .env.</summary>
+    /// <summary>NAME=value lines of a .env.</summary>
     Dotenv,
 
-    /// <summary>Le chiavi "A:B" di un appsettings*.json.</summary>
+    /// <summary>The "A:B" keys of an appsettings*.json.</summary>
     AppSettings,
 }
 
 /// <summary>
-/// Le variabili di un repository negli ambienti Docker: costanti dall'ambiente modello, segreti
-/// dalla loro fonte, valori per slot. Il worktree le riceve dall'adapter, il container da un env_file.
+/// A repository's variables in Docker environments: constants from the template environment, secrets
+/// from their source, per-slot values. The worktree gets them through the adapter, the container through an env_file.
 /// </summary>
 public sealed partial class EnvConfiguration
 {
     public EnvAdapterKind Adapter { get; set; } = EnvAdapterKind.Manual;
 
-    /// <summary>Il file di env nel repository, relativo alla radice.</summary>
+    /// <summary>The env file in the repository, relative to the root.</summary>
     public string Target { get; set; } = string.Empty;
 
-    /// <summary>Il file delle costanti nell'ambiente modello, relativo alla radice; vuoto = il target.</summary>
+    /// <summary>The constants file in the template environment, relative to the root; empty = the target.</summary>
     public string ConstantsSource { get; set; } = string.Empty;
 
-    /// <summary>Prefissi di nome esclusi dalle costanti del container.</summary>
+    /// <summary>Name prefixes excluded from the container's constants.</summary>
     public List<string> ContainerExclude { get; set; } = [];
 
     public List<EnvManualVariable> Manual { get; set; } = [];
 
-    /// <summary>La fonte dei segreti condivisi; null = nessun segreto.</summary>
+    /// <summary>The source of the shared secrets; null = no secrets.</summary>
     public EnvSecretsConfiguration? Secrets { get; set; }
 
     public List<EnvSlotVariable> Slot { get; set; } = [];
 
-    /// <summary>I segnaposto ammessi nei valori per slot, oltre a {poolUrl:&lt;id&gt;}.</summary>
+    /// <summary>The placeholders allowed in per-slot values, besides {poolUrl:&lt;id&gt;}.</summary>
     public static readonly IReadOnlyList<string> Placeholders =
     [
         "{n}", "{hostPort}", "{containerPort}", "{apiHostUrl}", "{apiContainerUrl}",
@@ -51,14 +51,14 @@ public sealed partial class EnvConfiguration
 
     public const string PoolUrlPrefix = "poolUrl:";
 
-    /// <summary>I segnaposto di un valore, con le graffe.</summary>
+    /// <summary>The placeholders in a value, braces included.</summary>
     public static IEnumerable<string> PlaceholdersIn(string? value)
         => PlaceholderPattern().Matches(value ?? string.Empty).Select(m => m.Value);
 
     /// <summary>
-    /// I valori proposti per tipo; null per i generici, che non hanno un adapter. Le variabili con
-    /// nomi di un progetto (URL del backend per il frontend, URL del tunnel per l'app) non si
-    /// propongono: si scrivono nel setup.
+    /// The suggested values per type; null for generic repositories, which have no adapter. Variables with
+    /// project-specific names (backend URL for the frontend, tunnel URL for the app) are not
+    /// suggested: they are written in setup.
     /// </summary>
     public static EnvConfiguration? Proposed(RepositoryConfiguration repository) => repository switch
     {
@@ -101,16 +101,16 @@ public sealed class EnvManualVariable
     public string Value { get; set; } = string.Empty;
 }
 
-/// <summary>Dove stanno i segreti condivisi del repository, letti con il loro adapter.</summary>
+/// <summary>Where the repository's shared secrets live, read with their adapter.</summary>
 public sealed class EnvSecretsConfiguration
 {
     public EnvAdapterKind Adapter { get; set; } = EnvAdapterKind.Bat;
 
-    /// <summary>Il file dei segreti: relativo alla radice del repository nell'ambiente modello, o assoluto.</summary>
+    /// <summary>The secrets file: relative to the repository root in the template environment, or absolute.</summary>
     public string Source { get; set; } = string.Empty;
 }
 
-/// <summary>Una variabile con un valore per slot; un valore container vuoto non va al container.</summary>
+/// <summary>A variable with a per-slot value; an empty container value is not passed to the container.</summary>
 public sealed class EnvSlotVariable
 {
     public string Name { get; set; } = string.Empty;

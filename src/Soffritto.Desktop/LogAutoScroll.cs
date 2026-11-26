@@ -4,8 +4,8 @@ using System.Windows.Controls;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Un TextBox di log che resta sull'ultima riga quando il testo cambia, se chi legge era gia' in
-/// fondo: scorrendo in su per leggere, la posizione resta dov'e'.
+/// A log TextBox that stays on the last line when the text changes, if the reader was already at
+/// the bottom: after scrolling up to read, the position stays where it is.
 /// </summary>
 public static class LogAutoScroll
 {
@@ -37,7 +37,7 @@ public static class LogAutoScroll
 
     private static void OnTextChanged(object sender, TextChangedEventArgs e)
     {
-        // La posizione si legge prima che il testo nuovo vada in layout; lo scorrimento dopo.
+        // The position is read before the new text goes through layout; the scroll happens after.
         var box = (TextBox)sender;
         var atEnd = box.VerticalOffset + box.ViewportHeight >= box.ExtentHeight - 24;
         if (atEnd || box.ExtentHeight <= box.ViewportHeight)
@@ -46,7 +46,7 @@ public static class LogAutoScroll
         }
     }
 
-    // Alla prima apertura della sezione il log parte dall'ultima riga.
+    // When the section is first opened, the log starts from the last line.
     private static void OnVisibleChanged(object sender, DependencyPropertyChangedEventArgs e)
     {
         if (e.NewValue is true)

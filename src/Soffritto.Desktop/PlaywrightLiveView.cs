@@ -8,9 +8,9 @@ using Soffritto.Desktop.ViewModels;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Il browser di playwright dal vivo, utilizzabile: mostra i fotogrammi della dashboard e le
-/// inoltra mouse, rotella e tastiera, riportati sulle coordinate della pagina. Il browser e'
-/// quello che pilota Claude: chi lo usa mentre Claude lavora gli cambia la pagina sotto i piedi.
+/// The live playwright browser, usable: shows the dashboard frames and forwards mouse, wheel and
+/// keyboard to it, mapped onto page coordinates. It is the browser Claude drives: whoever uses it
+/// while Claude works changes the page right under Claude's feet.
 /// </summary>
 public sealed class PlaywrightLiveView : Image
 {
@@ -49,7 +49,7 @@ public sealed class PlaywrightLiveView : Image
 
     protected override void OnMouseMove(MouseEventArgs e)
     {
-        // Una trentina di movimenti al secondo bastano, e non intasano la connessione.
+        // About thirty moves per second is plenty and does not clog the connection.
         var now = Environment.TickCount64;
         if (now - lastMoveTicks < 33 || !TryMap(e, out var x, out var y))
         {
@@ -89,7 +89,7 @@ public sealed class PlaywrightLiveView : Image
         e.Handled = true;
     }
 
-    // I caratteri stampabili arrivano da OnTextInput; qui solo tasti speciali e scorciatoie.
+    // Printable characters arrive through OnTextInput; here only special keys and shortcuts.
     protected override void OnKeyDown(KeyEventArgs e)
     {
         var key = e.Key == Key.System ? e.SystemKey : e.Key;
@@ -161,8 +161,8 @@ public sealed class PlaywrightLiveView : Image
         _ => "left",
     };
 
-    // Con Stretch Uniform l'Image misura esattamente l'area del fotogramma: la proporzione sulla
-    // sua dimensione e' la stessa sulla pagina.
+    // With Stretch Uniform the Image matches the frame area exactly: a ratio on its size is the
+    // same ratio on the page.
     private bool TryMap(MouseEventArgs e, out double x, out double y)
     {
         x = y = 0;

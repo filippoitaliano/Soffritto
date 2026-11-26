@@ -3,9 +3,9 @@ using Soffritto.Core;
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// Orchestrazione del pannello per un repository: letture per sezione, refresh, azioni di
-/// scrittura con le loro guardie e i refresh che le seguono. L'host fornisce solo come si
-/// mostra (sink), come si conferma (prompt), come si copia (clipboard) e dove sta la radice.
+/// Panel orchestration for a repository: per-section reads, refresh, write actions
+/// with their guards and the refreshes that follow them. The host provides only how things are
+/// shown (sink), how they are confirmed (prompt), how they are copied (clipboard) and where the root is.
 /// </summary>
 public sealed class RepoSession
 {
@@ -16,11 +16,11 @@ public sealed class RepoSession
     private readonly IClipboard clipboard;
     private readonly WriteGate gate;
 
-    // Le letture sopravvivono al comando che le ha chieste: si fermano solo con l'host.
+    // Reads outlive the command that requested them: they stop only with the host.
     private readonly CancellationToken lifetime;
 
-    // Una lettura per sezione, indipendenti tra loro: le migrazioni non aspettano il fetch git
-    // ne' il dev tunnel, e nessuna lettura blocca le azioni, che hanno il loro unico gate nel
+    // One read per section, independent of each other: migrations do not wait for the git fetch
+    // or the dev tunnel, and no read blocks the actions, whose only gate is the
     // WriteGate.
     private readonly SectionLoader migrationsLoader = new();
     private readonly SectionLoader gitLoader = new();
@@ -28,11 +28,11 @@ public sealed class RepoSession
 
     private readonly ProblemBuffer problems = new();
 
-    // Ultimi server e database letti: la conferma del database update li riporta.
+    // Last server and database read: the database update confirmation shows them.
     private string server = StatusText.Unresolved;
     private string database = StatusText.Unresolved;
 
-    // Protetto dal gate: una sola azione alla volta lo scrive.
+    // Guarded by the gate: only one action at a time writes it.
     private bool actingOnMigrations;
 
     public RepoSession(
@@ -54,8 +54,8 @@ public sealed class RepoSession
     }
 
     /// <param name="full">
-    /// Vero per la lettura completa (fetch git e probe del tunnel compresi), falso per quella
-    /// locale che si limita a migrazioni e stato git del disco.
+    /// True for the full read (including git fetch and tunnel probe), false for the local
+    /// one that is limited to migrations and the on-disk git state.
     /// </param>
     public async Task RefreshAsync(bool full, CancellationToken cancellationToken)
     {
@@ -77,16 +77,16 @@ public sealed class RepoSession
                 return;
             }
 
-            // Inizio di un refresh: l'esito dell'ultima azione e' superato dalla nuova lettura.
-            // Ogni sezione segnala da se' che sta leggendo, quindi la riga di attivita' si spegne.
+            // Start of a refresh: the outcome of the last action is superseded by the new read.
+            // Each section signals on its own that it is reading, so the activity line goes idle.
             sink.BeginRefresh();
             problems.Action = string.Empty;
             SetActivity(string.Empty);
             sink.SetErrorLine(problems.Compose());
 
-            // Il probe del tunnel viaggia con il fetch: entrambi toccano la rete, e la lettura
-            // locale (dopo un database update) li salta lasciando la sezione tunnel com'e'
-            // invece di azzerarla a "non letto".
+            // The tunnel probe travels with the fetch: both hit the network, and the local
+            // read (after a database update) skips them, leaving the tunnel section as it is
+            // instead of resetting it to "not read".
             if (options.ReadsMigrations)
             {
                 migrationsLoader.Request(() => LoadMigrationsAsync(root));
@@ -101,7 +101,7 @@ public sealed class RepoSession
         }
         catch (OperationCanceledException)
         {
-            // Chiusura dell'host durante la risoluzione della radice.
+            // The host closed while the root was being resolved.
         }
         catch (Exception ex)
         {
@@ -109,10 +109,10 @@ public sealed class RepoSession
         }
     }
 
-    /// <summary>Errore nato fuori dalla sessione (es. l'attesa della soluzione scaduta nella VSIX).</summary>
+    /// <summary>Error raised outside the session (e.g. the wait for the solution timing out in the VSIX).</summary>
     public void ReportFailure(string headline, string message) => Fail(headline, message);
 
-    /// <summary>Rilegge la sola sezione del dev tunnel, senza fetch git ne' migrazioni.</summary>
+    /// <summary>Rereads only the dev tunnel section, without git fetch or migrations.</summary>
     public async Task RefreshTunnelAsync(CancellationToken cancellationToken)
     {
         if (!options.ReadsTunnel)
@@ -129,7 +129,7 @@ public sealed class RepoSession
         tunnelLoader.Request(() => LoadTunnelAsync(root));
     }
 
-    // Il fetch e' una lettura: aggiorna i remote-tracking ref e rilegge la sola sezione git.
+    // The fetch is a read: it updates the remote-tracking refs and rereads only the git section.
     public async Task FetchAsync(CancellationToken cancellationToken)
     {
         if (!gate.IsNotBusy)
@@ -167,7 +167,7 @@ public sealed class RepoSession
 
             if (!outcome.Success)
             {
-                Fail("pull non riuscito", outcome.Tail());
+                Fail("pull failed", outcome.Tail());
                 return;
             }
         }
@@ -177,7 +177,7 @@ public sealed class RepoSession
         }
         catch (Exception ex)
         {
-            Fail("pull non riuscito", ex.Message);
+            Fail("pull failed", ex.Message);
             return;
         }
         finally
@@ -185,14 +185,14 @@ public sealed class RepoSession
             EndAction();
         }
 
-        // Dopo un pull le migrazioni sul disco possono essere cambiate: rileggere e' obbligatorio,
-        // e si rilegge tutto come il pulsante Aggiorna.
+        // After a pull the migrations on disk may have changed: rereading is mandatory,
+        // and everything is reread like the Refresh button does.
         await RefreshAsync(full: true, cancellationToken).ConfigureAwait(false);
     }
 
-    // Nessuna conferma: la scelta nella tendina e' gia' l'intenzione, e git switch rifiuta da
-    // solo se le modifiche locali entrerebbero in conflitto. Se qualcosa impedisce lo switch la
-    // tendina torna sul branch corrente.
+    // No confirmation: the choice in the drop-down is already the intent, and git switch refuses
+    // by itself if local changes would conflict. If something prevents the switch the
+    // drop-down goes back to the current branch.
     public async Task SwitchBranchAsync(string branch, CancellationToken cancellationToken)
     {
         if (!gate.IsNotBusy)
@@ -216,7 +216,7 @@ public sealed class RepoSession
 
             if (!outcome.Success)
             {
-                Fail("cambio branch non riuscito", outcome.Tail());
+                Fail("branch switch failed", outcome.Tail());
                 sink.RestoreBranchSelection();
                 return;
             }
@@ -227,7 +227,7 @@ public sealed class RepoSession
         }
         catch (Exception ex)
         {
-            Fail("cambio branch non riuscito", ex.Message);
+            Fail("branch switch failed", ex.Message);
             sink.RestoreBranchSelection();
             return;
         }
@@ -236,29 +236,29 @@ public sealed class RepoSession
             EndAction();
         }
 
-        // Branch diverso: migrazioni sul disco diverse e upstream diverso da confrontare, quindi
-        // refresh completo come il pulsante Aggiorna.
+        // Different branch: different migrations on disk and a different upstream to compare, hence
+        // a full refresh like the Refresh button.
         await RefreshAsync(full: true, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
-    /// Switch (se serve) e pull in fast-forward (se il branch e' indietro) dentro la stessa azione,
-    /// poi una sola rilettura completa. Con <see cref="SwitchBranchAsync"/> seguito da
-    /// <see cref="PullAsync"/> la rilettura dopo lo switch faceva un git fetch in background
-    /// mentre partiva il pull, e i due fetch potevano contendersi i lock dei ref. Il fetch lo ha
-    /// gia' fatto chi chiama. Restituisce cosa e' successo, o il problema.
+    /// Switch (if needed) and fast-forward pull (if the branch is behind) within the same action,
+    /// then a single full reread. With <see cref="SwitchBranchAsync"/> followed by
+    /// <see cref="PullAsync"/> the reread after the switch ran a git fetch in the background
+    /// while the pull was starting, and the two fetches could fight over the ref locks. The caller
+    /// has already done the fetch. Returns what happened, or the problem.
     /// </summary>
     public async Task<(bool Pulled, string? Problem)> SwitchAndPullAsync(string branch, CancellationToken cancellationToken)
     {
         var root = await resolveRoot(cancellationToken).ConfigureAwait(false);
         if (root is null)
         {
-            return (false, "cartella non disponibile");
+            return (false, "folder not available");
         }
 
         if (!BeginAction($"git switch {branch}…"))
         {
-            return (false, "c'e' gia' un'azione in corso");
+            return (false, "an action is already in progress");
         }
 
         var pulled = false;
@@ -272,8 +272,8 @@ public sealed class RepoSession
                 var switched = await GitStatusReader.SwitchAsync(root, branch, Progress, cancellationToken).ConfigureAwait(false);
                 if (!switched.Success)
                 {
-                    problem = "switch non riuscito";
-                    Fail("cambio branch non riuscito", switched.Tail());
+                    problem = "switch failed";
+                    Fail("branch switch failed", switched.Tail());
                     sink.RestoreBranchSelection();
                     return (false, problem);
                 }
@@ -287,7 +287,7 @@ public sealed class RepoSession
                 var outcome = await GitStatusReader.FastForwardAsync(root, Progress, cancellationToken).ConfigureAwait(false);
                 if (!outcome.Success)
                 {
-                    problem = "pull non riuscito";
+                    problem = "pull failed";
                     Fail(problem, outcome.Tail());
                     return (false, problem);
                 }
@@ -297,11 +297,11 @@ public sealed class RepoSession
         }
         catch (OperationCanceledException)
         {
-            return (false, "annullato");
+            return (false, "cancelled");
         }
         catch (Exception ex)
         {
-            Fail("cambio branch non riuscito", ex.Message);
+            Fail("branch switch failed", ex.Message);
             return (false, ex.Message);
         }
         finally
@@ -313,9 +313,9 @@ public sealed class RepoSession
         return (pulled, null);
     }
 
-    // Eliminare branch e' irreversibile per quanto riguarda i ref locali, quindi la conferma
-    // arriva a candidati gia' noti e li elenca per nome: e' l'unico punto in cui ci si accorge
-    // che in mezzo c'e' un branch che si credeva ancora vivo sul remote.
+    // Deleting branches is irreversible as far as local refs are concerned, so the confirmation
+    // comes once the candidates are known and lists them by name: it is the only point at which you notice
+    // that among them is a branch you thought was still alive on the remote.
     public async Task PruneBranchesAsync(CancellationToken cancellationToken)
     {
         if (!gate.IsNotBusy)
@@ -343,7 +343,7 @@ public sealed class RepoSession
         }
         catch (Exception ex)
         {
-            Fail("pulizia branch non riuscita", ex.Message);
+            Fail("branch cleanup failed", ex.Message);
             return;
         }
         finally
@@ -353,16 +353,16 @@ public sealed class RepoSession
 
         if (candidates.Error is not null)
         {
-            Fail("pulizia branch non riuscita", candidates.Error);
+            Fail("branch cleanup failed", candidates.Error);
             return;
         }
 
         if (candidates.Branches.Count == 0)
         {
-            // Il --prune puo' aver comunque tolto dei remote-tracking ref: la tendina va riletta.
-            // Il messaggio arriva dopo, perche' l'inizio del refresh azzera la riga di attivita'.
+            // --prune may still have removed some remote-tracking refs: the drop-down must be reread.
+            // The message comes afterwards, because the start of the refresh clears the activity line.
             await RefreshAsync(full: false, cancellationToken).ConfigureAwait(false);
-            SetActivity("nessun branch locale da eliminare");
+            SetActivity("no local branches to delete");
             return;
         }
 
@@ -387,7 +387,7 @@ public sealed class RepoSession
 
             if (!outcome.Success)
             {
-                Fail("pulizia branch non riuscita", outcome.Tail());
+                Fail("branch cleanup failed", outcome.Tail());
                 return;
             }
         }
@@ -397,7 +397,7 @@ public sealed class RepoSession
         }
         catch (Exception ex)
         {
-            Fail("pulizia branch non riuscita", ex.Message);
+            Fail("branch cleanup failed", ex.Message);
             return;
         }
         finally
@@ -405,9 +405,9 @@ public sealed class RepoSession
             EndAction();
         }
 
-        // Il fetch e' gia' stato fatto dal --prune: basta rileggere lo stato locale e la tendina.
+        // --prune has already done the fetch: rereading the local state and the drop-down is enough.
         await RefreshAsync(full: false, cancellationToken).ConfigureAwait(false);
-        SetActivity($"{candidates.Branches.Count} branch eliminati");
+        SetActivity($"{candidates.Branches.Count} branches deleted");
     }
 
     public async Task ApplyMigrationsAsync(string contextName, CancellationToken cancellationToken)
@@ -451,7 +451,7 @@ public sealed class RepoSession
 
             if (!outcome.Success)
             {
-                Fail("aggiornamento non riuscito", await MigrationApplier.FailureReasonAsync(root, definition, outcome, cancellationToken).ConfigureAwait(false));
+                Fail("update failed", await MigrationApplier.FailureReasonAsync(root, definition, outcome, cancellationToken).ConfigureAwait(false));
                 return;
             }
         }
@@ -461,7 +461,7 @@ public sealed class RepoSession
         }
         catch (Exception ex)
         {
-            Fail("aggiornamento non riuscito", ex.Message);
+            Fail("update failed", ex.Message);
             return;
         }
         finally
@@ -469,13 +469,13 @@ public sealed class RepoSession
             EndAction();
         }
 
-        // Solo il database e' cambiato: ne' git ne' il tunnel hanno motivo di essere riletti.
+        // Only the database changed: neither git nor the tunnel has any reason to be reread.
         await RefreshAsync(full: false, cancellationToken).ConfigureAwait(false);
     }
 
-    // Il piano si ricalcola da una lettura fresca e non dalle righe mostrate: tra l'ultimo refresh
-    // e il clic qualcun altro puo' aver migrato, e un rollback calcolato su uno stato vecchio
-    // annullerebbe migrazioni diverse da quelle elencate nella conferma.
+    // The plan is recomputed from a fresh read, not from the rows shown: between the last refresh
+    // and the click someone else may have migrated, and a rollback computed on a stale state
+    // would revert migrations other than those listed in the confirmation.
     public async Task UpdateToMigrationAsync(
         string contextName,
         string migrationId,
@@ -493,7 +493,7 @@ public sealed class RepoSession
         }
 
         var root = await resolveRoot(cancellationToken).ConfigureAwait(false);
-        if (root is null || GuardRefuses(root) || SchemaLockRefuses(root) || !BeginAction("lettura delle migrazioni…", onMigrations: true))
+        if (root is null || GuardRefuses(root) || SchemaLockRefuses(root) || !BeginAction("reading migrations…", onMigrations: true))
         {
             return;
         }
@@ -512,7 +512,7 @@ public sealed class RepoSession
         }
         catch (Exception ex)
         {
-            Fail("lettura migrazioni fallita", ex.Message);
+            Fail("reading migrations failed", ex.Message);
             return;
         }
         finally
@@ -522,7 +522,7 @@ public sealed class RepoSession
 
         if (report.DatabaseError is not null || report.ConfigurationError is not null)
         {
-            Fail("lettura migrazioni fallita", report.DatabaseError ?? report.ConfigurationError!);
+            Fail("reading migrations failed", report.DatabaseError ?? report.ConfigurationError!);
             return;
         }
 
@@ -532,13 +532,13 @@ public sealed class RepoSession
 
         if (plan is null)
         {
-            Fail("migrazione non trovata", $"{migrationId} non e' piu' tra le migrazioni di {contextName}: aggiorna il pannello.");
+            Fail("migration not found", $"{migrationId} is no longer among the migrations of {contextName}: refresh the panel.");
             return;
         }
 
         if (plan.IsNoOp)
         {
-            SetActivity($"database gia' fermo a {plan.Target.DisplayName}");
+            SetActivity($"database already at {plan.Target.DisplayName}");
             return;
         }
 
@@ -565,7 +565,7 @@ public sealed class RepoSession
 
             if (!outcome.Success)
             {
-                Fail(plan.IsRollback ? "rollback non riuscito" : "aggiornamento non riuscito", await MigrationApplier.FailureReasonAsync(root, definition, outcome, cancellationToken).ConfigureAwait(false));
+                Fail(plan.IsRollback ? "rollback failed" : "update failed", await MigrationApplier.FailureReasonAsync(root, definition, outcome, cancellationToken).ConfigureAwait(false));
                 return;
             }
         }
@@ -575,7 +575,7 @@ public sealed class RepoSession
         }
         catch (Exception ex)
         {
-            Fail(plan.IsRollback ? "rollback non riuscito" : "aggiornamento non riuscito", ex.Message);
+            Fail(plan.IsRollback ? "rollback failed" : "update failed", ex.Message);
             return;
         }
         finally
@@ -586,12 +586,12 @@ public sealed class RepoSession
         await RefreshAsync(full: false, cancellationToken).ConfigureAwait(false);
     }
 
-    // Copiare non tocca niente: nessuna conferma, a differenza del bottone che il comando lo
-    // esegue davvero. La riga copiata porta con se' l'ambiente Development. La guardia del
-    // database degli ambienti Docker vale anche qui: la riga incollata migrerebbe davvero.
+    // Copying touches nothing: no confirmation, unlike the button that actually runs
+    // the command. The copied line carries the Development environment with it. The database guard
+    // of Docker environments applies here too: the pasted line would really migrate.
     /// <summary>
-    /// Copia negli appunti il comando di update fino a <paramref name="migrationId"/>. Null se
-    /// non c'era niente da copiare (context sconosciuto o radice non risolta): nessun feedback.
+    /// Copies to the clipboard the update command up to <paramref name="migrationId"/>. Null if
+    /// there was nothing to copy (unknown context or unresolved root): no feedback.
     /// </summary>
     public async Task<bool?> CopyUpdateCommandAsync(
         string contextName,
@@ -613,8 +613,8 @@ public sealed class RepoSession
         return clipboard.TrySetText(MigrationApplier.BuildUpdateCommandLine(root, definition, migrationId));
     }
 
-    // Negli ambienti Docker un comando sul database parte solo se la connessione del worktree
-    // punta al SQL Server dello slot: altrimenti migrerebbe il database di qualcun altro.
+    // In Docker environments a database command runs only if the worktree connection
+    // points to the slot's SQL Server: otherwise it would migrate someone else's database.
     private bool GuardRefuses(string root)
     {
         if (options.DatabaseGuard?.Invoke(root) is not { } error)
@@ -622,12 +622,12 @@ public sealed class RepoSession
             return false;
         }
 
-        Fail("database fuori dallo slot", error);
+        Fail("database outside the slot", error);
         return true;
     }
 
-    // Un database protetto si legge ma non si migra: il blocco vale per ogni scrittura di schema,
-    // copia del comando compresa, perche' la riga incollata migrerebbe davvero.
+    // A protected database is read but not migrated: the lock applies to every schema write,
+    // copying the command included, because the pasted line would really migrate.
     private bool SchemaLockRefuses(string root)
     {
         if (options.SchemaLock?.Invoke(root) is not { } reason)
@@ -635,7 +635,7 @@ public sealed class RepoSession
             return false;
         }
 
-        Fail("database protetto", reason);
+        Fail("protected database", reason);
         return true;
     }
 
@@ -695,7 +695,7 @@ public sealed class RepoSession
         {
             if (options.DatabaseGuard?.Invoke(root) is { } refused)
             {
-                SetActivity("database fuori dallo slot");
+                SetActivity("database outside the slot");
                 problems.Migrations = refused;
                 sink.FailMigrations();
                 sink.SetErrorLine(problems.Compose());
@@ -715,11 +715,11 @@ public sealed class RepoSession
         }
         catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
         {
-            // Chiusura dell'host durante la lettura.
+            // The host closed during the read.
         }
         catch (Exception ex)
         {
-            SetActivity("lettura migrazioni fallita");
+            SetActivity("reading migrations failed");
             problems.Migrations = ex.Message;
             sink.FailMigrations();
             sink.SetErrorLine(problems.Compose());
@@ -745,7 +745,7 @@ public sealed class RepoSession
             }
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
             {
-                // Chiusura dell'host durante la lettura.
+                // The host closed during the read.
                 return;
             }
             catch (Exception ex)
@@ -770,9 +770,9 @@ public sealed class RepoSession
 
         try
         {
-            // Con piu' sessioni la CLI devtunnel viene interrogata da una alla volta: la sezione
-            // dice di essere in coda finche' non tocca a lei. L'attesa sta fuori dal try che
-            // rilascia, cosi' una cancellazione durante l'attesa non rilascia un gate mai preso.
+            // With several sessions the devtunnel CLI is queried by one at a time: the section
+            // says it is queued until its turn comes. The wait sits outside the try that
+            // releases, so a cancellation during the wait does not release a gate never taken.
             if (tunnelGate is not null)
             {
                 sink.SetTunnelQueued();
@@ -797,11 +797,11 @@ public sealed class RepoSession
                     ? await DevTunnelReader.ReadAsync(root, cancellationToken: lifetime).ConfigureAwait(false)
                     : options.PoolAssignmentOf(root) is { } assignment
                         ? await DevTunnelReader.ReadAsync(root, assignment.TunnelDescription, lifetime, assignment.Port).ConfigureAwait(false)
-                        : DevTunnelStatus.NotShared("Accendi «Tunnel» nell'intestazione dell'ambiente per avere un URL da dare ai colleghi");
+                        : DevTunnelStatus.NotShared("Turn on “Tunnel” in the environment header to get a URL to give your colleagues");
             }
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested)
             {
-                // Chiusura dell'host durante la lettura.
+                // The host closed during the read.
                 return;
             }
             catch (Exception ex)

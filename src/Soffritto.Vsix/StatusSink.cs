@@ -4,8 +4,8 @@ using Microsoft.VisualStudio.Extensibility.UI;
 
 namespace Soffritto.Vsix;
 
-// Ogni sezione viene applicata sul ViewModel appena la sua lettura finisce: le migrazioni non
-// aspettano il fetch git ne' la risoluzione del dev tunnel.
+// Each section is applied to the ViewModel as soon as its read finishes: migrations do not
+// wait for the git fetch or the dev tunnel resolution.
 internal sealed class StatusSink : IStatusSink
 {
     private readonly StatusViewModel vm;
@@ -18,23 +18,23 @@ internal sealed class StatusSink : IStatusSink
     private readonly Func<TunnelPortRow, AsyncCommand> openPortFactory;
     private string? migrationsAction;
 
-    /// <param name="onRootChanged">Il clone letto e' cambiato (prima lettura o altra soluzione aperta): la nota dell'ambiente lo segue.</param>
+    /// <param name="onRootChanged">The clone being read has changed (first read or another solution opened): the environment note follows it.</param>
     /// <param name="applyCommandFactory">
-    /// Fabbrica del comando "applica migrazioni" per un context. Il sink non sa come si esegue
-    /// l'azione: la vista dice solo SE il bottone e' ammesso.
+    /// Factory of the "apply migrations" command for a context. The sink does not know how the action
+    /// runs: the view only says WHETHER the button is allowed.
     /// </param>
     /// <param name="copyCommandFactory">
-    /// Fabbrica del comando "copia il comando di update" per (context, migrazione, riga). La riga
-    /// serve a chi esegue per scriverci il feedback della copia.
+    /// Factory of the "copy the update command" command for (context, migration, row). The row
+    /// lets the executor write the copy feedback into it.
     /// </param>
     /// <param name="runCommandFactory">
-    /// Fabbrica del comando "lancia l'update fino a questa migrazione" per (context, migrazione).
+    /// Factory of the "run the update up to this migration" command for (context, migration).
     /// </param>
     /// <param name="copyPortFactory">
-    /// Fabbrica del comando "copia l'URL" per una riga di porta: ogni porta ha la sua icona,
-    /// perche' il tunnel puo' esporre piu' porte di quelle del clone e la scelta spetta a te.
+    /// Factory of the "copy the URL" command for a port row: each port has its own icon,
+    /// because the tunnel may expose more ports than the clone's, and the choice is yours.
     /// </param>
-    /// <param name="openPortFactory">Fabbrica del comando "apri nel browser" per una riga di porta.</param>
+    /// <param name="openPortFactory">Factory of the "open in browser" command for a port row.</param>
     public StatusSink(
         StatusViewModel vm,
         Action onRefreshStarted,
@@ -55,13 +55,13 @@ internal sealed class StatusSink : IStatusSink
         this.copyPortFactory = copyPortFactory;
     }
 
-    /// <summary>Radice del clone dell'ultima lettura: serve agli strumenti di Kestrel.</summary>
+    /// <summary>Clone root from the last read: used by the Kestrel tools.</summary>
     public string? Root { get; private set; }
 
-    /// <summary>Id del tunnel dall'ultima lettura riuscita; null se non letto o non trovato.</summary>
+    /// <summary>Tunnel id from the last successful read; null if not read or not found.</summary>
     public string? TunnelId { get; private set; }
 
-    /// <summary>Host connesso secondo l'ultima lettura del tunnel (CLI o Visual Studio).</summary>
+    /// <summary>Whether the host was connected at the last tunnel read (CLI or Visual Studio).</summary>
     public bool TunnelHostConnected { get; private set; }
 
     public string TunnelReadStamp { get; private set; } = string.Empty;
@@ -198,7 +198,7 @@ internal sealed class StatusSink : IStatusSink
             var row = new TunnelPortRow(port.Endpoint, port.Url, port.State, port.PortNumber)
             {
                 CopyToolTip = port.CopyToolTip,
-                OpenToolTip = port.CanCopy ? $"Apre {port.Url} nel browser predefinito" : port.CopyToolTip,
+                OpenToolTip = port.CanCopy ? $"Opens {port.Url} in the default browser" : port.CopyToolTip,
             };
 
             if (port.CanCopy)

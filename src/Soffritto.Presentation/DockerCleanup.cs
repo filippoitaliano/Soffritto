@@ -4,34 +4,34 @@ using Soffritto.Core.Docker;
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// La pulizia leggera di Docker: immagini degli ambienti che non esistono piu' e cache di build
-/// oltre <see cref="DockerMaintenance.CacheLimit"/>. Non ferma Docker, non tocca i container e
-/// non chiede permessi; salta quando un comando compose sta lavorando (build, up, down, stop),
-/// lanciato dall'exe o da un altro processo come il server MCP.
+/// The light Docker cleanup: images of environments that no longer exist and build cache
+/// beyond <see cref="DockerMaintenance.CacheLimit"/>. It does not stop Docker, does not touch containers and
+/// does not ask for permissions; it is skipped while a compose command is working (build, up, down, stop),
+/// launched by the app or by another process such as the MCP server.
 /// </summary>
 public static class DockerCleanup
 {
     public static string LogPath => Path.Combine(ConfigurationFiles.DataFolder, "docker", "pulizia.log");
 
-    /// <summary>Perche' la pulizia ora non deve partire; null se puo'.</summary>
+    /// <summary>Why the cleanup must not start now; null if it can.</summary>
     public static string? BusyReason()
     {
         var compose = ProcessTable.Read([]).FirstOrDefault(p => ConsoleServices.Is(p, "docker-compose.exe")
             && !p.CommandLine.Contains(" watch", StringComparison.OrdinalIgnoreCase)
             && !p.CommandLine.Contains(" logs", StringComparison.OrdinalIgnoreCase));
-        return compose is null ? null : $"docker compose al lavoro (PID {compose.ProcessId})";
+        return compose is null ? null : $"docker compose is busy (PID {compose.ProcessId})";
     }
 
     /// <summary>
-    /// Alla chiusura dell'exe: legge le immagini orfane e lancia la pulizia in un processo
-    /// staccato e senza finestra, che sopravvive all'exe; l'esito va in <see cref="LogPath"/>.
-    /// Restituisce cosa e' successo, o perche' non e' partita.
+    /// When the app closes: reads the orphan images and launches the cleanup in a detached,
+    /// windowless process that outlives the app; the outcome goes to <see cref="LogPath"/>.
+    /// Returns what happened, or why it did not start.
     /// </summary>
     public static string StartDetached(TimeSpan timeout)
     {
         if (BusyReason() is { } busy)
         {
-            return $"pulizia di Docker saltata: {busy}";
+            return $"Docker cleanup skipped: {busy}";
         }
 
         using var cancel = new CancellationTokenSource(timeout);
@@ -39,31 +39,31 @@ public static class DockerCleanup
         {
             if (DockerCli.ServerVersionAsync(cancel.Token).GetAwaiter().GetResult() is null)
             {
-                return "pulizia di Docker saltata: Docker non risponde";
+                return "Docker cleanup skipped: Docker is not responding";
             }
 
             if (ConfigurationFiles.TryLoad(out var error) is not { } configuration)
             {
-                return $"pulizia di Docker saltata: config.json non letta ({error})";
+                return $"Docker cleanup skipped: config.json could not be read ({error})";
             }
 
             var (orphans, orphansError) = DockerMaintenance.OrphanImagesAsync(configuration, cancel.Token).GetAwaiter().GetResult();
             if (orphansError is not null)
             {
-                return $"pulizia di Docker saltata: immagini non lette ({orphansError})";
+                return $"Docker cleanup skipped: images could not be read ({orphansError})";
             }
 
             Directory.CreateDirectory(Path.GetDirectoryName(LogPath)!);
             DetachedLauncher.Start(DockerMaintenance.CleanupCommandLine(orphans, LogPath), ConfigurationFiles.DataFolder, newConsole: false, hidden: true);
-            return $"pulizia di Docker avviata: {orphans.Count} immagini orfane, cache di build a {DockerMaintenance.CacheLimit}";
+            return $"Docker cleanup started: {orphans.Count} orphan images, build cache down to {DockerMaintenance.CacheLimit}";
         }
         catch (OperationCanceledException)
         {
-            return "pulizia di Docker saltata: Docker non ha risposto in tempo";
+            return "Docker cleanup skipped: Docker did not respond in time";
         }
     }
 
-    /// <summary>La stessa pulizia dentro il processo, con l'esito nel log: per «Pulisci ora» nella scheda «Docker» del setup.</summary>
+    /// <summary>The same cleanup inside the process, with the outcome in the log: for “Clean up now” in the “Docker” tab of the setup.</summary>
     public static async Task<string?> RunAsync(Action<string> log, CancellationToken ct = default)
     {
         if (BusyReason() is { } busy)
@@ -73,13 +73,13 @@ public static class DockerCleanup
 
         if (ConfigurationFiles.TryLoad(out var error) is not { } configuration)
         {
-            return $"config.json non letta: {error}";
+            return $"config.json could not be read: {error}";
         }
 
         var (orphans, orphansError) = await DockerMaintenance.OrphanImagesAsync(configuration, ct).ConfigureAwait(false);
         if (orphansError is not null)
         {
-            return $"immagini non lette: {orphansError}";
+            return $"images could not be read: {orphansError}";
         }
 
         log(await DockerMaintenance.RemoveImagesAsync(orphans, ct).ConfigureAwait(false));

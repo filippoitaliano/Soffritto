@@ -3,14 +3,14 @@ using Microsoft.Data.SqlClient;
 namespace Soffritto.Core.Docker;
 
 /// <summary>
-/// Se un servizio di uno slot risponde davvero, oltre al container acceso: il proxy delle porte di
-/// Docker accetta la connessione anche quando dentro il processo non ascolta ancora.
+/// Whether a slot's service actually responds, beyond its container running: Docker's port proxy
+/// accepts the connection even when the process inside is not listening yet.
 /// </summary>
 public static class DockerReadinessProbe
 {
     private static readonly HttpClient Http = new() { Timeout = TimeSpan.FromSeconds(2) };
 
-    /// <summary>Il database accetta un login sul database dello slot (che c'e' solo a restore finito).</summary>
+    /// <summary>The server accepts a login on the slot's database (which exists only once the restore is done).</summary>
     public static async Task<bool> DatabaseAsync(DockerSlot slot, CancellationToken ct)
     {
         try
@@ -31,7 +31,7 @@ public static class DockerReadinessProbe
         }
     }
 
-    /// <summary>Qualunque risposta HTTP sulla porta host (anche un 404 di Kestrel) vuol dire che il servizio ascolta.</summary>
+    /// <summary>Any HTTP response on the host port (even a Kestrel 404) means the service is listening.</summary>
     public static async Task<bool> HttpAsync(int hostPort, CancellationToken ct)
     {
         try

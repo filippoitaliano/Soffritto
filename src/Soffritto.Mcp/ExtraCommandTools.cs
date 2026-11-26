@@ -6,30 +6,30 @@ using Soffritto.Core.Configuration;
 namespace Soffritto.Mcp;
 
 /// <summary>
-/// Il comando in piu' di un repository (il bottone accessorio della card nell'exe), su ambienti
-/// locali e Docker: e' l'unico strumento che scrive nei cloni di un ambiente locale.
+/// A repository's extra command (the accessory button on its card in the app), on local and
+/// Docker environments: it is the only tool that writes into the clones of a local environment.
 /// </summary>
 [McpServerToolType]
 public static class ExtraCommandTools
 {
     private const int TimeoutSeconds = 900;
 
-    [McpServerTool(Name = "esegui_comando_extra", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
-    [Description("Esegue il comando in piu' di un repository dell'ambiente (il campo extraCommand della configurazione, lo stesso del bottone accessorio della card nell'exe; elenca_ambienti lo mostra come comandoExtra), nella cartella del repository: il clone per un ambiente locale, il worktree per un ambiente Docker (dove, senza node_modules, prima installa le dipendenze). Vale anche sugli ambienti locali e puo' riscrivere file del repository. Risponde con l'esito e l'output; se dura di piu' dell'attesa, con l'operazione da seguire con stato_operazione.")]
-    public static async Task<string> EseguiComandoExtra(
-        [Description("Numero dell'ambiente, locale o Docker.")] int numero,
-        [Description("Id del repository nel catalogo (vedi elenca_ambienti); vuoto = l'unico repository dell'ambiente che ha un comando extra.")] string? repository = null,
-        [Description("Secondi da aspettare la fine prima di rispondere (0-110): se il comando dura di piu' la risposta contiene l'id da seguire con stato_operazione.")] int attesaSecondi = 90,
+    [McpServerTool(Name = "run_extra_command", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
+    [Description("Runs the extra command of a repository in the environment (the extraCommand field of the configuration, the same as the accessory button on the repository's card in the app; list_environments shows it as extraCommand) in the repository folder: the clone for a local environment, the worktree for a Docker environment (where, if node_modules is missing, it installs the dependencies first). It works on local environments too and may rewrite files in the repository. Responds with the result and the output; if it takes longer than the wait, with the operation to follow with operation_status.")]
+    public static async Task<string> RunExtraCommand(
+        [Description("Environment number, local or Docker.")] int number,
+        [Description("Catalog id of the repository (see list_environments); empty = the only repository in the environment that has an extra command.")] string? repository = null,
+        [Description("Seconds to wait for completion before responding (0-110): if the command takes longer, the response contains the id to follow with operation_status.")] int waitSeconds = 90,
         CancellationToken cancellationToken = default)
     {
         if (EnvironmentTools.LoadConfiguration(out var error) is not { } configuration)
         {
-            return EnvironmentTools.Serialize(new { errore = error });
+            return EnvironmentTools.Serialize(new { error });
         }
 
-        if (configuration.Environment(numero) is not { } environment)
+        if (configuration.Environment(number) is not { } environment)
         {
-            return EnvironmentTools.Serialize(new { errore = $"l'ambiente {numero} non e' configurato" });
+            return EnvironmentTools.Serialize(new { error = $"environment {number} is not configured" });
         }
 
         var candidates = configuration.RepositoriesOf(environment)
@@ -40,26 +40,26 @@ public static class ExtraCommandTools
             : candidates.FirstOrDefault(r => string.Equals(r.Id, repository, StringComparison.OrdinalIgnoreCase));
         if (target is null)
         {
-            var available = candidates.Count == 0 ? "nessuno" : string.Join(", ", candidates.Select(r => r.Id));
+            var available = candidates.Count == 0 ? "none" : string.Join(", ", candidates.Select(r => r.Id));
             return EnvironmentTools.Serialize(new
             {
-                errore = string.IsNullOrWhiteSpace(repository)
-                    ? $"indica 'repository': repository dell'ambiente {numero} con un comando extra: {available}"
-                    : $"{repository} non e' un repository dell'ambiente {numero} con un comando extra (con comando extra: {available})",
+                error = string.IsNullOrWhiteSpace(repository)
+                    ? $"specify 'repository': repositories of environment {number} with an extra command: {available}"
+                    : $"{repository} is not a repository of environment {number} with an extra command (with an extra command: {available})",
             });
         }
 
         if (!Directory.Exists(target.Path))
         {
-            return EnvironmentTools.Serialize(new { errore = $"la cartella {target.Path} non esiste" });
+            return EnvironmentTools.Serialize(new { error = $"folder {target.Path} does not exist" });
         }
 
         var command = ExtraCommand.Of(target.Repository)!;
-        // Il server eredita da Claude Code NoDefaultCurrentDirectoryInExePath: con quella variabile cmd
-        // non cerca i comandi nella cartella corrente, e gli script che chiamano un .bat locale
-        // (es. "cd envs && dev") falliscono, mentre dal bottone dell'exe funzionano.
+        // The server inherits NoDefaultCurrentDirectoryInExePath from Claude Code: with that variable cmd
+        // does not look for commands in the current folder, so scripts that call a local .bat
+        // (e.g. "cd envs && dev") fail, while they work from the app's button.
         var commandLine = $"set \"NoDefaultCurrentDirectoryInExePath=\" && {ExtraCommand.CommandLine(command, environment.Kind)}";
-        var snapshot = await Operations.RunAsync(ExtraCommand.Name(command), numero, attesaSecondi, async (operation, ct) =>
+        var snapshot = await Operations.RunAsync(ExtraCommand.Name(command), number, waitSeconds, async (operation, ct) =>
         {
             operation.Log($"{commandLine} in {target.Path}");
             var outcome = await ProcessRunner.RunAsync(
@@ -70,8 +70,8 @@ public static class ExtraCommandTools
                 onOutputLine: operation.Log,
                 cancellationToken: ct).ConfigureAwait(false);
             return outcome.Success
-                ? (null, new { esito = $"{command} riuscito", cartella = target.Path })
-                : ($"{command} fallito (exit {outcome.ExitCode}): {outcome.Tail(10)}", null);
+                ? (null, new { result = $"{command} succeeded", folder = target.Path })
+                : ($"{command} failed (exit {outcome.ExitCode}): {outcome.Tail(10)}", null);
         }, cancellationToken).ConfigureAwait(false);
         return EnvironmentTools.Serialize(snapshot);
     }

@@ -1,13 +1,13 @@
-<!-- Riquadro «Nuovo ambiente Docker», a scomparsa sul lato destro come quello delle notifiche:
-     si apre dal «+» accanto ai numeri degli ambienti nella testata. Seed, spazio di Docker e log
-     stanno nella scheda «Docker» del setup. Il DataContext e' un DockerPanelViewModel. -->
+<!-- “New Docker environment” pane, sliding in from the right like the notifications one:
+     it opens from the “+” next to the environment numbers in the header. Seed, Docker disk space
+     and logs live in the “Docker” tab of the setup. The DataContext is a DockerPanelViewModel. -->
 <UserControl x:Class="Soffritto.Desktop.DockerPanel"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Soffritto.Desktop"
              Background="Transparent">
   <UserControl.Resources>
-    <!-- Caselle e tendine del pannello sono quelle comuni dell'exe (App.xaml, stili Form*). -->
+    <!-- The panel's text boxes and drop-downs are the app's shared ones (App.xaml, Form* styles). -->
     <Style TargetType="TextBox" BasedOn="{StaticResource FormTextBox}" />
     <Style TargetType="ComboBox" BasedOn="{StaticResource FormComboBox}" />
     <Style TargetType="CheckBox" BasedOn="{StaticResource FormCheckBox}" />
@@ -20,20 +20,20 @@
       <DockPanel DockPanel.Dock="Top" Margin="22,18,16,12">
         <Button DockPanel.Dock="Right"
                 Click="Close_Click"
-                ToolTip="Chiudi (Esc)"
+                ToolTip="Close (Esc)"
                 Style="{StaticResource IconButton}"
                 Content="&#xE711;" />
         <Button DockPanel.Dock="Right"
                 Command="{Binding RefreshCreateCommand}"
-                ToolTip="Rilegge il numero proposto e i branch dei cloni sorgente"
+                ToolTip="Reload the suggested number and the branches of the source clones"
                 Style="{StaticResource IconButton}"
                 Content="&#xE72C;" />
-        <TextBlock Text="Nuovo ambiente Docker" FontWeight="ExtraBold" FontSize="21" Foreground="{DynamicResource Theme.TextStrong}" VerticalAlignment="Center" />
+        <TextBlock Text="New Docker environment" FontWeight="ExtraBold" FontSize="21" Foreground="{DynamicResource Theme.TextStrong}" VerticalAlignment="Center" />
       </DockPanel>
 
       <ScrollViewer VerticalScrollBarVisibility="Auto" Margin="0,0,4,0">
         <StackPanel Margin="16,0,12,4">
-          <TextBlock Text="Worktree dai cloni sorgente, database dal seed e container dello slot. Il dettaglio della creazione va in «Operazioni» nella card del nuovo ambiente."
+          <TextBlock Text="Worktrees from the source clones, database from the seed and the slot's containers. Creation details show up under “Operations” in the new environment's card."
                      TextWrapping="Wrap"
                      FontSize="13"
                      Opacity="0.7"
@@ -41,11 +41,11 @@
           <Border Style="{StaticResource FormCard}">
             <StackPanel>
               <StackPanel Style="{StaticResource FormField}">
-                <local:FieldLabel Text="Numero" Info="Il numero della colonna del nuovo ambiente. Viene proposto il primo libero sopra gli ambienti locali." />
+                <local:FieldLabel Text="Number" Info="The column number of the new environment. The first free one above the local environments is suggested." />
                 <TextBox Text="{Binding CreateNumber, UpdateSourceTrigger=PropertyChanged}" Width="64" HorizontalAlignment="Left" TextAlignment="Center" FontWeight="Bold" />
               </StackPanel>
-              <local:FieldLabel Text="Repository e branch"
-                                Info="Spunta i repository da includere e scegli il branch di ognuno: un branch remoto (quelli marcati sono già in un worktree) oppure un nome nuovo, che nasce dal branch di sviluppo." />
+              <local:FieldLabel Text="Repositories and branches"
+                                Info="Tick the repositories to include and pick a branch for each: a remote branch (marked ones are already in a worktree) or a new name, created from the development branch." />
               <ItemsControl ItemsSource="{Binding CreateRows}" Margin="0,2,0,14">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate>
@@ -69,7 +69,7 @@
                 <CheckBox DockPanel.Dock="Left" IsChecked="{Binding AssignPool}" Style="{StaticResource Switch}" Margin="0,0,12,0" />
                 <StackPanel>
                   <TextBlock Text="Tunnel" FontWeight="Bold" Foreground="{DynamicResource Theme.TextStrong}" />
-                  <TextBlock Text="L'ambiente reclama un tunnel libero del pool: una porta al backend e una al frontend, con accesso anonimo."
+                  <TextBlock Text="The environment claims a free tunnel from the pool: one port for the backend and one for the frontend, with anonymous access."
                              FontSize="12" Opacity="0.6" TextWrapping="Wrap" Margin="0,1,0,0" />
                 </StackPanel>
               </DockPanel>
@@ -77,10 +77,10 @@
                 <Button DockPanel.Dock="Left"
                         Command="{Binding CreateCommand}"
                         IsEnabled="{Binding CanCreate}"
-                        ToolTip="Crea worktree, env, database dal seed e container, poi apre il watch del web"
+                        ToolTip="Create worktrees, env, database from the seed and containers, then open the web watch"
                         Style="{StaticResource PrimaryButton}"
                         Margin="0"
-                        Content="Crea ambiente" />
+                        Content="Create environment" />
                 <TextBlock Text="{Binding CreateBlockReason}" FontSize="12" Opacity="0.65" TextWrapping="Wrap" VerticalAlignment="Center" Margin="10,0,0,0" />
               </DockPanel>
             </StackPanel>

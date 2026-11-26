@@ -6,19 +6,19 @@ var fetch = args.Contains("--fetch", StringComparer.OrdinalIgnoreCase);
 
 if (!Directory.Exists(solutionRoot))
 {
-    Console.Error.WriteLine($"Cartella inesistente: {solutionRoot}");
+    Console.Error.WriteLine($"Folder does not exist: {solutionRoot}");
     return 2;
 }
 
 var configuration = ConfigurationFiles.TryLoad(out var configurationError);
 if (configuration is null)
 {
-    Console.Error.WriteLine(configurationError ?? $"Configurazione assente ({ConfigurationFiles.ConfigPath}): compilala dal setup dell'exe Soffritto.");
+    Console.Error.WriteLine(configurationError ?? $"No configuration ({ConfigurationFiles.ConfigPath}): fill it in from the Soffritto app's setup.");
     return 2;
 }
 
-Console.WriteLine($"Soluzione : {solutionRoot}");
-Console.WriteLine($"Git fetch : {(fetch ? "si" : "no (usa --fetch)")}");
+Console.WriteLine($"Solution  : {solutionRoot}");
+Console.WriteLine($"Git fetch : {(fetch ? "yes" : "no (use --fetch)")}");
 Console.WriteLine();
 
 var tunnel = configuration.EnvironmentOfBackend(solutionRoot) is { } n ? Soffritto.Core.Docker.TunnelPool.AssignmentOf(n, configuration.Backend.Id) : null;
@@ -46,30 +46,30 @@ foreach (var context in report.Contexts)
 {
     var pending = context.Pending;
     Write($"{context.ContextName}", ConsoleColor.Cyan);
-    Console.WriteLine($"  Applicate : {context.AppliedCount} / {context.Entries.Count}");
-    Console.WriteLine($"  Ultima    : {context.LastApplied ?? "(nessuna)"}");
+    Console.WriteLine($"  Applied   : {context.AppliedCount} / {context.Entries.Count}");
+    Console.WriteLine($"  Last      : {context.LastApplied ?? "(none)"}");
 
     if (pending.Count == 0)
     {
-        Write("  Allineato", ConsoleColor.Green);
+        Write("  Up to date", ConsoleColor.Green);
     }
     else
     {
-        Write($"  MANCANTI  : {pending.Count}", ConsoleColor.Yellow);
+        Write($"  PENDING   : {pending.Count}", ConsoleColor.Yellow);
         foreach (var entry in pending)
         {
-            var marker = entry.State == MigrationState.PendingOutOfOrder ? " [FUORI ORDINE]" : string.Empty;
+            var marker = entry.State == MigrationState.PendingOutOfOrder ? " [OUT OF ORDER]" : string.Empty;
             Write($"    - {entry.MigrationId}{marker}", entry.State == MigrationState.PendingOutOfOrder ? ConsoleColor.Red : ConsoleColor.Yellow);
         }
     }
 
     foreach (var mismatch in context.FileNameMismatches)
     {
-        Write($"  ~ ID [Migration] '{mismatch.MigrationId}' != nome file '{mismatch.MismatchedFileName}'", ConsoleColor.DarkYellow);
+        Write($"  ~ ID [Migration] '{mismatch.MigrationId}' != file name '{mismatch.MismatchedFileName}'", ConsoleColor.DarkYellow);
     }
 
     Write(
-        $"  GUARDIA database update : {(context.CanApplyPending ? "BOTTONE VISIBILE" : "bottone nascosto")}",
+        $"  GUARD database update   : {(context.CanApplyPending ? "BUTTON VISIBLE" : "button hidden")}",
         context.CanApplyPending ? ConsoleColor.Cyan : ConsoleColor.DarkGray);
 
     Console.WriteLine();
@@ -77,7 +77,7 @@ foreach (var context in report.Contexts)
 
 if (report.Unknown.Count > 0)
 {
-    Write($"SCONOSCIUTE APPLICATE : {report.Unknown.Count}", ConsoleColor.Red);
+    Write($"UNKNOWN APPLIED : {report.Unknown.Count}", ConsoleColor.Red);
     foreach (var entry in report.Unknown)
     {
         Console.WriteLine($"    - {entry.MigrationId}  (EF {entry.ProductVersion})");
@@ -94,13 +94,13 @@ if (report.Git.Error is not null)
 else
 {
     Console.WriteLine($"  Branch   : {report.Git.Branch}");
-    Console.WriteLine($"  Upstream : {(report.Git.HasUpstream ? $"avanti {report.Git.Ahead}, indietro {report.Git.Behind}" : "nessuno")}");
-    Console.WriteLine($"  Modifiche locali : {report.Git.DirtyFiles}");
-    Console.WriteLine($"  Branch selezionabili : {report.Git.AllBranches.Count}");
+    Console.WriteLine($"  Upstream : {(report.Git.HasUpstream ? $"ahead {report.Git.Ahead}, behind {report.Git.Behind}" : "none")}");
+    Console.WriteLine($"  Local changes : {report.Git.DirtyFiles}");
+    Console.WriteLine($"  Selectable branches : {report.Git.AllBranches.Count}");
 
     if (report.Git.HasPendingPull)
     {
-        Write($"  DA PULLARE: {report.Git.Behind} commit", ConsoleColor.Yellow);
+        Write($"  TO PULL: {report.Git.Behind} commits", ConsoleColor.Yellow);
     }
 
     if (report.Git.FetchError is not null)
@@ -108,10 +108,10 @@ else
         Write($"  ! fetch: {report.Git.FetchError}", ConsoleColor.Yellow);
     }
 
-    // Il pulsante pull e' sempre visibile: --ff-only e' la guardia. Qui si dice solo se oggi
-    // il fast-forward riuscirebbe.
+    // The pull button is always visible: --ff-only is the guard. Here we only say whether
+    // the fast-forward would succeed right now.
     Write(
-        $"  pull --ff-only          : {(report.Git.CanFastForward ? "fast-forward possibile" : "git rifiuterebbe (niente da prendere, commit locali, upstream o tree)")}",
+        $"  pull --ff-only          : {(report.Git.CanFastForward ? "fast-forward possible" : "git would refuse (nothing to pull, local commits, upstream or tree)")}",
         report.Git.CanFastForward ? ConsoleColor.Cyan : ConsoleColor.DarkGray);
 }
 
@@ -122,7 +122,7 @@ if (report.DevTunnel is not null)
 
     if (!report.DevTunnel.Shared)
     {
-        Write("  Tunnel : non condiviso (si assegna dall'exe Soffritto)", ConsoleColor.DarkGray);
+        Write("  Tunnel : not shared (assign it from the Soffritto app)", ConsoleColor.DarkGray);
     }
     else if (report.DevTunnel.Error is not null)
     {
@@ -130,9 +130,9 @@ if (report.DevTunnel is not null)
 
         foreach (var summary in report.DevTunnel.AllAvailable)
         {
-            var description = summary.Description.Length > 0 ? summary.Description : "(senza descrizione)";
+            var description = summary.Description.Length > 0 ? summary.Description : "(no description)";
             Write(
-                $"    {summary.TunnelId}  {description}  host {(summary.IsHostConnected ? "connesso" : "non connesso")}  {summary.PortCount} porte",
+                $"    {summary.TunnelId}  {description}  host {(summary.IsHostConnected ? "connected" : "not connected")}  {summary.PortCount} ports",
                 summary.IsHostConnected ? ConsoleColor.Green : ConsoleColor.DarkGray);
         }
     }
@@ -140,15 +140,15 @@ if (report.DevTunnel is not null)
     {
         Console.WriteLine($"  Tunnel : {report.DevTunnel.TunnelId} (clone {report.DevTunnel.Description})");
         Write(
-            $"  Host   : {(report.DevTunnel.IsHostConnected ? "connesso" : "non connesso")}",
+            $"  Host   : {(report.DevTunnel.IsHostConnected ? "connected" : "not connected")}",
             report.DevTunnel.IsHostConnected ? ConsoleColor.Green : ConsoleColor.Yellow);
 
         foreach (var port in report.DevTunnel.AllPorts)
         {
             var probe = port.Reachable switch
             {
-                true => "  [raggiungibile]",
-                false => "  [nessuna risposta]",
+                true => "  [reachable]",
+                false => "  [no response]",
                 null => string.Empty,
             };
 
@@ -159,7 +159,7 @@ if (report.DevTunnel is not null)
 
 Console.WriteLine();
 Write(
-    report.IsEnvironmentUpToDate ? "AMBIENTE AGGIORNATO" : "AMBIENTE NON ALLINEATO",
+    report.IsEnvironmentUpToDate ? "ENVIRONMENT UP TO DATE" : "ENVIRONMENT OUT OF DATE",
     report.IsEnvironmentUpToDate ? ConsoleColor.Green : ConsoleColor.Yellow);
 
 return report.IsEnvironmentUpToDate ? 0 : 1;

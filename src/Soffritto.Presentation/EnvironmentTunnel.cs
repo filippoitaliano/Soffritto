@@ -6,37 +6,37 @@ using Soffritto.Core.Env;
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// Il tunnel di un ambiente: acceso, l'ambiente ha un tunnel del pool con una porta per ogni suo
-/// repository che ne espone una e l'host in una console; spento, non ha porte e il tunnel e' di
-/// nuovo libero. E' l'unico comando sul tunnel: exe e server MCP passano da qui.
+/// The tunnel of an environment: when on, the environment has a pool tunnel with a port for each of its
+/// repositories that exposes one, and the host in a console; when off, it has no ports and the tunnel is
+/// free again. This is the only command for the tunnel: both the app and the MCP server go through here.
 /// </summary>
 public static class EnvironmentTunnel
 {
-    /// <summary>Vero se l'ambiente ha almeno una porta del pool.</summary>
+    /// <summary>True if the environment has at least one pool port.</summary>
     public static bool IsOn(int number, IReadOnlyList<PoolAssignment>? assignments = null)
         => (assignments ?? TunnelPool.Read()).Any(a => a.Environment == number);
 
     /// <summary>
-    /// Assegna una porta del pool a ogni repository dell'ambiente che ne espone una (il primo
-    /// reclama un tunnel libero), accende l'host o lo riavvia se ha porte nuove, e riscrive le
-    /// variabili di env che dipendono dal pool. Errore o null.
+    /// Assigns a pool port to every repository of the environment that exposes one (the first one
+    /// claims a free tunnel), turns on the host or restarts it if it has new ports, and rewrites the
+    /// env variables that depend on the pool. Error or null.
     /// </summary>
     public static async Task<string?> EnableAsync(AppConfiguration c, int number, Action<string> log, CancellationToken ct = default)
     {
         if (c.Environment(number) is not { } environment)
         {
-            return $"l'ambiente {number} non c'e'";
+            return $"environment {number} does not exist";
         }
 
         if (c.TunnelPool.Tunnels.Count == 0)
         {
-            return "pool vuoto: crea i tunnel dalla scheda «Tunnel» del setup";
+            return "empty pool: create the tunnels from the “Tunnels” tab of the setup";
         }
 
         var entries = c.RepositoriesOf(environment).Where(e => DevTunnelProvisioner.PortsFor(e, c).Count > 0).ToList();
         if (entries.Count == 0)
         {
-            return $"nessun repository dell'ambiente {number} espone una porta";
+            return $"no repository of environment {number} exposes a port";
         }
 
         var before = TunnelPool.Read();
@@ -54,17 +54,17 @@ public static class EnvironmentTunnel
             }
             else
             {
-                log($"{entry.Id} senza porta del pool: {error}");
+                log($"{entry.Id} without a pool port: {error}");
             }
         }
 
-        // Un host acceso non ospita le porte aggiunte dopo il suo avvio: con porte nuove riparte.
+        // A running host does not serve ports added after it started: with new ports it restarts.
         foreach (var tunnel in assigned.GroupBy(a => a.TunnelDescription, StringComparer.Ordinal))
         {
             if (tunnel.Any(a => !before.Contains(a)))
             {
                 PoolHosts.Ensure(c, c.TunnelPool.Tunnels.FindIndex(t => t.Description == tunnel.Key));
-                log($"host del tunnel {tunnel.Key} acceso");
+                log($"host of tunnel {tunnel.Key} turned on");
             }
             else if (PoolHosts.StartIfStopped(tunnel.Key, tunnel.First().TunnelId) is { } started)
             {
@@ -81,7 +81,7 @@ public static class EnvironmentTunnel
             }
             else
             {
-                log($"URL della porta {assignment.Port} di {assignment.Repository} non ancora pubblicato: spegni e riaccendi il tunnel");
+                log($"URL of port {assignment.Port} of {assignment.Repository} not published yet: turn the tunnel off and on again");
             }
         }
 
@@ -90,8 +90,8 @@ public static class EnvironmentTunnel
     }
 
     /// <summary>
-    /// Riaccende l'host caduto o chiuso dei tunnel che l'ambiente ha gia': porte ed env restano
-    /// come sono. Un host che non parte si riporta nel log senza fermare chi chiama.
+    /// Turns the crashed or closed host of the tunnels the environment already has back on: ports and env stay
+    /// as they are. A host that does not start is reported in the log without stopping the caller.
     /// </summary>
     public static void RestoreHosts(int number, Action<string> log)
     {
@@ -106,14 +106,14 @@ public static class EnvironmentTunnel
             }
             catch (InvalidOperationException ex)
             {
-                log($"host del tunnel {tunnel.Key} non acceso: {ex.Message}");
+                log($"host of tunnel {tunnel.Key} not turned on: {ex.Message}");
             }
         }
     }
 
     /// <summary>
-    /// Rilascia tutte le porte del pool dell'ambiente, chiude l'host dei tunnel rimasti senza
-    /// porte e riscrive le variabili di env che dipendevano dal pool. Errore o null.
+    /// Releases all the environment's pool ports, closes the host of the tunnels left without
+    /// ports and rewrites the env variables that depended on the pool. Error or null.
     /// </summary>
     public static async Task<string?> DisableAsync(AppConfiguration c, int number, Action<string> log, CancellationToken ct = default)
     {

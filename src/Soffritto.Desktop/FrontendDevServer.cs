@@ -3,7 +3,7 @@ using Soffritto.Core.Configuration;
 
 namespace Soffritto.Desktop;
 
-/// <summary>Porta e indirizzo del dev server di un clone del frontend (vedi <see cref="FrontendEnv"/>).</summary>
+/// <summary>Port and address of the dev server of a frontend clone (vedi <see cref="FrontendEnv"/>).</summary>
 public static class FrontendDevServer
 {
     public static int ReadPort(RepoLocation frontend)

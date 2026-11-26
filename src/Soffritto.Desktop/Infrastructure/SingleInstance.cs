@@ -6,10 +6,9 @@ using System.Text;
 namespace Soffritto.Desktop.Infrastructure;
 
 /// <summary>
-/// Un solo exe per cartella radice: la X nasconde la finestra, e chi riapre da Start vuole
-/// ritrovarla, non una seconda copia che rilegge gli stessi repository e si contende la dashboard
-/// di playwright-cli. Il nome include il percorso dell'exe, cosi' una build Debug convive con
-/// quella pubblicata.
+/// A single exe per root folder: the X hides the window, and whoever reopens from Start wants it
+/// back, not a second copy that rereads the same repositories and fights over the playwright-cli
+/// dashboard. The name includes the exe path, so a Debug build coexists with the published one.
 /// </summary>
 public sealed class SingleInstance : IDisposable
 {
@@ -25,7 +24,7 @@ public sealed class SingleInstance : IDisposable
         this.showRequested = showRequested;
     }
 
-    /// <summary>Null se la copia era gia' aperta: in quel caso le e' stato chiesto di mostrarsi.</summary>
+    /// <summary>Null if the copy was already open: in that case it has been asked to show itself.</summary>
     public static SingleInstance? Acquire(string root)
     {
         var name = NameOf(root);
@@ -40,19 +39,19 @@ public sealed class SingleInstance : IDisposable
         {
             using var show = EventWaitHandle.OpenExisting(name + ".Show");
 
-            // La finestra e' dell'altro processo: senza questo permesso Windows la fa solo lampeggiare.
+            // The window belongs to the other process: without this permission Windows only makes it flash.
             AllowSetForegroundWindow(AnyProcess);
             show.Set();
         }
         catch (WaitHandleCannotBeOpenedException)
         {
-            // L'altra copia si sta avviando o chiudendo proprio ora.
+            // The other copy is starting or closing right now.
         }
 
         return null;
     }
 
-    /// <summary>Chiamata da un thread del pool a ogni avvio successivo.</summary>
+    /// <summary>Called from a thread-pool thread at every later launch.</summary>
     public void OnShowRequested(Action action)
         => listener = ThreadPool.RegisterWaitForSingleObject(showRequested, (_, _) => action(), null, Timeout.Infinite, executeOnlyOnce: false);
 

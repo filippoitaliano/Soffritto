@@ -1,34 +1,34 @@
 #requires -Version 5.1
 <#
 .SYNOPSIS
-    Crea il Setup.exe di Soffritto con Velopack e, a richiesta, lo carica sulle GitHub Releases.
+    Builds the Soffritto Setup.exe with Velopack and, on request, uploads it to GitHub Releases.
 
 .DESCRIPTION
-    Il pacchetto contiene:
-      - Soffritto.exe self-contained: parte su qualunque Windows x64 senza runtime .NET;
-      - mcp\Soffritto.Mcp.exe, il server MCP, anche lui self-contained, nella sua cartella;
-      - vsix\Soffritto.Vsix.vsix, l'estensione di Visual Studio.
-    MCP e VSIX si installano dalla scheda Componenti del setup dell'exe.
+    The package contains:
+      - Soffritto.exe, self-contained: it runs on any Windows x64 without a .NET runtime;
+      - Soffritto.Mcp.exe, the MCP server, next to the exe and on the same runtime;
+      - vsix\Soffritto.Vsix.vsix, the Visual Studio extension.
+    MCP and VSIX are installed from the Components tab of the app's setup.
 
-    Niente di questo script tocca le build di sviluppo: i publish vanno in artifacts\pack. Nessun
-    file di configurazione entra nel pacchetto:
-    al primo avvio il setup parte vuoto.
+    Nothing in this script touches the development builds: publish output goes to artifacts\pack.
+    No configuration file goes into the package:
+    on first launch the setup starts empty.
 
-    L'exe del pacchetto si aggiorna dalle release di -Repository, che finisce nell'assembly
-    (AssemblyMetadata UpdateRepository): nel codice non c'e' nessun indirizzo.
+    The packaged exe updates itself from the releases of -Repository, which is baked into the
+    assembly (AssemblyMetadata UpdateRepository): there is no address in the code.
 
 .PARAMETER Repository
-    Il repository GitHub delle release, es. https://github.com/nome/repo. Vuoto = il remote origin.
+    The GitHub repository of the releases, e.g. https://github.com/name/repo. Empty = the origin remote.
 
 .PARAMETER Upload
-    Carica la release su GitHub. Senza -Publish resta una bozza da pubblicare dal sito.
-    Il token viene da GITHUB_TOKEN o da «gh auth token».
+    Uploads the release to GitHub. Without -Publish it stays a draft to publish from the website.
+    The token comes from GITHUB_TOKEN or from "gh auth token".
 
 .PARAMETER Publish
-    Con -Upload pubblica subito la release invece di lasciarla in bozza.
+    With -Upload, publishes the release right away instead of leaving it as a draft.
 
 .PARAMETER SkipVsix
-    Pacchetto senza l'estensione, per una macchina senza il workload di Visual Studio.
+    Package without the extension, for a machine without the Visual Studio workload.
 #>
 [CmdletBinding()]
 param(
@@ -41,8 +41,8 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-Location $PSScriptRoot
 
-# Diverso dalla cartella dati %LOCALAPPDATA%\Soffritto: Velopack installa in %LOCALAPPDATA%\<packId>,
-# e con lo stesso nome programma e configurazione finirebbero nella stessa cartella.
+# Different from the data folder %LOCALAPPDATA%\Soffritto: Velopack installs into %LOCALAPPDATA%\<packId>,
+# and with the same name the program and its configuration would end up in the same folder.
 $packId    = 'Soffritto.App'
 $title     = 'Soffritto'
 $artifacts = Join-Path $PSScriptRoot 'artifacts'
@@ -52,70 +52,96 @@ $releases  = Join-Path $artifacts 'releases'
 function Invoke-Checked([string]$what, [scriptblock]$command) {
     Write-Host "== $what" -ForegroundColor Cyan
     & $command
-    if ($LASTEXITCODE -ne 0) { throw "$what non riuscito (exit code $LASTEXITCODE)." }
+    if ($LASTEXITCODE -ne 0) { throw "$what failed (exit code $LASTEXITCODE)." }
 }
 
 if (-not $Repository) {
     $Repository = (git remote get-url origin).Trim() -replace '\.git$', ''
 }
 if ($Repository -notmatch '^https://github\.com/[^/]+/[^/]+$') {
-    throw "Repository non valido: '$Repository'. Atteso https://github.com/<proprietario>/<repo>."
+    throw "Invalid repository: '$Repository'. Expected https://github.com/<owner>/<repo>."
 }
 
 $version = ([xml](Get-Content (Join-Path $PSScriptRoot 'Directory.Build.props'))).Project.PropertyGroup.Version |
     Where-Object { $_ } | Select-Object -First 1
-if (-not $version) { throw 'Version non trovata in Directory.Build.props.' }
+if (-not $version) { throw 'Version not found in Directory.Build.props.' }
 
-Write-Host "Versione   : $version"
+Write-Host "Version    : $version"
 Write-Host "Repository : $Repository"
 
 if (Test-Path $pack) { Remove-Item $pack -Recurse -Force }
 New-Item -ItemType Directory -Force $pack, $releases | Out-Null
 
-Invoke-Checked 'Restore di vpk' { dotnet tool restore }
+Invoke-Checked 'Restore vpk' { dotnet tool restore }
 
-Invoke-Checked 'Publish dell''exe' {
-    # Cartella e non file singolo: self-contained, WPF non carica dal bundle DirectWriteForwarder.dll
-    # (C++/CLI) e l'exe esce con BadImageFormatException. Il pacchetto di Velopack e' gia' un archivio.
+Invoke-Checked 'Publish the exe' {
+    # A folder, not a single file: self-contained, WPF cannot load DirectWriteForwarder.dll (C++/CLI)
+    # from the bundle and the exe exits with BadImageFormatException. The Velopack package is already an archive.
     dotnet publish src\Soffritto.Desktop -c Release -r win-x64 --self-contained true `
         -p:PublishSingleFile=false -p:UpdateRepository=$Repository -o $pack --nologo -v minimal
 }
 
-Invoke-Checked 'Publish del server MCP' {
-    # Cartella e non file singolo: un bundle da 90 MB puo' metterci piu' di un minuto a partire
-    # (antivirus che lo analizza a ogni avvio) e il client MCP chiude la connessione prima
-    # (Claude Code aspetta 30 secondi). A cartella parte in pochi secondi.
+$mcpPublish = Join-Path $artifacts 'mcp-publish'
+if (Test-Path $mcpPublish) { Remove-Item $mcpPublish -Recurse -Force }
+
+Invoke-Checked 'Publish the MCP server' {
+    # A folder, not a single file: a 90 MB bundle can take more than a minute to start (the
+    # antivirus scans it on every launch) and the MCP client drops the connection first (Claude
+    # Code waits 30 seconds). As a folder it starts in a few seconds.
     dotnet publish src\Soffritto.Mcp -c Release -r win-x64 --self-contained true `
-        -p:PublishSingleFile=false -o (Join-Path $pack 'mcp') --nologo -v minimal
+        -p:PublishSingleFile=false -o $mcpPublish --nologo -v minimal
 }
 
+# The MCP server sits next to Soffritto.exe and uses its runtime: in a folder of its own the .NET
+# runtime would end up in the package twice (about 90 MB). Of the shared files the exe's copy is
+# kept, and it must have an equal or higher assembly version: otherwise the MCP server would not start.
+Write-Host '== MCP server next to the exe' -ForegroundColor Cyan
+foreach ($file in Get-ChildItem $mcpPublish -File) {
+    $target = Join-Path $pack $file.Name
+    if (-not (Test-Path $target)) {
+        Copy-Item $file.FullName $target
+        continue
+    }
+    if ($file.Extension -ne '.dll') { continue }
+    try {
+        $mine = [Reflection.AssemblyName]::GetAssemblyName($file.FullName).Version
+        $kept = [Reflection.AssemblyName]::GetAssemblyName($target).Version
+    } catch [BadImageFormatException] {
+        continue
+    }
+    if ($kept -lt $mine) {
+        throw "$($file.Name): the exe ships $kept, the MCP server needs $mine."
+    }
+}
+Remove-Item $mcpPublish -Recurse -Force
+
 if (-not $SkipVsix) {
-    Invoke-Checked 'Build della VSIX' {
+    Invoke-Checked 'Build the VSIX' {
         dotnet build src\Soffritto.Vsix -c Release --nologo -v minimal
     }
     $vsix = Get-ChildItem (Join-Path $PSScriptRoot 'src\Soffritto.Vsix\bin\Release') -Recurse -Filter 'Soffritto.Vsix.vsix' -File |
         Sort-Object LastWriteTime -Descending | Select-Object -First 1
-    if (-not $vsix) { throw 'Soffritto.Vsix.vsix non trovato dopo la build.' }
+    if (-not $vsix) { throw 'Soffritto.Vsix.vsix not found after the build.' }
     New-Item -ItemType Directory -Force (Join-Path $pack 'vsix') | Out-Null
     Copy-Item $vsix.FullName (Join-Path $pack 'vsix\Soffritto.Vsix.vsix')
 }
 
-# I file di documentazione XML delle librerie non servono a chi installa.
+# The libraries' XML documentation files are of no use to whoever installs.
 Get-ChildItem $pack -Recurse -Include '*.pdb', '*.xml' -File | Remove-Item -Force
 
 $token = $null
 if ($Upload) {
     $token = $env:GITHUB_TOKEN
     if (-not $token) { $token = (gh auth token 2>$null) }
-    if (-not $token) { throw 'Per -Upload serve GITHUB_TOKEN o una login di gh (gh auth login).' }
+    if (-not $token) { throw '-Upload needs GITHUB_TOKEN or a gh login (gh auth login).' }
 
-    # L'ultima release pubblicata serve a vpk per generare il pacchetto delta.
-    Invoke-Checked 'Download dell''ultima release' {
+    # vpk needs the latest published release to generate the delta package.
+    Invoke-Checked 'Download the latest release' {
         dotnet vpk download github --repoUrl $Repository --token $token -o $releases
     }
 }
 
-Invoke-Checked 'Pacchetto Velopack' {
+Invoke-Checked 'Velopack package' {
     dotnet vpk pack -u $packId -v $version -p $pack -e Soffritto.exe -r win-x64 `
         --packTitle $title -i src\Soffritto.Desktop\app.ico -o $releases
 }
@@ -124,7 +150,7 @@ if ($Upload) {
     $uploadArgs = @('vpk', 'upload', 'github', '--repoUrl', $Repository, '--token', $token, '-o', $releases,
         '--releaseName', "$title $version", '--tag', "v$version")
     if ($Publish) { $uploadArgs += '--publish' }
-    Invoke-Checked 'Upload su GitHub' { dotnet @uploadArgs }
+    Invoke-Checked 'Upload to GitHub' { dotnet @uploadArgs }
 }
 
 Write-Host ''

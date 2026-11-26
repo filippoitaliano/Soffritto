@@ -3,13 +3,13 @@ using System.Runtime.InteropServices;
 namespace Soffritto.Desktop.Infrastructure;
 
 /// <summary>
-/// Hook di tastiera globale che riconosce Win+Shift+S (lo strumento di cattura di Windows) anche
-/// con la finestra in secondo piano. Si limita a osservare: il tasto prosegue verso Windows.
+/// Global keyboard hook that recognises Win+Shift+S (the Windows Snipping Tool) even with the
+/// window in the background. It only observes: the key goes on to Windows.
 /// </summary>
 /// <remarks>
-/// Un hook low-level viene richiamato sul thread che lo installa, che deve pompare messaggi: va
-/// creato sul thread della UI. Se Windows non lo chiama entro il suo timeout lo scarta, quindi la
-/// callback solleva l'evento e torna subito.
+/// A low-level hook is called back on the thread that installs it, which must pump messages: it has
+/// to be created on the UI thread. If the hook does not return within Windows' timeout, Windows drops it,
+/// so the callback raises the event and returns right away.
 /// </remarks>
 internal sealed class SnipShortcutHook : IDisposable
 {
@@ -21,7 +21,7 @@ internal sealed class SnipShortcutHook : IDisposable
     private const int VkLWin = 0x5B;
     private const int VkRWin = 0x5C;
 
-    // Riferimento tenuto in vita: il delegato passato a SetWindowsHookEx non deve essere raccolto.
+    // Reference kept alive: the delegate passed to SetWindowsHookEx must not be collected.
     private readonly HookProc callback;
     private IntPtr hook;
 

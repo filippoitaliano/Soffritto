@@ -5,8 +5,8 @@ using Soffritto.Presentation;
 namespace Soffritto.Desktop.ViewModels;
 
 /// <summary>
-/// Le sezioni del backend in fondo alla sua card: migrazioni sconosciute e context. Il dev tunnel
-/// del backend sta in <see cref="RepoCardViewModel.Tunnel"/>.
+/// The backend sections at the bottom of its card: unknown migrations and contexts. The backend's
+/// dev tunnel lives in <see cref="RepoCardViewModel.Tunnel"/>.
 /// </summary>
 public sealed class BackendViewModel : ObservableObject
 {
@@ -40,10 +40,10 @@ public sealed class BackendViewModel : ObservableObject
         }
     }
 
-    /// <summary>La card Database c'e' quando ha almeno una sezione: un context o le migrazioni sconosciute.</summary>
+    /// <summary>The Database card is shown when it has at least one section: a context or the unknown migrations.</summary>
     public string DatabaseVisibility => Contexts.Count > 0 || unknownVisibility == "Visible" ? "Visible" : "Collapsed";
 
-    /// <summary>Segue il gate del backend; i context, anche quelli ricreati da una lettura, lo ricevono da qui.</summary>
+    /// <summary>Follows the backend's gate; contexts, including those recreated by a read, receive it from here.</summary>
     public bool IsNotBusy
     {
         get => isNotBusy;
@@ -61,7 +61,7 @@ public sealed class BackendViewModel : ObservableObject
         }
     }
 
-    /// <summary>Azione in corso sulle migrazioni ("dotnet ef database update…") o null.</summary>
+    /// <summary>Action running on the migrations ("dotnet ef database update…") or null.</summary>
     public string? MigrationsAction
     {
         get => migrationsAction;

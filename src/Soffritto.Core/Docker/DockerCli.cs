@@ -1,9 +1,9 @@
 namespace Soffritto.Core.Docker;
 
-/// <summary>I comandi docker che servono agli ambienti Docker, tutti con un timeout.</summary>
+/// <summary>The docker commands Docker environments need, all with a timeout.</summary>
 public static class DockerCli
 {
-    /// <summary>docker con gli argomenti dati; le variabili valgono solo per quel processo.</summary>
+    /// <summary>docker with the given arguments; the variables apply only to that process.</summary>
     public static Task<ProcessOutcome> RunAsync(
         string arguments,
         string? workingDirectory = null,
@@ -13,14 +13,14 @@ public static class DockerCli
         CancellationToken ct = default)
         => ProcessRunner.RunAsync("docker", arguments, workingDirectory ?? Path.GetTempPath(), timeoutSeconds, environment, onOutputLine, ct);
 
-    /// <summary>La versione del server Docker; null se Docker non risponde.</summary>
+    /// <summary>The Docker server version; null if Docker does not respond.</summary>
     public static async Task<string?> ServerVersionAsync(CancellationToken ct = default)
     {
         var version = await RunAsync("version --format \"{{.Server.Version}}\"", timeoutSeconds: 10, ct: ct).ConfigureAwait(false);
         return version.Success && version.StandardOutput.Trim() is { Length: > 0 } text ? text : null;
     }
 
-    /// <summary>L'id del container con quel nome esatto, acceso o no; null se non c'e'.</summary>
+    /// <summary>The id of the container with that exact name, running or not; null if there is none.</summary>
     public static async Task<string?> ContainerIdAsync(string name, CancellationToken ct = default)
     {
         var ps = await RunAsync($"ps -aq --no-trunc --filter \"name=^/{name}$\"", timeoutSeconds: 15, ct: ct).ConfigureAwait(false);
@@ -33,11 +33,11 @@ public static class DockerCli
     public static Task<ProcessOutcome> CopyFromAsync(string container, string containerPath, string hostPath, CancellationToken ct = default)
         => RunAsync($"cp \"{container}:{containerPath}\" \"{hostPath}\"", timeoutSeconds: 600, ct: ct);
 
-    /// <summary>docker exec, con l'utente dato (es. "0" per root) o quello dell'immagine.</summary>
+    /// <summary>docker exec, with the given user (e.g. "0" for root) or the image's one.</summary>
     public static Task<ProcessOutcome> ExecAsync(string container, string command, string? user = null, int timeoutSeconds = 120, CancellationToken ct = default)
         => RunAsync($"exec {(user is null ? string.Empty : $"-u {user} ")}{container} {command}", timeoutSeconds: timeoutSeconds, ct: ct);
 
-    /// <summary>Il valore di un'etichetta del container; stringa vuota se manca, null se il container non c'e'.</summary>
+    /// <summary>The value of a container label; empty string if missing, null if the container does not exist.</summary>
     public static async Task<string?> ContainerLabelAsync(string container, string label, CancellationToken ct = default)
     {
         var inspect = await RunAsync($"inspect --format \"{{{{ index .Config.Labels \\\"{label}\\\" }}}}\" {container}", timeoutSeconds: 15, ct: ct).ConfigureAwait(false);

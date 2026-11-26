@@ -9,17 +9,15 @@ using Soffritto.Desktop.ViewModels;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Una connessione alla dashboard di playwright-cli per un ambiente: si aggancia alla pagina
-/// aperta sul dev server del frontend di quell'ambiente, ne riceve i fotogrammi e le inoltra
-/// mouse e tastiera. Ogni connessione della dashboard segue una pagina sola, per questo ce n'e'
-/// una per ambiente.
+/// A connection to the playwright-cli dashboard for one environment: it attaches to the page open
+/// on that environment's frontend dev server, receives its frames and forwards mouse and keyboard
+/// to it. Each dashboard connection follows a single page, which is why there is one per environment.
 /// </summary>
 /// <remarks>
-/// Il protocollo e' quello interno della dashboard (eventi "sessions", "tabs" e "frame", metodi
-/// selectTab, mousedown, keydown, ...): non e' un'API pubblica e un aggiornamento della CLI puo'
-/// cambiarlo.
+/// The protocol is the dashboard's internal one ("sessions", "tabs" and "frame" events, selectTab,
+/// mousedown, keydown, ... methods): it is not a public API and a CLI update may change it.
 /// </remarks>
-/// <param name="localAppData">La LOCALAPPDATA del registro letto dalla dashboard, per lanciare playwright-cli sulle sue sessioni.</param>
+/// <param name="localAppData">The LOCALAPPDATA of the registry the dashboard reads, used to run playwright-cli against its sessions.</param>
 public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string localAppData) : IPreviewInput
 {
     private static readonly TimeSpan FirstFrameWait = TimeSpan.FromSeconds(2);
@@ -84,7 +82,7 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
         using var document = JsonDocument.Parse(json);
         var root = document.RootElement;
 
-        // Le risposte ai metodi hanno "id" e nessun "method": non servono.
+        // Method responses have an "id" and no "method": we don't need them.
         if (!root.TryGetProperty("method", out var method) || !root.TryGetProperty("params", out var parameters))
         {
             return;
@@ -107,7 +105,7 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
         }
     }
 
-    // Le tab portano solo il guid del browser; il nome della sessione (-s) sta in "sessions".
+    // Tabs carry only the browser guid; the session name (-s) is in "sessions".
     private void OnSessions(JsonElement sessions)
     {
         lock (sessionOfBrowser)
@@ -141,7 +139,7 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
                 continue;
             }
 
-            // A parita' si resta sulla pagina gia' agganciata.
+            // On a tie we stay on the page already attached.
             if (match is null || tab.GetProperty("selected").GetBoolean())
             {
                 match = tab;
@@ -150,10 +148,10 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
 
         if (match is not { } chosen)
         {
-            // Il caso tipico: il browser e' aperto sul devtunnel o sulla porta di un altro ambiente.
+            // The typical case: the browser is open on the dev tunnel or on another environment's port.
             var reason = elsewhere.Count == 0
-                ? "I browser di playwright-cli non hanno pagine aperte."
-                : $"Nessuna pagina su localhost:{vm.Port}. Pagine aperte su: {string.Join(", ", elsewhere.Take(3))}{(elsewhere.Count > 3 ? ", ..." : "")}.";
+                ? "The playwright-cli browsers have no open pages."
+                : $"No page on localhost:{vm.Port}. Pages open on: {string.Join(", ", elsewhere.Take(3))}{(elsewhere.Count > 3 ? ", ..." : "")}.";
 
             var wasAttached = attachedPage is not null;
             attachedPage = null;
@@ -207,11 +205,11 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
             : null;
 
     /// <summary>
-    /// Con lo zoom di Windows diverso dal 100% e il browser visibile, la pagina segue la finestra
-    /// e Chrome ne riporta le misure in px frazionari (1038.4 x 835.2): playwright-core le vuole
-    /// intere e scarta ogni fotogramma prima che arrivi alla dashboard. Se dopo l'aggancio non ne
-    /// arriva nessuno, la pagina si fissa alla misura piu' vicina, per difetto, che allo zoom del
-    /// browser fa pixel interi: da li' la pagina non segue piu' la finestra.
+    /// With Windows scaling other than 100% and a visible browser, the page follows the window and
+    /// Chrome reports its size in fractional px (1038.4 x 835.2): playwright-core wants integers and
+    /// drops every frame before it reaches the dashboard. If no frame arrives after attaching, the
+    /// page is pinned to the nearest smaller size that gives whole pixels at the browser zoom: from
+    /// then on the page no longer follows the window.
     /// </summary>
     private async Task AlignViewportIfSilentAsync(string? page, string? browser)
     {
@@ -239,7 +237,7 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
                 return;
             }
 
-            // Senza spazi ne' virgolette: passa intatta da cmd.
+            // No spaces or quotes: it gets through cmd intact.
             var measure = await PlaywrightCli.RunAsync(localAppData,
                 [$"-s={session}", "--raw", "eval", "[innerWidth,innerHeight,devicePixelRatio].join()"],
                 CliTimeout, lifetime).ConfigureAwait(false);
@@ -261,8 +259,8 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
                 return;
             }
 
-            // Il fotogramma scartato fa saltare anche l'ack a Chrome, che smette di mandarne:
-            // lo screencast va fermato e riavviato. La pausa evita che l'avvio insegua l'arresto.
+            // The dropped frame also skips the ack to Chrome, which stops sending frames: the
+            // screencast has to be stopped and restarted. The pause keeps the start from racing the stop.
             await SendAsync("setVisible", new { visible = false }).ConfigureAwait(false);
             await Task.Delay(RestartPause, lifetime).ConfigureAwait(false);
             await SendAsync("setVisible", new { visible = true }).ConfigureAwait(false);
@@ -285,7 +283,7 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
                 : null;
     }
 
-    // A 1.25 sono i multipli di 4, a 1.5 i pari: si scende di pochi px al massimo.
+    // At 1.25 that means multiples of 4, at 1.5 even numbers: we go down a few px at most.
     private static int Aligned(int size, double scale)
     {
         for (var candidate = size; candidate > 0 && candidate > size - 100; candidate--)
@@ -316,7 +314,7 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
         UiThread.Run(() => vm.SetFrame(image, width, height));
     }
 
-    // ClientWebSocket non ammette due invii contemporanei: l'input del mouse arriva a raffica.
+    // ClientWebSocket does not allow two concurrent sends: mouse input arrives in bursts.
     private async Task SendAsync(string method, object parameters)
     {
         var payload = JsonSerializer.SerializeToUtf8Bytes(new
@@ -340,7 +338,7 @@ public sealed class PlaywrightPreviewStream(FrontendPreviewViewModel vm, string 
         }
         catch
         {
-            // Connessione in chiusura: l'input perso non ha conseguenze, la lettura se ne accorge.
+            // Connection closing: the lost input does no harm, and the reader will notice.
         }
     }
 }

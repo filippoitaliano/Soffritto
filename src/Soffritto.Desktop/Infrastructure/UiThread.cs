@@ -3,8 +3,8 @@ using System.Windows;
 namespace Soffritto.Desktop.Infrastructure;
 
 /// <summary>
-/// La sessione condivisa chiama i sink da thread del pool, ma i ViewModel legati a WPF (le
-/// ObservableCollection in particolare) vanno toccati solo dal thread della UI.
+/// The shared session calls the sinks from thread-pool threads, but WPF-bound ViewModels
+/// (ObservableCollections in particular) must be touched only from the UI thread.
 /// </summary>
 public static class UiThread
 {
@@ -28,7 +28,7 @@ public static class UiThread
         }
         catch (TaskCanceledException)
         {
-            // Dispatcher fermato tra il controllo e l'invocazione: chiusura in corso.
+            // Dispatcher stopped between the check and the invocation: shutdown in progress.
         }
     }
 }

@@ -8,9 +8,9 @@ using Soffritto.Desktop.ViewModels;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// L'anteprima di un ambiente ingrandita a tutta la finestra dell'app, sopra colonne e testata:
-/// resta dentro la finestra, non e' uno schermo intero di sistema. Mostra lo stesso browser di
-/// Claude della card.
+/// An environment's preview enlarged to fill the app window, above the columns and the header:
+/// it stays inside the window, it is not a system full screen. It shows the same Claude browser
+/// as the card.
 /// </summary>
 public sealed class PreviewOverlay : Grid
 {
@@ -36,7 +36,7 @@ public sealed class PreviewOverlay : Grid
         {
             Content = "",
             Foreground = Brushes.White,
-            ToolTip = "Torna alle colonne (Esc)",
+            ToolTip = "Back to the columns (Esc)",
         };
         exit.SetResourceReference(StyleProperty, "IconButton");
         exit.Click += (_, _) => Close();
@@ -52,7 +52,7 @@ public sealed class PreviewOverlay : Grid
         Children.Add(frame);
     }
 
-    /// <summary>Il fondo della barra in alto: lo stesso pennello di barra del titolo e footer.</summary>
+    /// <summary>The background of the top bar: the same brush as the title bar and footer.</summary>
     public Brush HeaderBackground { get => Background; set => Background = value; }
 
     public bool IsOpen => preview is not null;
@@ -86,7 +86,7 @@ public sealed class PreviewOverlay : Grid
         host.DataContext = null;
     }
 
-    // Il browser di Claude si e' chiuso o ha lasciato il frontend: non c'e' piu' niente da mostrare.
+    // The Claude browser closed or left the frontend: there is nothing left to show.
     private void OnPreviewChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName == nameof(FrontendPreviewViewModel.ClaudeViewVisibility)

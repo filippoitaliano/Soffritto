@@ -6,10 +6,10 @@ using System.Windows.Threading;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// La scrollbar a scomparsa (stile ScrollBar di App.xaml): il pollice si vede mentre si scorre,
-/// per <see cref="Linger"/> dopo l'ultimo scorrimento, e finche' il mouse e' sopra la barra.
-/// L'hover che blindtales.app non ha (in Chrome lo stile della barra non segue l'hover) qui
-/// serve: in orizzontale la rotella non scorre, la barra si trascina e va trovata.
+/// The auto-hiding scrollbar (ScrollBar style in App.xaml): the thumb shows while scrolling,
+/// for <see cref="Linger"/> after the last scroll, and while the mouse is over the bar.
+/// The hover that blindtales.app lacks (in Chrome the bar style does not follow hover) is needed
+/// here: horizontally the wheel does not scroll, so the bar is dragged and has to be found.
 /// </summary>
 public static class ScrollBarFade
 {
@@ -51,7 +51,7 @@ public static class ScrollBarFade
         bar.MouseLeave += (_, _) => Update(bar);
     }
 
-    // Compare subito, sparisce sfumando.
+    // Appears immediately, fades out.
     private static void Update(ScrollBar bar)
     {
         if (bar.Track is not { } track)

@@ -8,26 +8,26 @@ using Soffritto.Desktop.Infrastructure;
 
 namespace Soffritto.Desktop.ViewModels;
 
-/// <summary>Una voce della tendina del tipo di repository.</summary>
+/// <summary>An entry of the repository type dropdown.</summary>
 public sealed record TypeOption(RepositoryType Value, string Label);
 
 /// <summary>
-/// Il pannello di setup: lavora su una copia della configurazione attiva (catalogo dei
-/// repository e ambienti locali) e la valida mentre si scrive. Gli ambienti Docker restano nella
-/// copia ma non si mostrano: si creano e si distruggono dalla finestra principale. Salvare scrive la configurazione sotto il lock di
-/// <see cref="ConfigurationFiles.Update"/> (le voci Docker e i seed.path scritti a exe aperto
-/// restano), clona le cartelle e i cloni sorgente mancanti, crea i dev tunnel che mancano e chiede
-/// il riavvio dell'exe, rimandato se c'e' un'operazione Docker in corso.
+/// The setup panel: it works on a copy of the active configuration (repository catalog and
+/// local environments) and validates it as you type. Docker environments stay in the copy but
+/// are not shown: they are created and destroyed from the main window. Saving writes the configuration under the lock of
+/// <see cref="ConfigurationFiles.Update"/> (Docker entries and seed.path values written while the app
+/// is open are kept), clones the missing folders and source clones, creates the missing dev tunnels
+/// and asks the app to restart, postponed if a Docker operation is in progress.
 /// </summary>
 public sealed partial class SetupViewModel : ObservableObject
 {
-    /// <summary>Il tooltip dei campi bloccati dagli ambienti Docker esistenti.</summary>
-    public const string DockerLockToolTip = "Bloccato: esistono ambienti Docker che lo usano, e cambiarlo sposterebbe worktree, database o porte gia' in uso. Distruggi prima quegli ambienti con «Distruggi» nella loro colonna.";
+    /// <summary>The tooltip of the fields locked by existing Docker environments.</summary>
+    public const string DockerLockToolTip = "Locked: Docker environments use it, and changing it would move worktrees, databases or ports already in use. Destroy those environments first with “Destroy” in their column.";
 
     private readonly Func<string?> restart;
 
-    // I seed.path di config.json all'apertura (e dopo ogni Salva): dicono se «Allinea seed» li
-    // ha cambiati mentre il setup era aperto.
+    // The seed.path values of config.json when opened (and after every Save): they tell whether
+    // "Align seed" changed them while the setup was open.
     private readonly Dictionary<string, string> openedSeedPaths = new(StringComparer.OrdinalIgnoreCase);
     private AppConfiguration draft;
     private string root = string.Empty;
@@ -38,7 +38,7 @@ public sealed partial class SetupViewModel : ObservableObject
     private string notice;
     private bool isWorking;
 
-    /// <param name="restart">Chiede il riavvio dell'exe: null se partito, altrimenti il motivo per cui si rimanda.</param>
+    /// <param name="restart">Asks the app to restart: null if it started, otherwise why it is postponed.</param>
     public SetupViewModel(AppConfiguration current, string? notice, Func<string?> restart)
     {
         this.restart = restart;
@@ -71,14 +71,14 @@ public sealed partial class SetupViewModel : ObservableObject
         LoadDraft();
     }
 
-    /// <summary>Esistono ambienti Docker: i campi globali che li spostano (worktree, porte dei database) sono in sola lettura.</summary>
+    /// <summary>Docker environments exist: the global fields that would move them (worktrees, database ports) are read-only.</summary>
     public bool HasDockerEnvironments => draft.DockerEnvironments.Any();
 
     public bool IsDockerGlobalEditable => !HasDockerEnvironments;
 
     public string? DockerGlobalToolTip => HasDockerEnvironments ? DockerLockToolTip : null;
 
-    /// <summary>Il modello degli ambienti Docker come testo: vuoto = il primo ambiente locale.</summary>
+    /// <summary>The template of Docker environments as text: empty = the first local environment.</summary>
     public string TemplateEnvironmentText
     {
         get => draft.Docker.TemplateEnvironment?.ToString() ?? string.Empty;
@@ -90,16 +90,16 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
-    public string WorktreeRootHint => $"Vuota = {DockerDefaults.WorktreeRoot(root.Length > 0 ? root : "<cartella dei cloni>")}";
+    public string WorktreeRootHint => $"Empty = {DockerDefaults.WorktreeRoot(root.Length > 0 ? root : "<clones folder>")}";
 
     private DockerPanelViewModel? pool;
 
     /// <summary>
-    /// Le azioni Docker che valgono subito, fuori dal draft: il pool di tunnel della scheda
-    /// «Tunnel», seed, spazio e log della scheda «Docker». Dopo ogni azione sul pool il draft
-    /// riprende i tunnel della configurazione attiva, cosi' il Salva non rimette un tunnel
-    /// eliminato e non toglie un tunnel aggiunto. Un seed nuovo di «Allinea seed» entra nella card
-    /// del backend se il setup non ne ha cambiato il percorso (al Salva vince comunque, vedi Merge).
+    /// The Docker actions that take effect immediately, outside the draft: the tunnel pool of the
+    /// “Tunnels” tab, seed, disk space and log of the “Docker” tab. After every pool action the draft
+    /// picks up the tunnels of the active configuration again, so Save neither restores a deleted
+    /// tunnel nor removes an added one. A new seed from “Align seed” goes into the backend card
+    /// if the setup has not changed its path (on Save it wins anyway, see Merge).
     /// </summary>
     public DockerPanelViewModel? Pool
     {
@@ -130,7 +130,7 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
-    /// <summary>I tunnel del pool, ritrovati per Description e creati al Salva se l'account non li ha.</summary>
+    /// <summary>The pool tunnels, matched by Description and created on Save if the account does not have them.</summary>
     public ObservableCollection<PoolTunnelEditor> PoolTunnels { get; } = [];
 
 
@@ -146,7 +146,7 @@ public sealed partial class SetupViewModel : ObservableObject
     public static IReadOnlyList<TypeOption> TypeOptions { get; } =
         Enum.GetValues<RepositoryType>().Select(t => new TypeOption(t, AppConfiguration.TypeName(t))).ToList();
 
-    /// <summary>La configurazione su cui si lavora: i campi senza effetti sull'anteprima si legano direttamente qui.</summary>
+    /// <summary>The configuration being edited: fields with no effect on the preview bind directly here.</summary>
     public AppConfiguration Draft
     {
         get => draft;
@@ -167,7 +167,7 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
-    /// <summary>Il catalogo, una card per repository: l'ordine e' quello delle card nelle colonne.</summary>
+    /// <summary>The catalog, one card per repository: the order is that of the cards in the columns.</summary>
     public ObservableCollection<RepositoryCardEditor> Repositories { get; } = [];
 
     public ObservableCollection<EnvironmentEditor> EnvironmentsList { get; } = [];
@@ -194,7 +194,7 @@ public sealed partial class SetupViewModel : ObservableObject
 
     public string PatVisibility => UsesPat ? "Visible" : "Collapsed";
 
-    /// <summary>Il PAT scritto nella casella: vuoto lascia quello gia' salvato.</summary>
+    /// <summary>The PAT typed in the box: empty keeps the one already saved.</summary>
     public string NewPat
     {
         get => newPat;
@@ -208,10 +208,10 @@ public sealed partial class SetupViewModel : ObservableObject
     }
 
     public string PatHint => newPat.Length > 0
-        ? $"Nuovo {AzureDevOpsConnection.DescribePat(newPat)}: al salvataggio viene cifrato con il tuo utente Windows."
+        ? $"New {AzureDevOpsConnection.DescribePat(newPat)}: on save it is encrypted with your Windows user."
         : !string.IsNullOrEmpty(draft.AzureDevOps.PatProtected)
-            ? "PAT salvato e cifrato con il tuo utente Windows: lascia vuoto per tenerlo."
-            : "Nessun PAT salvato.";
+            ? "PAT saved and encrypted with your Windows user: leave empty to keep it."
+            : "No PAT saved.";
 
     public string AzureStatus { get => azureStatus; private set => SetProperty(ref azureStatus, value); }
 
@@ -229,7 +229,7 @@ public sealed partial class SetupViewModel : ObservableObject
 
     public string ErrorsVisibility => errorsText.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Configurazioni lecite ma da conoscere (doppioni di tipo, ambienti docker, VSIX): non bloccano il salvataggio.</summary>
+    /// <summary>Valid configurations worth knowing about (duplicate types, docker environments, VSIX): they do not block saving.</summary>
     public string WarningsText
     {
         get => warningsText;
@@ -244,7 +244,7 @@ public sealed partial class SetupViewModel : ObservableObject
 
     public string WarningsVisibility => warningsText.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Esito dell'avvio, dell'import o del salvataggio, e i passi della clonazione.</summary>
+    /// <summary>Outcome of startup, import or save, and the cloning steps.</summary>
     public string Notice
     {
         get => notice;
@@ -273,7 +273,7 @@ public sealed partial class SetupViewModel : ObservableObject
 
     public bool IsIdle => !isWorking;
 
-    public string SaveText => Preview.Any(r => r.WillClone) ? "Salva, clona e riavvia" : "Salva e riavvia";
+    public string SaveText => Preview.Any(r => r.WillClone) ? "Save, clone and restart" : "Save and restart";
 
     public ICommand SaveCommand { get; }
 
@@ -295,22 +295,22 @@ public sealed partial class SetupViewModel : ObservableObject
 
     public ComponentsViewModel Components { get; } = new();
 
-    /// <summary>Sostituisce i campi con un file json scelto dall'utente; si salva solo con Salva.</summary>
+    /// <summary>Replaces the fields with a json file chosen by the user; it is saved only with Save.</summary>
     public void Import(string path)
     {
         try
         {
             Draft = ConfigurationFiles.Parse(File.ReadAllText(path));
             LoadDraft();
-            Notice = $"Caricato {path}: controlla i campi e premi Salva per applicarlo, o Annulla per lasciare la configurazione com'e'.";
+            Notice = $"Loaded {path}: check the fields and press Save to apply it, or Cancel to leave the configuration as it is.";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Text.Json.JsonException)
         {
-            Notice = $"{path} non si legge: {ex.Message}";
+            Notice = $"{path} cannot be read: {ex.Message}";
         }
     }
 
-    /// <summary>Da chiamare quando cambia un campo legato direttamente a <see cref="Draft"/> o a una voce del catalogo.</summary>
+    /// <summary>Call this when a field bound directly to <see cref="Draft"/> or to a catalog entry changes.</summary>
     public void Revalidate()
     {
         var configuration = Collect();
@@ -353,8 +353,8 @@ public sealed partial class SetupViewModel : ObservableObject
         Refresh();
     }
 
-    // Un repository incluso in un ambiente Docker ha cartella, clone sorgente e servizio del
-    // compose in sola lettura: cambiarli sposterebbe worktree e container gia' creati.
+    // A repository included in a Docker environment has its folder, source clone and compose
+    // service read-only: changing them would move worktrees and containers already created.
     private RepositoryCardEditor NewEditor(RepositoryConfiguration repository)
         => new(
             repository,
@@ -365,9 +365,9 @@ public sealed partial class SetupViewModel : ObservableObject
             VerifySeedAsync,
             PreviewEnv);
 
-    // L'anteprima risolve gli env del repository su uno slot Docker fittizio (il numero libero piu'
-    // alto, senza porte del pool) con l'ambiente modello del draft. Mostra nomi, classi e origini:
-    // i valori no, perche' le costanti del modello possono contenere connessioni con password.
+    // The preview resolves the repository's env on a dummy Docker slot (the highest free number,
+    // without pool ports) with the draft's template environment. It shows names, classes and origins
+    // but not values, because the template's constants may contain connection strings with passwords.
     private string PreviewEnv(RepositoryCardEditor editor)
     {
         try
@@ -375,12 +375,12 @@ public sealed partial class SetupViewModel : ObservableObject
             var configuration = Clone(Collect());
             if (configuration.Repository(editor.Id) is not { } repository)
             {
-                return "Anteprima non calcolabile: id del repository non valido.";
+                return "Preview cannot be computed: invalid repository id.";
             }
 
             if (repository.Env is null)
             {
-                return "Nessun env: scegli un adapter o premi «Valori proposti».";
+                return "No env: choose an adapter or press “Suggested values”.";
             }
 
             var number = Enumerable.Range(1, AppConfiguration.MaxEnvironmentNumber).Reverse().First(n => configuration.Environment(n) is null);
@@ -394,70 +394,70 @@ public sealed partial class SetupViewModel : ObservableObject
             var entry = slot.Repositories.First(r => string.Equals(r.Id, repository.Id, StringComparison.OrdinalIgnoreCase));
             var resolution = Soffritto.Core.Env.EnvResolver.Resolve(configuration, entry, slot, new Dictionary<string, string>(), targetIsNew: false);
 
-            var lines = new List<string> { $"Slot fittizio {number}, ambiente modello {configuration.TemplateNumber()?.ToString() ?? "nessuno"}, senza porte del pool." };
+            var lines = new List<string> { $"Dummy slot {number}, template environment {configuration.TemplateNumber()?.ToString() ?? "none"}, without pool ports." };
             lines.Add($"Worktree ({resolution.Local.Count}):");
             lines.AddRange(resolution.Local.Select(Line));
             lines.Add($"Container ({resolution.Container.Count}):");
             lines.AddRange(resolution.Container.Select(Line));
-            lines.Add(resolution.Warnings.Count == 0 ? "Nessun avviso." : "Avvisi:");
+            lines.Add(resolution.Warnings.Count == 0 ? "No warnings." : "Warnings:");
             lines.AddRange(resolution.Warnings.Select(w => $"  ⚠ {w}"));
             return string.Join(Environment.NewLine, lines);
         }
         catch (Exception ex)
         {
-            return $"Anteprima non calcolabile: {ex.Message}";
+            return $"Preview cannot be computed: {ex.Message}";
         }
 
         static string Line(Soffritto.Core.Env.EnvVariable variable) => variable.Class switch
         {
-            Soffritto.Core.Env.EnvClass.SharedSecret => $"  {variable.Name} · (segreto da {variable.Origin})",
-            Soffritto.Core.Env.EnvClass.Constant => $"  {variable.Name} · costante, da {variable.Origin}",
+            Soffritto.Core.Env.EnvClass.SharedSecret => $"  {variable.Name} · (secret from {variable.Origin})",
+            Soffritto.Core.Env.EnvClass.Constant => $"  {variable.Name} · constant, from {variable.Origin}",
             _ => $"  {variable.Name} · per slot",
         };
     }
 
-    // «Verifica seed» sul draft, anche non salvato: un SQL Server temporaneo ripristina il seed e
-    // lo confronta con le migrazioni del codice. Con campi da sistemare non parte.
+    // "Verify seed" on the draft, even unsaved: a temporary SQL Server restores the seed and
+    // compares it with the code's migrations. It does not start while fields need fixing.
     private async Task VerifySeedAsync(RepositoryCardEditor editor)
     {
         var configuration = Collect();
         if (configuration.Validate() is { Count: > 0 } errors)
         {
-            editor.SeedVerifyText = $"Verifica non avviata, il setup ha campi da sistemare: {string.Join(" ", errors)}";
+            editor.SeedVerifyText = $"Verification not started, the setup has fields to fix: {string.Join(" ", errors)}";
             return;
         }
 
         if (editor.Current.Seed is not { Path.Length: > 0 } seed)
         {
-            editor.SeedVerifyText = "Verifica non avviata: manca il percorso del seed.";
+            editor.SeedVerifyText = "Verification not started: the seed path is missing.";
             return;
         }
 
         if (!ReferenceEquals(configuration.PrimarySeed(), editor.Current))
         {
-            editor.SeedVerifyText = "Verifica non avviata: vale per il seed del backend predefinito.";
+            editor.SeedVerifyText = "Verification not started: it applies to the default backend's seed.";
             return;
         }
 
         if (!File.Exists(seed.Path))
         {
-            editor.SeedVerifyText = $"il file del seed non esiste: {seed.Path}";
+            editor.SeedVerifyText = $"the seed file does not exist: {seed.Path}";
             return;
         }
 
         editor.IsVerifyingSeed = true;
-        editor.SeedVerifyText = "Verifica seed: avvio…";
+        editor.SeedVerifyText = "Verify seed: starting…";
         var copy = Clone(configuration);
         try
         {
             var result = await Task.Run(() => Soffritto.Core.Docker.Seed.SeedVerifier.VerifyAsync(
                 copy,
-                line => UiThread.Run(() => editor.SeedVerifyText = $"Verifica seed: {line}")));
+                line => UiThread.Run(() => editor.SeedVerifyText = $"Verify seed: {line}")));
             editor.SeedVerifyText = Describe(result);
         }
         catch (Exception ex)
         {
-            editor.SeedVerifyText = $"Verifica seed non riuscita: {ex.Message}";
+            editor.SeedVerifyText = $"Seed verification failed: {ex.Message}";
         }
         finally
         {
@@ -469,20 +469,20 @@ public sealed partial class SetupViewModel : ObservableObject
     {
         if (result.Error is { } error)
         {
-            return $"Verifica seed non riuscita: {error}";
+            return $"Seed verification failed: {error}";
         }
 
         var unknown = result.Contexts.SelectMany(c => c.Unknown).Distinct(StringComparer.Ordinal).ToList();
-        var contexts = result.Contexts.Select(c => $"{c.Context}: ultima {c.LastApplied ?? "nessuna"}, {c.MissingOnDev} migrazioni di dev mancanti");
-        return $"{(result.Compatible ? "compatibile" : "non compatibile")}. {string.Join("; ", contexts)}."
-            + (unknown.Count > 0 ? $" Migrazioni del seed che il codice non conosce: {string.Join(", ", unknown)}." : string.Empty);
+        var contexts = result.Contexts.Select(c => $"{c.Context}: last {c.LastApplied ?? "none"}, {c.MissingOnDev} dev migrations missing");
+        return $"{(result.Compatible ? "compatible" : "not compatible")}. {string.Join("; ", contexts)}."
+            + (unknown.Count > 0 ? $" Seed migrations the code does not know: {string.Join(", ", unknown)}." : string.Empty);
     }
 
-    // Il primo libero tra generico, generico2, ...: un id valido e unico, da rinominare a piacere.
+    // The first free one among generico, generico2, ...: a valid, unique id, to be renamed at will.
     private void AddRepository()
     {
         var id = Enumerable.Range(1, 99)
-            .Select(i => i == 1 ? "generico" : $"generico{i}")
+            .Select(i => i == 1 ? "generic" : $"generic{i}")
             .First(candidate => !Repositories.Any(r => string.Equals(r.Id, candidate, StringComparison.OrdinalIgnoreCase)));
 
         Repositories.Add(NewEditor(new GenericRepoConfiguration { Id = id, Folder = $"{id}-{AppConfiguration.NumberPlaceholder}" }));
@@ -507,8 +507,8 @@ public sealed partial class SetupViewModel : ObservableObject
         CatalogChanged();
     }
 
-    // Un ambiente nuovo prende il primo numero dopo l'ultimo locale che nessun ambiente Docker usa, e
-    // le inclusioni dell'ambiente locale col numero piu' alto: di solito si aggiunge un ambiente uguale agli altri.
+    // A new environment takes the first number after the last local one that no Docker environment uses, and
+    // the inclusions of the highest-numbered local environment: usually you add an environment like the others.
     private void AddEnvironment()
     {
         var docker = draft.DockerEnvironments.Select(e => e.Number).ToHashSet();
@@ -562,8 +562,8 @@ public sealed partial class SetupViewModel : ObservableObject
         Revalidate();
     }
 
-    // I campi con una vista propria (catalogo, ambienti locali, elenchi) tornano nel draft solo
-    // qui; gli ambienti Docker del draft, che il setup non mostra, restano com'erano.
+    // Fields with a view of their own (catalog, local environments, lists) go back into the draft only
+    // here; the draft's Docker environments, which the setup does not show, stay as they were.
     private AppConfiguration Collect()
     {
         var docker = draft.DockerEnvironments.ToList();
@@ -584,27 +584,27 @@ public sealed partial class SetupViewModel : ObservableObject
         var azure = draft.AzureDevOps;
         if (!azure.IsConfigured)
         {
-            AzureStatus = "Scrivi prima l'URL della collection.";
+            AzureStatus = "Enter the collection URL first.";
             return;
         }
 
         var pat = UsesPat ? (newPat.Length > 0 ? newPat : ConfigurationStore.PatOf(azure)) : null;
         if (UsesPat && pat is null)
         {
-            AzureStatus = "Manca il PAT.";
+            AzureStatus = "The PAT is missing.";
             return;
         }
 
-        AzureStatus = "Provo la connessione…";
+        AzureStatus = "Testing the connection…";
         try
         {
             using var connection = new AzureDevOpsConnection(azure.CollectionUrl, azure.Project, pat);
             var who = await connection.WhoAmIAsync();
-            AzureStatus = $"Connesso come {who}.";
+            AzureStatus = $"Connected as {who}.";
         }
         catch (Exception ex)
         {
-            AzureStatus = ex is TaskCanceledException ? "Azure DevOps non ha risposto entro 30 secondi." : ex.Message;
+            AzureStatus = ex is TaskCanceledException ? "Azure DevOps did not respond within 30 seconds." : ex.Message;
         }
     }
 
@@ -612,7 +612,7 @@ public sealed partial class SetupViewModel : ObservableObject
     {
         if (AppSettings.Current.IsDemo)
         {
-            Notice = "In modalità demo la configurazione non si salva: esci dalla demo con Ctrl+D.";
+            Notice = "In demo mode the configuration is not saved: leave the demo with Ctrl+D.";
             return;
         }
 
@@ -621,7 +621,7 @@ public sealed partial class SetupViewModel : ObservableObject
         if (errors.Count > 0)
         {
             Revalidate();
-            Notice = "Ci sono campi da sistemare prima di salvare.";
+            Notice = "Some fields need fixing before saving.";
             return;
         }
 
@@ -633,8 +633,8 @@ public sealed partial class SetupViewModel : ObservableObject
                 configuration.AzureDevOps.Pat = newPat;
             }
 
-            // Salva una copia con il PAT gia' cifrato: il draft resta com'e' se la scrittura viene
-            // rifiutata e si riprova.
+            // Save a copy with the PAT already encrypted: the draft stays as it is if the write is
+            // rejected and you try again.
             var saved = Clone(configuration);
             saved.AzureDevOps.Pat = configuration.AzureDevOps.Pat;
             ConfigurationStore.ProtectPat(saved.AzureDevOps);
@@ -644,18 +644,18 @@ public sealed partial class SetupViewModel : ObservableObject
             var fileReadable = ConfigurationFiles.TryLoad(out _) is not null;
             AppConfiguration? written = null;
             var updateError = await Task.Run(() => ConfigurationFiles.Update(
-                file => (written = Merge(file, saved, fileReadable, log)) is null ? "configurazione non composta" : null,
+                file => (written = Merge(file, saved, fileReadable, log)) is null ? "configuration not composed" : null,
                 ConfigurationFileFallback.Replace,
                 log.Add));
             if (updateError is not null)
             {
-                log.Insert(0, $"Configurazione non salvata: {updateError}");
+                log.Insert(0, $"Configuration not saved: {updateError}");
                 Notice = string.Join(Environment.NewLine, log);
                 return;
             }
 
-            // Il setup resta aperto se il riavvio si rimanda: riparte da cio' che e' stato scritto,
-            // voci Docker e seed.path del file compresi.
+            // The setup stays open if the restart is postponed: it restarts from what was written,
+            // including the file's Docker entries and seed.path values.
             RememberSeedPaths(written);
             Draft = Clone(written!);
             LoadDraft();
@@ -663,7 +663,7 @@ public sealed partial class SetupViewModel : ObservableObject
             NewPat = string.Empty;
             OnPropertyChanged(nameof(PatHint));
 
-            log.Insert(0, "Configurazione salvata.");
+            log.Insert(0, "Configuration saved.");
             Notice = string.Join(Environment.NewLine, log);
 
             var failed = false;
@@ -679,7 +679,7 @@ public sealed partial class SetupViewModel : ObservableObject
                     timeoutSeconds: 1800));
 
                 log[^1] = outcome.Success
-                    ? $"✓ {row.FolderName} clonato"
+                    ? $"✓ {row.FolderName} cloned"
                     : $"✗ {row.FolderName}: {outcome.Tail(2)}";
                 Notice = string.Join(Environment.NewLine, log);
                 failed |= !outcome.Success;
@@ -690,7 +690,7 @@ public sealed partial class SetupViewModel : ObservableObject
             if (failed)
             {
                 Refresh();
-                log.Add("Qualche clone non e' riuscito: la configurazione e' salvata, risolvi e premi di nuovo Salva (clona solo cio' che manca).");
+                log.Add("Some clones failed: the configuration is saved, fix the problem and press Save again (it clones only what is missing).");
                 Notice = string.Join(Environment.NewLine, log);
                 return;
             }
@@ -700,23 +700,23 @@ public sealed partial class SetupViewModel : ObservableObject
             {
                 Refresh();
                 log.Add(tunnelsFailed
-                    ? "Qualche tunnel non e' stato creato: la configurazione e' salvata, risolvi e premi di nuovo Salva (crea solo cio' che manca)."
-                    : "Configurazione salvata. Premi di nuovo Salva per riavviare.");
+                    ? "Some tunnels were not created: the configuration is saved, fix the problem and press Save again (it creates only what is missing)."
+                    : "Configuration saved. Press Save again to restart.");
                 Notice = string.Join(Environment.NewLine, log);
                 return;
             }
 
-            log.Add("Riavvio con la configurazione nuova…");
+            log.Add("Restarting with the new configuration…");
             Notice = string.Join(Environment.NewLine, log);
             if (restart() is { } postponed)
             {
-                log[^1] = $"Riavvio rimandato: {postponed}.";
+                log[^1] = $"Restart postponed: {postponed}.";
                 Notice = string.Join(Environment.NewLine, log);
             }
         }
         catch (Exception ex)
         {
-            Notice = $"Salvataggio non riuscito: {ex.Message}";
+            Notice = $"Save failed: {ex.Message}";
         }
         finally
         {
@@ -724,10 +724,10 @@ public sealed partial class SetupViewModel : ObservableObject
         }
     }
 
-    // Dentro il lock di config.json: il file riletto diventa il draft, tranne cio' che scrivono
-    // gli altri a exe aperto. Le voci Docker restano quelle del file (creazione e distruzione); un
-    // seed.path cambiato nel file da quando il setup e' aperto vince se il setup non l'ha toccato.
-    // Con il file assente o illeggibile (fileReadable falso) si scrive il draft com'e'.
+    // Inside the config.json lock: the reread file becomes the draft, except what others write
+    // while the app is open. Docker entries stay as in the file (creation and destruction); a
+    // seed.path changed in the file since the setup opened wins if the setup has not touched it.
+    // With the file missing or unreadable (fileReadable false) the draft is written as it is.
     private AppConfiguration Merge(AppConfiguration file, AppConfiguration saved, bool fileReadable, List<string> log)
     {
         var result = Clone(saved);
@@ -748,11 +748,11 @@ public sealed partial class SetupViewModel : ObservableObject
                 if (string.Equals(inDraft, opened, StringComparison.OrdinalIgnoreCase))
                 {
                     (repository.Seed ??= new SeedConfiguration()).Path = inFile;
-                    log.Add($"seed.path di {repository.Id} preso da config.json ({inFile}): l'ha scritto «Allinea seed» mentre il setup era aperto.");
+                    log.Add($"seed.path of {repository.Id} taken from config.json ({inFile}): “Align seed” wrote it while the setup was open.");
                 }
                 else
                 {
-                    log.Add($"seed.path di {repository.Id}: vince il valore del setup ({inDraft}); config.json aveva {inFile}, scritto mentre il setup era aperto.");
+                    log.Add($"seed.path of {repository.Id}: the setup value wins ({inDraft}); config.json had {inFile}, written while the setup was open.");
                 }
             }
         }
@@ -767,8 +767,8 @@ public sealed partial class SetupViewModel : ObservableObject
         return result;
     }
 
-    // Un clone sorgente configurato e assente nasce bare con il fetch di origin: da li' partono i
-    // worktree degli ambienti Docker. Uno che c'e' non si tocca.
+    // A configured source clone that is missing is created bare with a fetch of origin: the Docker
+    // environments' worktrees start from it. One that exists is left alone.
     private async Task<bool> CreateMissingSourceClonesAsync(AppConfiguration configuration, List<string> log)
     {
         var failed = false;
@@ -776,16 +776,16 @@ public sealed partial class SetupViewModel : ObservableObject
         {
             if (repository.CloneUrl.Length == 0)
             {
-                log.Add($"✗ {repository.Id}: clone sorgente non creato, manca l'URL di clone");
+                log.Add($"✗ {repository.Id}: source clone not created, the clone URL is missing");
                 failed = true;
                 continue;
             }
 
-            log.Add($"clone sorgente di {repository.Id} in {repository.SourceClone} (git init --bare e fetch)…");
+            log.Add($"source clone of {repository.Id} in {repository.SourceClone} (git init --bare and fetch)…");
             Notice = string.Join(Environment.NewLine, log);
 
             var error = await Task.Run(() => Soffritto.Core.Docker.SourceCloneRepository.InitAsync(repository.SourceClone!, repository.CloneUrl));
-            log[^1] = error is null ? $"✓ {repository.Id} clone sorgente creato" : $"✗ {repository.Id}: {error}";
+            log[^1] = error is null ? $"✓ {repository.Id} source clone created" : $"✗ {repository.Id}: {error}";
             Notice = string.Join(Environment.NewLine, log);
             failed |= error is not null;
         }
@@ -793,8 +793,8 @@ public sealed partial class SetupViewModel : ObservableObject
         return failed;
     }
 
-    // I tunnel del pool che l'account non ha nascono qui, «Owner only» e senza porte: le porte e
-    // l'accesso anonimo per porta arrivano accendendo «Tunnel» nell'intestazione di un ambiente.
+    // The pool tunnels the account does not have are created here, "Owner only" and without ports: the
+    // ports and per-port anonymous access come when “Tunnel” is turned on in an environment header.
     private async Task<(bool Created, bool Failed)> CreateMissingPoolTunnelsAsync(AppConfiguration configuration, List<string> log)
     {
         if (configuration.TunnelPool.Tunnels.Count == 0)
@@ -802,13 +802,13 @@ public sealed partial class SetupViewModel : ObservableObject
             return (false, false);
         }
 
-        log.Add("Controllo i dev tunnel (devtunnel list)…");
+        log.Add("Checking the dev tunnels (devtunnel list)…");
         Notice = string.Join(Environment.NewLine, log);
 
         var (tunnels, error) = await Task.Run(() => DevTunnelProvisioner.ListTunnelsAsync());
         if (tunnels is null)
         {
-            log[^1] = $"✗ dev tunnel non controllati: {error}";
+            log[^1] = $"✗ dev tunnels not checked: {error}";
             return (false, true);
         }
 
@@ -820,12 +820,12 @@ public sealed partial class SetupViewModel : ObservableObject
         foreach (var description in DevTunnelProvisioner.MissingPoolDescriptions(configuration, descriptions))
         {
             var label = configuration.TunnelPool.Tunnels.First(t => t.Description == description).Label;
-            log.Add($"devtunnel create {description} (tunnel del pool, Owner only, senza porte)…");
+            log.Add($"devtunnel create {description} (pool tunnel, Owner only, no ports)…");
             Notice = string.Join(Environment.NewLine, log);
 
             var (tunnelId, createError) = await Task.Run(() => DevTunnelProvisioner.CreatePoolTunnelAsync(description, label));
             log[^1] = createError is null
-                ? $"✓ tunnel del pool {description} creato: {tunnelId}"
+                ? $"✓ pool tunnel {description} created: {tunnelId}"
                 : $"✗ {description}: {createError}";
             Notice = string.Join(Environment.NewLine, log);
 
@@ -842,8 +842,8 @@ public sealed partial class SetupViewModel : ObservableObject
 }
 
 /// <summary>
-/// Una card del catalogo nel setup. La voce cambia classe quando cambia il tipo: le istanze di
-/// ogni tipo restano in memoria, cosi' tornando a un tipo i suoi campi ricompaiono.
+/// A catalog card in the setup. The entry changes class when the type changes: the instances of
+/// every type stay in memory, so switching back to a type brings its fields back.
 /// </summary>
 public sealed class RepositoryCardEditor : ObservableObject
 {
@@ -854,8 +854,8 @@ public sealed class RepositoryCardEditor : ObservableObject
     private string portsText;
     private string appSettingsText = string.Empty;
 
-    /// <param name="isDockerLocked">Il repository e' in un ambiente Docker: cartella, clone sorgente, compose, servizio e porte in sola lettura.</param>
-    /// <param name="worktreeRoot">La cartella dei worktree Docker del draft, per proporre il clone sorgente.</param>
+    /// <param name="isDockerLocked">The repository is in a Docker environment: folder, source clone, compose, service and ports are read-only.</param>
+    /// <param name="worktreeRoot">The draft's Docker worktree folder, used to suggest the source clone.</param>
     public RepositoryCardEditor(
         RepositoryConfiguration repository,
         Action changed,
@@ -919,7 +919,7 @@ public sealed class RepositoryCardEditor : ObservableObject
         });
     }
 
-    /// <summary>La voce del catalogo con il tipo scelto; i campi con una vista propria ci tornano con <see cref="Collect"/>.</summary>
+    /// <summary>The catalog entry with the chosen type; fields with a view of their own go back into it with <see cref="Collect"/>.</summary>
     public RepositoryConfiguration Current { get; private set; }
 
     public RepositoryType Type
@@ -984,7 +984,7 @@ public sealed class RepositoryCardEditor : ObservableObject
         }
     }
 
-    /// <summary>Il repository si puo' condividere con una porta del pool di tunnel.</summary>
+    /// <summary>The repository can be shared through a tunnel pool port.</summary>
     public bool TunnelEnabled
     {
         get => Current.DevTunnel is not null;
@@ -1005,7 +1005,7 @@ public sealed class RepositoryCardEditor : ObservableObject
 
     public string TunnelVisibility => TunnelEnabled ? "Visible" : "Collapsed";
 
-    /// <summary>Le porte manuali, "8443/https, 3000/http": vuoto = quelle del tipo.</summary>
+    /// <summary>The manual ports, "8443/https, 3000/http": empty = the type's defaults.</summary>
     public string TunnelPortsText
     {
         get => portsText;
@@ -1020,14 +1020,14 @@ public sealed class RepositoryCardEditor : ObservableObject
         }
     }
 
-    /// <summary>Il repository e' in un ambiente Docker: i campi che spostano worktree e container sono in sola lettura.</summary>
+    /// <summary>The repository is in a Docker environment: the fields that would move worktrees and containers are read-only.</summary>
     public bool IsDockerLocked { get; }
 
     public bool IsDockerEditable => !IsDockerLocked;
 
     public string? DockerLockToolTip => IsDockerLocked ? SetupViewModel.DockerLockToolTip : null;
 
-    /// <summary>Il clone bare da cui nascono i worktree degli ambienti Docker; vuoto = il repository non entra negli ambienti Docker.</summary>
+    /// <summary>The bare clone the Docker environments' worktrees are created from; empty = the repository is not part of Docker environments.</summary>
     public string SourceClone
     {
         get => Current.SourceClone ?? string.Empty;
@@ -1043,8 +1043,8 @@ public sealed class RepositoryCardEditor : ObservableObject
 
     public string ComposeVisibility => Type == RepositoryType.Backend ? "Visible" : "Collapsed";
 
-    // I campi della sezione Docker mostrano il valore che vale (il default del tipo se il campo
-    // e' vuoto) e scrivono solo quando si cambiano: un campo lasciato com'e' resta vuoto nel file.
+    // The Docker section fields show the effective value (the type's default if the field is
+    // empty) and write only when changed: a field left as it is stays empty in the file.
     public string DockerCompose
     {
         get => Current.DockerCompose;
@@ -1073,24 +1073,24 @@ public sealed class RepositoryCardEditor : ObservableObject
         set => EditDocker(d => d.Service = value?.Trim() ?? string.Empty);
     }
 
-    /// <summary>Le porte pubblicate "base:porta", separate da virgole.</summary>
+    /// <summary>The published ports "base:port", comma-separated.</summary>
     public string DockerPublishedPortsText
     {
         get => string.Join(", ", Current.DockerPublishedPorts);
         set => EditDocker(d => d.PublishedPorts = SplitList(value, [',', ';']));
     }
 
-    /// <summary>I file copiati dall'ambiente modello al worktree, uno per riga.</summary>
+    /// <summary>The files copied from the template environment to the worktree, one per line.</summary>
     public string DockerLocalFilesText
     {
         get => string.Join(Environment.NewLine, Current.Docker?.LocalFiles ?? []);
         set => EditDocker(d => d.LocalFiles = SplitList(value, ['\r', '\n']));
     }
 
-    /// <summary>I sistemi di persistenza del seed: oggi solo SQL Server.</summary>
+    /// <summary>The seed persistence systems: currently only SQL Server.</summary>
     public static IReadOnlyList<SeedKindOption> SeedKindOptions { get; } = [new(SeedKind.SqlServer, "SQL Server")];
 
-    // Senza seed i campi mostrano i valori di un seed nuovo; il primo campo cambiato lo crea.
+    // Without a seed the fields show the values of a new seed; the first field changed creates it.
     private SqlServerSeedConfiguration ShownSqlServer => Current.Seed?.SqlServer ?? new SqlServerSeedConfiguration();
 
     public SeedKind SeedKind
@@ -1121,14 +1121,14 @@ public sealed class RepositoryCardEditor : ObservableObject
         set => EditSeed(s => s.SqlServer.DatabaseName = value?.Trim() ?? string.Empty);
     }
 
-    /// <summary>La password del SQL Server dei container: non e' un segreto, protegge solo container su 127.0.0.1.</summary>
+    /// <summary>The containers' SQL Server password: not a secret, it only protects containers on 127.0.0.1.</summary>
     public string SeedPassword
     {
         get => ShownSqlServer.Password;
         set => EditSeed(s => s.SqlServer.Password = value ?? string.Empty);
     }
 
-    /// <summary>La memoria di SQL Server in MB, come testo: un valore che non si legge diventa 0 e la validazione lo segnala.</summary>
+    /// <summary>SQL Server memory in MB, as text: an unreadable value becomes 0 and validation flags it.</summary>
     public string SeedMemoryText
     {
         get => ShownSqlServer.MemoryLimitMb.ToString();
@@ -1160,10 +1160,10 @@ public sealed class RepositoryCardEditor : ObservableObject
 
     public bool CanVerifySeed => !isVerifyingSeed;
 
-    /// <summary>Esito di «Verifica seed», o il motivo per cui non e' partita.</summary>
+    /// <summary>Outcome of “Verify seed”, or why it did not start.</summary>
     public string SeedVerifyText { get => seedVerifyText; set => SetProperty(ref seedVerifyText, value); }
 
-    // Un seed nuovo parte dalla password proposta (G-7): il resto lo scrive l'utente.
+    // A new seed starts from the suggested password (G-7): the user writes the rest.
     private void EditSeed(Action<SeedConfiguration> edit)
     {
         edit(Current.Seed ??= new SeedConfiguration { SqlServer = { Password = SqlServerSeedConfiguration.ProposedPassword } });
@@ -1191,14 +1191,14 @@ public sealed class RepositoryCardEditor : ObservableObject
 
     public string AppVisibility => App is null ? "Collapsed" : "Visible";
 
-    /// <summary>Gli appsettings da cui leggere la connection string, uno per riga.</summary>
+    /// <summary>The appsettings files to read the connection string from, one per line.</summary>
     public string AppSettingsText
     {
         get => appSettingsText;
         set => SetProperty(ref appSettingsText, value ?? string.Empty);
     }
 
-    /// <summary>I nomi di database e di server da evidenziare sulla card dell'ambiente, separati da virgole.</summary>
+    /// <summary>The database and server names to highlight on the environment card, comma-separated.</summary>
     public string HighlightedTagsText
     {
         get => string.Join(", ", Backend?.HighlightedTags ?? []);
@@ -1235,8 +1235,8 @@ public sealed class RepositoryCardEditor : ObservableObject
         }
     }
 
-    // Con ambienti Docker la variabile di connessione del backend resta com'e' (G-1, B30): il
-    // container dell'api e la guardia del database dipendono da lei.
+    // With Docker environments the backend's connection variable stays as it is (G-1, B30): the
+    // api container and the database guard depend on it.
     private void LoadEnvViews()
     {
         EnvManualRows.Clear();
@@ -1261,7 +1261,7 @@ public sealed class RepositoryCardEditor : ObservableObject
         => Current is BackendConfiguration backend
             && string.Equals(name, $"ConnectionStrings:{backend.ConnectionStringName}", StringComparison.OrdinalIgnoreCase);
 
-    // I valori proposti del tipo sostituiscono la sezione; una riga di connessione bloccata resta quella che c'e'.
+    // The type's suggested values replace the section; a locked connection row stays as it is.
     private void ProposeEnv()
     {
         Collect();
@@ -1290,20 +1290,20 @@ public sealed class RepositoryCardEditor : ObservableObject
         }
     }
 
-    /// <summary>Le voci della tendina dell'adapter: "none" = il repository non ha env.</summary>
+    /// <summary>The adapter dropdown entries: "none" = the repository has no env.</summary>
     public static IReadOnlyList<EnvAdapterOption> EnvAdapterOptions { get; } =
     [
-        new("none", "(nessuno)"),
-        new(nameof(EnvAdapterKind.Manual), "manuale"),
+        new("none", "(none)"),
+        new(nameof(EnvAdapterKind.Manual), "manual"),
         new(nameof(EnvAdapterKind.Bat), ".bat"),
         new(nameof(EnvAdapterKind.Dotenv), "dotenv"),
         new(nameof(EnvAdapterKind.AppSettings), "appsettings"),
     ];
 
-    /// <summary>Le voci della tendina della fonte dei segreti: i segreti non si scrivono a mano.</summary>
+    /// <summary>The secrets source dropdown entries: secrets are never typed by hand.</summary>
     public static IReadOnlyList<EnvAdapterOption> SecretsAdapterOptions { get; } =
     [
-        new("none", "(nessuna)"),
+        new("none", "(none)"),
         new(nameof(EnvAdapterKind.Bat), ".bat"),
         new(nameof(EnvAdapterKind.Dotenv), "dotenv"),
         new(nameof(EnvAdapterKind.AppSettings), "appsettings"),
@@ -1348,7 +1348,7 @@ public sealed class RepositoryCardEditor : ObservableObject
         set => EditEnv(e => e.ConstantsSource = value?.Trim() ?? string.Empty);
     }
 
-    /// <summary>I prefissi esclusi dalle costanti del container, separati da virgole (es. Kestrel:).</summary>
+    /// <summary>The prefixes excluded from the container constants, comma-separated (e.g. Kestrel:).</summary>
     public string EnvContainerExcludeText
     {
         get => string.Join(", ", Current.Env?.ContainerExclude ?? []);
@@ -1393,10 +1393,10 @@ public sealed class RepositoryCardEditor : ObservableObject
 
     private string envPreviewText = string.Empty;
 
-    /// <summary>L'anteprima degli env su uno slot fittizio: nomi, classi e origini, mai valori.</summary>
+    /// <summary>The env preview on a dummy slot: names, classes and origins, never values.</summary>
     public string EnvPreviewText { get => envPreviewText; private set => SetProperty(ref envPreviewText, value); }
 
-    // Le sezioni env esistono solo con un adapter scelto: senza, i campi restano spenti.
+    // The env sections exist only with an adapter chosen: without one, the fields stay disabled.
     private void EditEnv(Action<EnvConfiguration> edit)
     {
         if (Current.Env is not { } env)
@@ -1432,7 +1432,7 @@ public sealed class RepositoryCardEditor : ObservableObject
     private static string FormatPorts(List<TunnelPortConfiguration>? ports)
         => ports is null ? string.Empty : string.Join(", ", ports.Select(p => $"{p.Number}/{p.Protocol}"));
 
-    // Una porta che non si legge diventa la porta 0: la validazione la segnala con il resto.
+    // A port that cannot be parsed becomes port 0: validation flags it along with the rest.
     private static List<TunnelPortConfiguration>? ParsePorts(string text)
     {
         var ports = text
@@ -1452,7 +1452,7 @@ public sealed class RepositoryCardEditor : ObservableObject
     }
 }
 
-/// <summary>Un ambiente locale nel setup: numero, repository inclusi, radice facoltativa e database protetto.</summary>
+/// <summary>A local environment in the setup: number, included repositories, optional root and protected database.</summary>
 public sealed class EnvironmentEditor : ObservableObject
 {
     private readonly Action changed;
@@ -1490,7 +1490,7 @@ public sealed class EnvironmentEditor : ObservableObject
         }
     }
 
-    /// <summary>La cartella dei cloni di questo ambiente; vuota = la radice comune.</summary>
+    /// <summary>This environment's clones folder; empty = the common root.</summary>
     public string Root
     {
         get => root;
@@ -1503,7 +1503,7 @@ public sealed class EnvironmentEditor : ObservableObject
         }
     }
 
-    /// <summary>Il database del backend e' protetto: migrazioni e schema non si toccano.</summary>
+    /// <summary>The backend database is protected: migrations and schema are not touched.</summary>
     public bool ProtectedDatabase
     {
         get => protectedDatabase;
@@ -1518,7 +1518,7 @@ public sealed class EnvironmentEditor : ObservableObject
 
     public ObservableCollection<InclusionToggle> Inclusions { get; } = [];
 
-    /// <summary>Riallinea le caselle al catalogo dopo un'aggiunta, una rimozione o uno spostamento.</summary>
+    /// <summary>Realigns the checkboxes with the catalog after an addition, a removal or a move.</summary>
     public void Sync(IEnumerable<RepositoryCardEditor> catalog)
     {
         var previous = Inclusions.ToDictionary(i => i.Repository, i => i.IsIncluded);
@@ -1539,10 +1539,10 @@ public sealed class EnvironmentEditor : ObservableObject
     };
 }
 
-/// <summary>Una voce delle tendine degli adapter degli env: la chiave e' il nome dell'adapter o "none".</summary>
+/// <summary>An entry of the env adapter dropdowns: the key is the adapter name or "none".</summary>
 public sealed record EnvAdapterOption(string Key, string Label);
 
-/// <summary>Una variabile con valore per slot nel setup; quella di connessione del backend e' bloccata con ambienti Docker.</summary>
+/// <summary>A per-slot variable in the setup; the backend's connection variable is locked when Docker environments exist.</summary>
 public sealed class EnvSlotRowEditor(EnvSlotVariable variable, bool isLocked, Action changed) : ObservableObject
 {
     public EnvSlotVariable Variable { get; } = variable;
@@ -1584,13 +1584,13 @@ public sealed class EnvSlotRowEditor(EnvSlotVariable variable, bool isLocked, Ac
     }
 }
 
-/// <summary>Una voce della tendina del tipo di seed.</summary>
+/// <summary>An entry of the seed type dropdown.</summary>
 public sealed record SeedKindOption(SeedKind Value, string Label);
 
-/// <summary>Un tunnel del pool nel setup: la Description con cui si ritrova e la label.</summary>
+/// <summary>A pool tunnel in the setup: the Description it is matched by, and the label.</summary>
 public sealed class PoolTunnelEditor(PoolTunnelConfiguration tunnel, Action changed) : ObservableObject
 {
-    /// <summary>La label proposta per un tunnel nuovo del pool.</summary>
+    /// <summary>The suggested label for a new pool tunnel.</summary>
     public const string ProposedLabel = Soffritto.Core.Docker.TunnelPool.DefaultLabel;
 
     public PoolTunnelConfiguration Tunnel { get; } = tunnel;
@@ -1616,7 +1616,7 @@ public sealed class PoolTunnelEditor(PoolTunnelConfiguration tunnel, Action chan
     }
 }
 
-/// <summary>Un repository del catalogo, incluso o no in un ambiente.</summary>
+/// <summary>A catalog repository, included in an environment or not.</summary>
 public sealed class InclusionToggle(RepositoryCardEditor repository, bool isIncluded, Action changed) : ObservableObject
 {
     private bool isIncluded = isIncluded;
@@ -1641,7 +1641,7 @@ public sealed record FolderPreviewRow(int Number, IReadOnlyList<FolderPreview> F
     public bool WillClone => Folders.Any(f => f.WillClone);
 }
 
-/// <summary>Una cartella di un ambiente locale come la vedrebbe la configurazione: Salva la clona se manca e ha un URL di clone.</summary>
+/// <summary>A local environment folder as the configuration would see it: Save clones it if it is missing and has a clone URL.</summary>
 public sealed record FolderPreview(string Path, string FolderName, string CloneUrl, bool WillClone)
 {
     public static FolderPreview Of(EnvironmentRepository repository)

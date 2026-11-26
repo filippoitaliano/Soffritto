@@ -12,10 +12,10 @@ internal sealed class DevEnvironmentExtension : Extension
             version: this.ExtensionAssemblyVersion,
             publisherName: "Filippo Italiano",
             displayName: "Soffritto",
-            description: "Stato del clone del backend: migrazioni EF Core dei context configurati, git, dev tunnel e Kestrel. Pull, cambio e pulizia branch, database update e avvio di Kestrel con le loro guardie.")
+            description: "Status of the backend clone: EF Core migrations of the configured contexts, git, dev tunnel and Kestrel. Pull, branch switch and cleanup, database update and Kestrel start, each with its safeguards.")
         {
-            // Senza questo, un progetto AnyCPU genera due InstallationTarget (Amd64|Arm64) e
-            // VSIXInstaller rifiuta il pacchetto con "Multiple targets are currently not supported".
+            // Without this, an AnyCPU project produces two InstallationTargets (Amd64|Arm64) and
+            // VSIXInstaller rejects the package with "Multiple targets are currently not supported".
             InstallationTargetArchitecture = VisualStudioArchitecture.Amd64,
             Icon = "Images\\icon.png",
             PreviewImage = "Images\\preview.png",

@@ -16,13 +16,13 @@ public sealed class RecentMigrationRowViewModel(int position, string name, strin
 {
     private bool isNotBusy = true;
 
-    /// <summary>Posizione nel context (1 = la prima migrazione), nel badge della lane.</summary>
+    /// <summary>Position in the context (1 = the first migration), shown in the lane badge.</summary>
     public string Position { get; } = position.ToString();
 
-    /// <summary>Nome della migrazione senza il timestamp.</summary>
+    /// <summary>Migration name without the timestamp.</summary>
     public string Name { get; } = name;
 
-    /// <summary>Il tag della lane: nessuno per l'applicata, rosso per la mancante, grigio per le altre anomalie.</summary>
+    /// <summary>The lane tag: none for an applied migration, red for a missing one, grey for any other anomaly.</summary>
     public string Note { get; } = state == MigrationLabels.Applied ? string.Empty : LaneTags.Capitalize(state);
 
     public string NoteColor { get; } = state == MigrationLabels.Missing ? LaneTags.Error : LaneTags.Neutral;
@@ -33,7 +33,7 @@ public sealed class RecentMigrationRowViewModel(int position, string name, strin
 
     public bool CanRun { get; init; }
 
-    /// <summary>False mentre un'azione di scrittura e' in corso sul backend.</summary>
+    /// <summary>False while a write action is running on the backend.</summary>
     public bool IsNotBusy
     {
         get => isNotBusy;
@@ -48,7 +48,7 @@ public sealed class RecentMigrationRowViewModel(int position, string name, strin
 
     public bool RunEnabled => CanRun && isNotBusy;
 
-    /// <summary>Lancia dotnet ef database update fino a questa migrazione, anche all'indietro.</summary>
+    /// <summary>Runs dotnet ef database update up to this migration, backwards too.</summary>
     public ICommand? RunCommand { get; init; }
 }
 
@@ -71,11 +71,11 @@ public sealed class ContextRowViewModel : ObservableObject
         StatusColor = statusColor;
         this.isUpToDate = isUpToDate;
 
-        // Un context allineato non ha niente da dire: parte chiuso. Le righe
-        // si ricreano a ogni lettura, quindi lo stato si riallinea a ogni refresh.
+        // An up-to-date context has nothing to say, so it starts collapsed. Rows are
+        // rebuilt on every read, so the state realigns on every refresh.
         Expander = new Expander(isExpanded: !isUpToDate);
 
-        // Sfogliare e' un'operazione locale sulle righe gia' costruite: nessuna rilettura.
+        // Paging is local to the rows already built: nothing is read again.
         PreviousPageCommand = new AsyncCommand(() =>
         {
             ShowPage(page - 1);
@@ -97,35 +97,35 @@ public sealed class ContextRowViewModel : ObservableObject
 
     public int OutOfOrderCount { get; init; }
 
-    /// <summary>Lo stato del context in parole, per il tooltip del pallino.</summary>
+    /// <summary>The context status in words, for the status dot tooltip.</summary>
     public string StatusToolTip
     {
         get
         {
             if (isUpToDate)
             {
-                return "Migrazioni allineate";
+                return "Migrations up to date";
             }
 
             var parts = new List<string>();
             if (MissingCount > 0)
             {
-                parts.Add(MissingCount == 1 ? "1 migrazione mancante" : $"{MissingCount} migrazioni mancanti");
+                parts.Add(MissingCount == 1 ? "1 missing migration" : $"{MissingCount} missing migrations");
             }
 
             if (OutOfOrderCount > 0)
             {
-                parts.Add(OutOfOrderCount == 1 ? "1 migrazione fuori ordine" : $"{OutOfOrderCount} migrazioni fuori ordine");
+                parts.Add(OutOfOrderCount == 1 ? "1 migration out of order" : $"{OutOfOrderCount} migrations out of order");
             }
 
-            return parts.Count > 0 ? string.Join(" · ", parts) : Note.Length > 0 ? Note : "Migrazioni da controllare";
+            return parts.Count > 0 ? string.Join(" · ", parts) : Note.Length > 0 ? Note : "Migrations need checking";
         }
     }
 
-    /// <summary>Note, ultime migrazioni e pager: visibili solo a card aperta.</summary>
+    /// <summary>Note, latest migrations and pager: visible only while the card is expanded.</summary>
     public Expander Expander { get; }
 
-    /// <summary>Ora dell'ultima lettura, "lettura…" mentre si rilegge, o l'azione in corso sulle migrazioni.</summary>
+    /// <summary>Time of the last read, "reading…" while reading again, or the migration action in progress.</summary>
     public string Stamp
     {
         get => action ?? stamp;
@@ -140,7 +140,7 @@ public sealed class ContextRowViewModel : ObservableObject
 
     public bool IsLoading => Stamp.EndsWith('…');
 
-    /// <summary>Azione in corso sulle migrazioni del backend; null a fine azione.</summary>
+    /// <summary>Migration action in progress on the backend; null once it ends.</summary>
     public string? Action
     {
         get => action;
@@ -154,7 +154,7 @@ public sealed class ContextRowViewModel : ObservableObject
         }
     }
 
-    /// <summary>False mentre un'azione di scrittura e' in corso sul backend: blocca tutti i bottoni di update.</summary>
+    /// <summary>False while a write action is running on the backend: disables every update button.</summary>
     public bool IsNotBusy
     {
         get => isNotBusy;
@@ -172,7 +172,7 @@ public sealed class ContextRowViewModel : ObservableObject
         }
     }
 
-    /// <summary>La pagina corrente delle migrazioni del context, dalla piu' nuova.</summary>
+    /// <summary>The current page of the context's migrations, newest first.</summary>
     public ObservableCollection<RecentMigrationRowViewModel> Recent { get; } = [];
 
     public string RecentVisibility { get; private set; } = "Collapsed";
@@ -193,7 +193,7 @@ public sealed class ContextRowViewModel : ObservableObject
 
     public string NoteVisibility => Note.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Tutte le migrazioni del context, dalla piu' recente: se ne mostra una pagina alla volta.</summary>
+    /// <summary>All the context's migrations, newest first: one page is shown at a time.</summary>
     public void SetRecent(IReadOnlyList<RecentMigrationRowViewModel> ordered)
     {
         allRecent = ordered;

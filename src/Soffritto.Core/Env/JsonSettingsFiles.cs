@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Soffritto.Core.Env;
 
-/// <summary>Come si leggono gli appsettings dei repository: JSONC, con commenti e virgole finali.</summary>
+/// <summary>How repository appsettings are read: JSONC, with comments and trailing commas.</summary>
 public static class JsonSettingsFiles
 {
     public static readonly JsonDocumentOptions Options = new()

@@ -4,19 +4,19 @@ using System.Text;
 
 namespace Soffritto.Desktop;
 
-/// <summary>Esito di un comando di playwright-cli: codice di uscita e output standard.</summary>
+/// <summary>Result of a playwright-cli command: exit code and standard output.</summary>
 public sealed record PlaywrightCliResult(int ExitCode, string Output);
 
 /// <summary>
-/// Lancia playwright-cli con lo stesso ambiente della dashboard: il PATH aggiornato dal registro e
-/// la LOCALAPPDATA del registro dei browser, senza la quale <c>-s=&lt;sessione&gt;</c> non trova i
-/// browser aperti da un'app MSIX.
+/// Runs playwright-cli with the same environment as the dashboard: the PATH refreshed from the
+/// registry and the LOCALAPPDATA of the browser registry, without which <c>-s=&lt;session&gt;</c>
+/// cannot find the browsers opened by an MSIX app.
 /// </summary>
 public static class PlaywrightCli
 {
     public static bool IsInstalled(string path) => IsOnPath("playwright-cli", path);
 
-    /// <summary>Esegue <c>playwright-cli</c> con gli argomenti dati; null se non parte o non finisce in tempo.</summary>
+    /// <summary>Runs <c>playwright-cli</c> with the given arguments; null if it fails to start or does not finish in time.</summary>
     public static async Task<PlaywrightCliResult?> RunAsync(string localAppData, IEnumerable<string> arguments, TimeSpan timeout, CancellationToken cancellationToken)
     {
         var path = CurrentPath();
@@ -75,16 +75,16 @@ public static class PlaywrightCli
             }
             catch
             {
-                // Gia' uscito tra il timeout e la chiusura.
+                // Already exited between the timeout and the kill.
             }
 
             return null;
         }
     }
 
-    // Explorer tiene l'ambiente di quando e' partito: un exe aperto da Start non vede le voci del
-    // PATH aggiunte dopo (qui C:\Program Files\nodejs, senza cui playwright-cli.cmd non trova node).
-    // Si aggiungono quelle di sistema e utente lette dal registro, in coda a quelle ereditate.
+    // Explorer keeps the environment it started with: an exe launched from Start does not see PATH
+    // entries added later (here C:\Program Files\nodejs, without which playwright-cli.cmd cannot
+    // find node). The system and user entries read from the registry are appended to the inherited ones.
     public static string CurrentPath()
     {
         var entries = new List<string>();
@@ -123,7 +123,7 @@ public static class PlaywrightCli
             }
             catch (ArgumentException)
             {
-                // Voce del PATH con caratteri non validi: si passa alla successiva.
+                // PATH entry with invalid characters: move on to the next one.
             }
         }
 

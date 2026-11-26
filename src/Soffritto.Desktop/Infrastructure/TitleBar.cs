@@ -6,9 +6,9 @@ using System.Windows.Media;
 namespace Soffritto.Desktop.Infrastructure;
 
 /// <summary>
-/// Barra del titolo di Windows nel colore del footer, con titolo bianco e l'icona a colori dell'exe.
-/// Colori della caption via DWM: Windows 11 o successivo; su versioni precedenti la chiamata non
-/// ha effetto e resta la barra di sistema.
+/// Windows title bar in the footer colour, with a white title and the app's colour icon.
+/// Caption colours via DWM: Windows 11 or later; on earlier versions the call has no effect
+/// and the system bar stays.
 /// </summary>
 internal static class TitleBar
 {
@@ -16,7 +16,7 @@ internal static class TitleBar
     private const int DwmwaTextColor = 36;
     private const int White = 0x00FFFFFF;
 
-    /// <summary>Da chiamare a finestra creata (SourceInitialized), quando esiste l'handle.</summary>
+    /// <summary>Call once the window is created (SourceInitialized), when the handle exists.</summary>
     public static void Apply(Window window, Color caption)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
@@ -33,7 +33,7 @@ internal static class TitleBar
             return;
         }
 
-        // COLORREF e' 0x00BBGGRR.
+        // COLORREF is 0x00BBGGRR.
         var colorRef = caption.R | (caption.G << 8) | (caption.B << 16);
         DwmSetWindowAttribute(hwnd, DwmwaCaptionColor, ref colorRef, sizeof(int));
     }

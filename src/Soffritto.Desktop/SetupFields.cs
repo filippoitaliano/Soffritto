@@ -5,8 +5,8 @@ using System.Windows.Controls.Primitives;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Il bottone «i» accanto a un'etichetta del setup: al passaggio del mouse mostra la descrizione,
-/// al clic la tiene aperta finche' non si clicca altrove. Il disegno e' nello stile di SetupPanel.
+/// The “i” button next to a setup label: on hover it shows the description, on click it keeps it
+/// open until you click elsewhere. Its look is in the SetupPanel style.
 /// </summary>
 public sealed class InfoTip : ToggleButton
 {
@@ -21,9 +21,9 @@ public sealed class InfoTip : ToggleButton
 }
 
 /// <summary>
-/// L'etichetta di un campo del setup: il nome, il bottone «i» con la descrizione (<see cref="Info"/>),
-/// il lucchetto dei campi bloccati (<see cref="LockText"/>) e una riga sotto per cio' che va letto
-/// sempre (<see cref="Hint"/>). Le parti senza testo non si disegnano.
+/// The label of a setup field: the name, the “i” button with the description (<see cref="Info"/>),
+/// the padlock of locked fields (<see cref="LockText"/>) and a line below for what must always be
+/// read (<see cref="Hint"/>). Parts without text are not drawn.
 /// </summary>
 public sealed class FieldLabel : Control
 {
@@ -57,7 +57,7 @@ public sealed class FieldLabel : Control
         set => SetValue(HintProperty, value);
     }
 
-    /// <summary>Il motivo per cui il campo e' in sola lettura; null = il campo si modifica.</summary>
+    /// <summary>Why the field is read-only; null = the field is editable.</summary>
     public string? LockText
     {
         get => (string?)GetValue(LockTextProperty);

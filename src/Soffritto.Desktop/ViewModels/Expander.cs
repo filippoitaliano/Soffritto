@@ -3,10 +3,10 @@ using Soffritto.Desktop.Infrastructure;
 
 namespace Soffritto.Desktop.ViewModels;
 
-/// <summary>Apertura e chiusura di una card: l'intestazione resta, il corpo si nasconde.</summary>
+/// <summary>Opening and closing of a card: the header stays, the body hides.</summary>
 public sealed class Expander : ObservableObject
 {
-    // Glifi Segoe Fluent Icons: freccia giu' (aperta) e a destra (chiusa).
+    // Segoe Fluent Icons glyphs: arrow down (open) and right (closed).
     private const string ExpandedGlyph = "";
     private const string CollapsedGlyph = "";
 

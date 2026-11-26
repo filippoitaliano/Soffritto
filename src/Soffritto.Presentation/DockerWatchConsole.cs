@@ -2,12 +2,12 @@ using Soffritto.Core.Docker;
 
 namespace Soffritto.Presentation;
 
-/// <summary>La console del Compose Watch del web di un ambiente Docker.</summary>
+/// <summary>The Compose Watch console for the web service of a Docker environment.</summary>
 public static class DockerWatchConsole
 {
     public const string Service = "watch-web";
 
-    /// <summary>Il progetto compose senza "soffritto-": "11", o "&lt;4 cifre del tag&gt;-11" con la cartella dati sovrascritta.</summary>
+    /// <summary>The compose project without "soffritto-": "11", or "&lt;4 tag digits&gt;-11" when the data folder is overridden.</summary>
     public static string Key(DockerSlot slot) => DockerNames.KeyOf(slot.Project);
 
     public static string Marker(DockerSlot slot) => ConsoleServices.Marker(Service, Key(slot));
@@ -16,53 +16,53 @@ public static class DockerWatchConsole
         => ConsoleServices.StateOf(scan, Marker(slot), p => IsWatch(p, slot));
 
     /// <summary>
-    /// Apre la console del watch. Con il watch acceso non fa nulla; con la sola console rimasta
-    /// (watch uscito) la chiude e ne apre una nuova. Chi chiama passa una lettura fresca dei processi.
+    /// Opens the watch console. With the watch running it does nothing; with only the console left
+    /// (watch exited) it closes it and opens a new one. The caller passes a fresh process scan.
     /// </summary>
     public static string Start(IReadOnlyList<ProcessRow> scan, DockerSlot slot)
     {
         switch (StateOf(scan, slot))
         {
             case ServiceState.Running:
-                return "watch gia' acceso";
+                return "watch already running";
             case ServiceState.WindowOnly:
                 ConsoleServices.Stop(ConsoleServices.Pids(scan, Marker(slot), p => IsWatch(p, slot)));
                 break;
         }
 
         ConsoleServices.StartConsole(slot.ComposeFolder, Marker(slot), DockerEnvironmentProvisioner.WatchCommand(slot));
-        return "watch del web avviato";
+        return "web watch started";
     }
 
-    /// <summary>Chiude la console del watch e il suo processo; chi chiama passa una lettura fresca dei processi.</summary>
+    /// <summary>Closes the watch console and its process; the caller passes a fresh process scan.</summary>
     public static string Stop(IReadOnlyList<ProcessRow> scan, DockerSlot slot)
     {
         ConsoleServices.Stop(ConsoleServices.Pids(scan, Marker(slot), p => IsWatch(p, slot)));
-        return "watch del web fermato";
+        return "web watch stopped";
     }
 
     /// <summary>
-    /// Prima di distruggere l'ambiente chiude ogni sua console (watch del web, log dei servizi) e il
-    /// processo del watch: una console con /k resta aperta con la cartella dello slot come cartella
-    /// di lavoro e ne impedisce la cancellazione. Chi chiama passa una lettura fresca dei processi.
+    /// Before the environment is destroyed, closes all its consoles (web watch, service logs) and the
+    /// watch process: a /k console stays open with the slot folder as its working directory
+    /// and prevents it from being deleted. The caller passes a fresh process scan.
     /// </summary>
     public static string StopAll(IReadOnlyList<ProcessRow> scan, DockerSlot slot)
     {
         var consoles = scan.Where(p => IsSlotConsole(p, slot)).Select(p => p.ProcessId).ToList();
         ConsoleServices.Stop(consoles.Concat(scan.Where(p => IsWatch(p, slot)).Select(p => p.ProcessId)).Distinct());
-        return consoles.Count == 0 ? "nessuna console dell'ambiente aperta" : $"console dell'ambiente chiuse: {consoles.Count}";
+        return consoles.Count == 0 ? "no environment consoles open" : $"environment consoles closed: {consoles.Count}";
     }
 
-    /// <summary>Vero per le console e il watch che <see cref="StopAll"/> chiude da solo.</summary>
+    /// <summary>True for the consoles and the watch that <see cref="StopAll"/> closes by itself.</summary>
     public static bool IsClosedByStopAll(ProcessRow p, DockerSlot slot) => IsSlotConsole(p, slot) || IsWatch(p, slot);
 
-    // Le console del watch e dei log eseguono docker compose -p <progetto> sotto un titolo AMBIENTI.
+    // The watch and log consoles run docker compose -p <project> under an AMBIENTI title.
     private static bool IsSlotConsole(ProcessRow p, DockerSlot slot)
         => ConsoleServices.Is(p, "cmd.exe")
             && p.CommandLine.Contains("title AMBIENTI ", StringComparison.Ordinal)
             && p.CommandLine.Contains($"-p {slot.Project} ", StringComparison.Ordinal);
 
-    // docker.exe lancia il plugin docker-compose.exe con gli stessi argomenti: e' lui il processo del watch.
+    // docker.exe launches the docker-compose.exe plugin with the same arguments: that is the watch process.
     private static bool IsWatch(ProcessRow p, DockerSlot slot)
         => ConsoleServices.Is(p, "docker-compose.exe")
             && p.CommandLine.Contains(" watch", StringComparison.OrdinalIgnoreCase)

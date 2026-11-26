@@ -4,19 +4,19 @@ using Soffritto.Core.Docker;
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// Come l'host mostra le sezioni. Ogni sezione viene applicata appena la sua lettura finisce:
-/// le migrazioni non aspettano il fetch git ne' la risoluzione del dev tunnel.
+/// How the host displays the sections. Each section is applied as soon as its read finishes:
+/// migrations do not wait for the git fetch or the dev tunnel resolution.
 /// </summary>
 public interface IStatusSink
 {
-    /// <summary>Inizio di un refresh, dopo che la radice e' stata risolta.</summary>
+    /// <summary>Start of a refresh, after the root has been resolved.</summary>
     void BeginRefresh();
 
     void SetRepoLoading(RepoLoadingView view);
 
     void ApplyGit(GitView view);
 
-    /// <summary>Le righe dei context restano leggibili durante la rilettura: cambia solo il timestamp.</summary>
+    /// <summary>The context rows stay readable during the reread: only the timestamp changes.</summary>
     void SetMigrationsLoading();
 
     void ApplyMigrations(MigrationsView view);
@@ -24,14 +24,14 @@ public interface IStatusSink
     void FailMigrations();
 
     /// <summary>
-    /// Azione in corso sulle migrazioni ("dotnet ef database update…"), mostrata al posto del
-    /// timestamp dei context; null a fine azione, quando il timestamp torna quello dell'ultima lettura.
+    /// Migration action in progress ("dotnet ef database update…"), shown in place of the
+    /// contexts' timestamp; null when the action ends, and the timestamp goes back to that of the last read.
     /// </summary>
     void SetMigrationsAction(string? action);
 
     void SetTunnelQueued();
 
-    /// <summary>Le porte dell'ultima lettura restano visibili finche' non arriva la nuova.</summary>
+    /// <summary>The ports from the last read stay visible until the new read arrives.</summary>
     void SetTunnelLoading();
 
     void ApplyTunnel(TunnelView view);
@@ -46,7 +46,7 @@ public interface IStatusSink
 
     void EndOperation();
 
-    /// <summary>Riporta la tendina sul branch corrente dopo uno switch non eseguito.</summary>
+    /// <summary>Puts the drop-down back on the current branch after a switch that did not happen.</summary>
     void RestoreBranchSelection();
 }
 
@@ -61,25 +61,25 @@ public interface IClipboard
 }
 
 /// <param name="TunnelGate">
-/// Serializza le letture dev tunnel tra piu' sessioni (null: nessuna serializzazione).
+/// Serialises dev tunnel reads across several sessions (null: no serialisation).
 /// </param>
-/// <param name="EnvironmentLabel">Nome dell'ambiente nelle conferme (null: nessuna menzione).</param>
+/// <param name="EnvironmentLabel">Environment name in confirmations (null: not mentioned).</param>
 /// <param name="RootUnavailableHeadline">
-/// Titolo dell'errore quando la radice non si risolve durante un refresh (null: uscita silenziosa).
+/// Error title when the root cannot be resolved during a refresh (null: silent exit).
 /// </param>
 /// <param name="PoolAssignmentOf">
-/// Dalla radice, la porta del pool assegnata al repository: la card legge quel tunnel e la sola
-/// porta assegnata, e senza assegnazione mostra «non condiviso» senza interrogare la CLI
-/// (funzione assente: la lettura per suffisso numerico della cartella).
+/// From the root, the pool port assigned to the repository: the card reads that tunnel and only the
+/// assigned port, and without an assignment shows “not shared” without querying the CLI
+/// (no function: the read by the folder's numeric suffix).
 /// </param>
 /// <param name="DatabaseGuard">
-/// Dalla radice, l'errore che ferma lettura delle migrazioni, database update, rollback e copia
-/// del comando, o null se il database e' quello giusto (null: nessuna guardia, gli ambienti locali).
+/// From the root, the error that blocks reading migrations, database update, rollback and copying
+/// the command, or null if the database is the right one (null: no guard, for local environments).
 /// </param>
 /// <param name="SchemaLock">
-/// Dalla radice, il motivo per cui database update, rollback e copia del comando sono rifiutati
-/// (database protetto), o null se lo schema si puo' toccare. La lettura delle migrazioni resta
-/// libera (null: nessun blocco).
+/// From the root, the reason why database update, rollback and copying the command are refused
+/// (protected database), or null if the schema may be changed. Reading migrations stays
+/// allowed (null: no lock).
 /// </param>
 public sealed record RepoSessionOptions(
     ProbeOptions Probe,

@@ -1,53 +1,54 @@
-# Regole di progetto
+# Project rules
 
-## Strumento generico e indipendente
+## A generic, independent tool
 
-- Soffritto (exe, VSIX, CLI, MCP, Core, Presentation) funziona con qualunque catalogo di
-  repository e con qualunque progetto: nomi, percorsi, porte e abitudini di un progetto stanno
-  solo in `config.json`, mai nel codice, nei testi della UI o nelle descrizioni degli strumenti
-  MCP.
-- Ogni azione si può fare senza Claude, dall'exe; l'MCP è un'altra porta sulle stesse azioni e
-  si spiega da solo (istruzioni del server e descrizioni degli strumenti), senza contare su skill.
-- Le skill e le regole in `~\.claude` che usano lo strumento sono comodità facoltative: il
-  repository non dipende da loro.
+- Soffritto (exe, VSIX, CLI, MCP, Core, Presentation) works with any repository catalog and any
+  project: a project's names, paths, ports and habits live only in `config.json`, never in the
+  code, in UI texts or in the MCP tool descriptions.
+- Every action can be done without Claude, from the app; the MCP is another door onto the same
+  actions and explains itself (server instructions and tool descriptions), without relying on
+  skills.
+- The skills and rules in `~\.claude` that use the tool are optional conveniences: the repository
+  does not depend on them.
 
-## Si sviluppa sulla build Debug, si lavora con l'installazione
+## Develop on the Debug build, work with the installed app
 
-- L'exe con cui l'utente lavora è quello del Setup.exe:
-  `%LOCALAPPDATA%\Soffritto.App\current\Soffritto.exe`, collegamento Start «Soffritto». Resta
-  acceso durante lo sviluppo e le prove.
-- Si compila, si avvia e si prova la build Debug: `dotnet build` e `dotnet run` senza
-  `-c Release`, con l'output in `bin\Debug\`. Convive con l'installazione, perché
-  `SingleInstance` calcola il nome del mutex anche dal percorso dell'exe: a fine prova si chiude
-  solo la Debug.
-- Una versione nuova arriva all'installazione solo con una release: `release.ps1` si lancia su
-  richiesta, e `-Upload` solo su richiesta esplicita di pubblicare.
+- The exe the user works with is the one from the Setup.exe:
+  `%LOCALAPPDATA%\Soffritto.App\current\Soffritto.exe`, Start shortcut “Soffritto”. It stays
+  running during development and testing.
+- Build, launch and test the Debug build: `dotnet build` and `dotnet run` without
+  `-c Release`, with output in `bin\Debug\`. It coexists with the installed app, because
+  `SingleInstance` derives the mutex name from the exe path as well: at the end of a test close
+  only the Debug one.
+- A new version reaches the installed app only through a release: `release.ps1` runs on request,
+  and `-Upload` only on an explicit request to publish.
 
-## Versione a ogni modifica
+## A version bump for every change
 
-- Ogni modifica al codice (exe Desktop, VSIX, Core, Presentation, Cli) alza `<Version>` in
-  `Directory.Build.props`, nello stesso commit della modifica. Di default si alza la patch
+- Every code change (Desktop exe, VSIX, Core, Presentation, Cli) bumps `<Version>` in
+  `Directory.Build.props`, in the same commit as the change. By default bump the patch
   (1.0.5 → 1.0.6).
-- Il terzo numero di `<Version>` è un progressivo che non si azzera mai: quando salgono la major
-  o la minor il terzo numero prosegue dal valore precedente (1.0.159 → 2.0.160, non 2.0.0).
-- È una versione sola per exe e VSIX: il footer di entrambi la mostra, e l'installer della VSIX
-  non aggiorna niente se la versione non cambia.
-- Le modifiche solo di documentazione o di regole (README, `docs/`, `CLAUDE.md`, `.claude/`) lasciano la
-  versione com'è.
+- The third number of `<Version>` is a running counter that never resets: when the major or the
+  minor goes up, the third number continues from its previous value (1.0.159 → 2.0.160, not
+  2.0.0).
+- There is a single version for exe and VSIX: the footer of both shows it, and the VSIX installer
+  updates nothing if the version does not change.
+- Changes that touch only documentation or rules (README, `docs/`, `CLAUDE.md`, `.claude/`) leave
+  the version as it is.
 
-## Glossario
+## Glossary
 
-### Ambiente (N)
-- Definizione: voce della lista `environments` di `config.json`, con un numero N da 1 a 99, un tipo (`local` o `docker`) e i repository del catalogo che include; le cartelle sono `<root>\<folder>` con `{n}` sostituito da N (es. `backend-N`, `frontend-N`, `app-N`), o worktree sotto la cartella dei worktree per gli ambienti Docker. Corrisponde a una colonna dell'exe Desktop.
-- Non significa: ambiente ASP.NET (`ASPNETCORE_ENVIRONMENT`/`DOTNET_ENVIRONMENT`), che `MigrationApplier.UpdateDatabaseAsync` forza sempre a `Development`; e non ha un dev tunnel proprio (vedi «Pool di tunnel»).
-- Contesto: `src/Soffritto.Core/Configuration/AppConfiguration.cs` (`FolderOf`), `src/Soffritto.Desktop/EnvironmentLayout.cs`, `src/Soffritto.Core/Docker/DockerSlot.cs`.
+### Environment (N)
+- Definition: an entry of the `environments` list in `config.json`, with a number N from 1 to 99, a type (`local` or `docker`) and the catalog repositories it includes; its folders are `<root>\<folder>` with `{n}` replaced by N (e.g. `backend-N`, `frontend-N`, `app-N`), or worktrees under the worktree folder for Docker environments. It corresponds to a column of the Desktop app.
+- Does not mean: the ASP.NET environment (`ASPNETCORE_ENVIRONMENT`/`DOTNET_ENVIRONMENT`), which `MigrationApplier.UpdateDatabaseAsync` always forces to `Development`; and it has no dev tunnel of its own (see “Tunnel pool”).
+- Context: `src/Soffritto.Core/Configuration/AppConfiguration.cs` (`FolderOf`), `src/Soffritto.Desktop/EnvironmentLayout.cs`, `src/Soffritto.Core/Docker/DockerSlot.cs`.
 
-### Pool di tunnel
-- Definizione: i dev tunnel elencati in `tunnelPool.tunnels` di `config.json` (Description `pool-K`, label `SoffrittoPool`). Soffritto li crea dalla scheda «Tunnel» del setup e ci assegna le porte, al massimo 9 per tunnel. Un tunnel è di un solo ambiente: lo reclama la prima porta assegnata a quell'ambiente e torna libero quando l'ambiente non ha più porte. L'host di un tunnel del pool è una console `AMBIENTI tunnel-pool-pool-K`.
-- Non significa: un tunnel creato e cancellato insieme all'ambiente, né un tunnel condiviso da più ambienti (restano condivisi solo i tunnel con assegnazioni precedenti alla regola). Il pool non si modifica a mano con `devtunnel`.
-- Contesto: `src/Soffritto.Core/Docker/TunnelPool.cs`, `src/Soffritto.Presentation/PoolHosts.cs`.
+### Tunnel pool
+- Definition: the dev tunnels listed in `tunnelPool.tunnels` of `config.json` (Description `pool-K`, label `SoffrittoPool`). Soffritto creates them from the “Tunnels” tab of the setup and assigns ports to them, at most 9 per tunnel. A tunnel belongs to a single environment: the first port assigned to that environment claims it, and it becomes free again when the environment has no ports left. The host of a pool tunnel is a console `AMBIENTI tunnel-pool-pool-K`.
+- Does not mean: a tunnel created and deleted together with the environment, nor a tunnel shared by several environments (only tunnels with assignments that predate the rule stay shared). The pool is not edited by hand with `devtunnel`.
+- Context: `src/Soffritto.Core/Docker/TunnelPool.cs`, `src/Soffritto.Presentation/PoolHosts.cs`.
 
-### Porta del pool
-- Definizione: una porta di un tunnel del pool assegnata a un repository di un ambiente (accendendo «Tunnel» nell'intestazione dell'ambiente) e registrata in `%LOCALAPPDATA%\Soffritto\tunnel-pool.json`: la porta https di Kestrel per un backend locale, quella del dev server per un frontend locale, la porta host dello slot per i container.
-- Non significa: la porta locale del servizio in sé; senza assegnazione il servizio non è condiviso e le variabili `{poolUrl…}` degli env restano senza valore.
-- Contesto: `src/Soffritto.Core/Docker/TunnelPool.cs`, `src/Soffritto.Core/Env/EnvPoolSync.cs`.
+### Pool port
+- Definition: a port of a pool tunnel assigned to a repository of an environment (by turning on “Tunnel” in the environment header) and recorded in `%LOCALAPPDATA%\Soffritto\tunnel-pool.json`: the Kestrel https port for a local backend, the dev server port for a local frontend, the slot host port for containers.
+- Does not mean: the local port of the service itself; without an assignment the service is not shared and the `{poolUrl…}` variables of the env files stay empty.
+- Context: `src/Soffritto.Core/Docker/TunnelPool.cs`, `src/Soffritto.Core/Env/EnvPoolSync.cs`.

@@ -7,14 +7,14 @@ public enum MigrationState
     Pending,
 
     /// <summary>
-    /// Non applicata, ma con timestamp precedente all'ultima applicata: tipico rientro
-    /// da un branch parallelo. EF la applicherebbe comunque, ma lo schema risultante
-    /// puo' differire da quello prodotto applicandole in ordine.
+    /// Not applied, but with a timestamp earlier than the last applied one: typical of a merge
+    /// from a parallel branch. EF would apply it anyway, but the resulting schema
+    /// may differ from the one produced by applying them in order.
     /// </summary>
     PendingOutOfOrder,
 
     /// <summary>
-    /// Presente in __EFMigrationsHistory ma assente dai file di tutti i context noti.
+    /// Present in __EFMigrationsHistory but missing from the files of every known context.
     /// </summary>
     Unknown,
 }
@@ -61,20 +61,20 @@ public sealed record ContextStatus(
         .ToList();
 
     /// <summary>
-    /// Caso "in avanti e senza sorprese": ci sono migrazioni da applicare e sono TUTTE successive
-    /// all'ultima applicata. Con anche una sola fuori ordine l'aggiornamento automatico non e'
-    /// piu' banale (il buco viene da un branch parallelo e lo schema risultante puo' divergere),
-    /// quindi la decisione torna a te e il bottone non compare.
-    /// Le migrazioni sconosciute NON bloccano: sono righe inerti sul database, non impediscono a
-    /// EF di applicare correttamente le pendenti.
+    /// The "forward with no surprises" case: there are migrations to apply and ALL of them come after
+    /// the last applied one. With even one out of order the automatic update is no longer
+    /// trivial (the gap comes from a parallel branch and the resulting schema may diverge),
+    /// so the decision goes back to you and the button does not appear.
+    /// Unknown migrations do NOT block: they are inert rows in the database and do not stop
+    /// EF from applying the pending ones correctly.
     /// </summary>
     public bool CanApplyPending => Pending.Count > 0 && OutOfOrder.Count == 0;
 
     /// <summary>
-    /// Cosa fa <c>dotnet ef database update</c> fermandosi a <paramref name="targetMigrationId"/>:
-    /// come EF, annulla le applicate successive al target (dalla piu' recente) e applica le non
-    /// applicate fino al target compreso, fuori ordine incluse. Null se il target non e' tra le
-    /// migrazioni del context.
+    /// What <c>dotnet ef database update</c> does when stopping at <paramref name="targetMigrationId"/>:
+    /// like EF, it reverts the applied ones after the target (most recent first) and applies the
+    /// unapplied ones up to and including the target, out-of-order ones included. Null if the target is not
+    /// among the context's migrations.
     /// </summary>
     public UpdatePlan? PlanUpdateTo(string targetMigrationId)
     {
@@ -99,7 +99,7 @@ public sealed record ContextStatus(
     }
 }
 
-/// <param name="ToRevert">Dalla piu' recente: e' l'ordine in cui EF esegue i Down.</param>
+/// <param name="ToRevert">Most recent first: the order in which EF runs the Down methods.</param>
 public sealed record UpdatePlan(
     MigrationEntry Target,
     IReadOnlyList<MigrationEntry> ToApply,
@@ -124,18 +124,18 @@ public sealed record GitStatus(
     public bool HasPendingPull => Behind > 0;
 
     /// <summary>
-    /// Nomi di branch selezionabili: locali piu' quelli presenti solo sul remote, senza il
-    /// prefisso del remote, ordinati e senza duplicati. Vuoto se git non e' disponibile.
+    /// Selectable branch names: local ones plus those present only on the remote, without the
+    /// remote prefix, sorted and without duplicates. Empty if git is not available.
     /// </summary>
     public IReadOnlyList<string> AllBranches => Branches ?? [];
 
     public bool IsClean => DirtyFiles == 0;
 
     /// <summary>
-    /// Pull banale: ci sono commit da prendere, nessuno da mandare, working tree pulito e un
-    /// upstream configurato. Con <c>Ahead > 0</c> il pull sarebbe un merge o un rebase, non un
-    /// fast-forward, quindi non e' piu' l'operazione "standard senza conflitti" e il bottone
-    /// non compare.
+    /// A trivial pull: there are commits to fetch, none to push, a clean working tree and a
+    /// configured upstream. With <c>Ahead > 0</c> the pull would be a merge or a rebase, not a
+    /// fast-forward, so it is no longer the "standard conflict-free" operation and the button
+    /// does not appear.
     /// </summary>
     public bool CanFastForward =>
         Error is null
@@ -147,18 +147,18 @@ public sealed record GitStatus(
 }
 
 /// <summary>
-/// Branch locali il cui upstream e' sparito dal remote, come li vede git dopo una potatura
-/// dei remote-tracking ref.
+/// Local branches whose upstream has disappeared from the remote, as git sees them after pruning
+/// the remote-tracking refs.
 /// </summary>
 public sealed record PrunableBranches(IReadOnlyList<string> Branches, string? Error = null);
 
 public sealed record DevTunnelPort(int PortNumber, string Protocol, string PortUri)
 {
-    /// <summary>Esito del probe HTTP; null se il probe non e' stato eseguito (host non connesso).</summary>
+    /// <summary>Outcome of the HTTP probe; null if the probe was not run (host not connected).</summary>
     public bool? Reachable { get; init; }
 }
 
-/// <summary>Riga di 'devtunnel list': quanto basta per riconoscere un tunnel e capire se e' vivo.</summary>
+/// <summary>A 'devtunnel list' row: just enough to recognize a tunnel and tell whether it is alive.</summary>
 public sealed record DevTunnelSummary(string TunnelId, string Description, int HostConnections, int PortCount)
 {
     public bool IsHostConnected => HostConnections > 0;
@@ -175,20 +175,20 @@ public sealed record DevTunnelStatus(
     public IReadOnlyList<DevTunnelPort> AllPorts => Ports ?? [];
 
     /// <summary>
-    /// I tunnel dell'account quando nessuno corrisponde al clone: valorizzato solo insieme a
-    /// <see cref="Error"/>, perche' a corrispondenza trovata il dettaglio del tunnel basta.
+    /// The account's tunnels when none matches the clone: set only together with
+    /// <see cref="Error"/>, because once a match is found the tunnel's details are enough.
     /// </summary>
     public IReadOnlyList<DevTunnelSummary> AllAvailable => Available ?? [];
 
     public bool Shared { get; init; } = true;
 
-    /// <summary>Un repository senza porta del pool: nessuna lettura della CLI.</summary>
+    /// <summary>A repository without a pool port: no CLI read.</summary>
     public static DevTunnelStatus NotShared(string message) => new(Error: message) { Shared = false };
 
     /// <summary>
-    /// La raggiungibilita' primaria e' questa, non un probe HTTP: la gateway devtunnels tiene
-    /// appesa la richiesta verso un tunnel non hostato invece di rifiutarla, quindi senza host
-    /// connesso il probe puo' solo scadere in timeout.
+    /// This is the primary reachability signal, not an HTTP probe: the devtunnels gateway keeps
+    /// a request to an unhosted tunnel hanging instead of rejecting it, so without a connected
+    /// host the probe can only time out.
     /// </summary>
     public bool IsHostConnected => Error is null && HostConnections > 0;
 }

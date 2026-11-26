@@ -2,7 +2,7 @@ using Soffritto.Core.Configuration;
 
 namespace Soffritto.Core.Env;
 
-/// <summary>Nessun file: le variabili sono solo quelle scritte nel setup, e nel worktree non si scrive niente.</summary>
+/// <summary>No file: the variables are only the ones written in setup, and nothing is written to the worktree.</summary>
 public sealed class ManualEnvAdapter : IEnvAdapter
 {
     public EnvAdapterKind Kind => EnvAdapterKind.Manual;

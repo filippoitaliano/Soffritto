@@ -4,35 +4,35 @@ using Microsoft.Extensions.Logging;
 
 var builder = Host.CreateApplicationBuilder(args);
 
-// stdout e' il canale JSON-RPC: qualunque log scritto li' rompe il protocollo.
+// stdout is the JSON-RPC channel: any log written there breaks the protocol.
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole(o => o.LogToStandardErrorThreshold = LogLevel.Trace);
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 builder.Services
     .AddMcpServer(o => o.ServerInstructions =
-        "Ambienti di sviluppo numerati della stessa configurazione dell'exe Soffritto. Un ambiente N "
-        + "raccoglie repository del catalogo (backend, frontend, app, generici). Due tipi: "
-        + "LOCALE, cloni sulla macchina con servizi avviati in console; per questi gli strumenti sono solo in "
-        + "lettura (elenca_ambienti, stato_ambiente), con una sola eccezione: esegui_comando_extra lancia nel "
-        + "clone il comando in piu' del repository (comandoExtra in elenca_ambienti), lo stesso del bottone "
-        + "accessorio dell'exe, e vale per ambienti locali e Docker. Un ambiente locale con databaseProtetto=true usa un "
-        + "database protetto (per esempio usato anche da altri): non vi si applicano migrazioni ne' si altera lo schema, quindi non "
-        + "si sceglie per un lavoro che crea o applica migrazioni. "
-        + "DOCKER, usa e getta e dedicato a un lavoro: ogni repository e' un worktree su un branch, e un "
-        + "compose accende il database (ripristinato da un seed e migrato al branch), l'api e il web; su "
-        + "questi si agisce liberamente con gli strumenti *_docker. "
-        + "Flusso tipico per un lavoro nuovo: elenca_ambienti per gli id del catalogo; crea_ambiente_docker "
-        + "con il branch di ogni repository (un branch che non esiste nasce dal branch di sviluppo "
-        + "principale) e una nota che dice a cosa serve; si scrive codice nei worktree che la risposta "
-        + "indica; il web riceve il codice salvato dal Compose Watch, l'api si ricostruisce con "
-        + "avvia_servizio_docker; dopo una migrazione nuova applica_migrazioni_docker; stato_ambiente_docker "
-        + "e log_servizio_docker per verificare. Commit e push si fanno con git nei worktree. "
-        + "Le operazioni lunghe (creazione, avvio, migrazioni) girano in background: la risposta contiene "
-        + "un id da seguire con stato_operazione. Un ambiente Docker si distrugge solo dall'exe: lo fa una "
-        + "persona con «Distruggi ambiente» sulla colonna dell'ambiente, e a chi chiede di distruggerne uno "
-        + "si indica quel pulsante. A fine lavoro l'ambiente si lascia acceso, salvo diversa indicazione "
-        + "di chi lo usa.")
+        "Numbered development environments, from the same configuration as the desktop app. An environment N "
+        + "groups repositories from the catalog (backend, frontend, app, generic). Two kinds: "
+        + "LOCAL, clones on this machine with services started in console windows; for these the tools are "
+        + "read-only (list_environments, environment_status), with a single exception: run_extra_command runs the "
+        + "repository's extra command in the clone (extraCommand in list_environments), the same as the app's "
+        + "accessory button, and works on both local and Docker environments. A local environment with protectedDatabase=true uses a "
+        + "protected database (for example one shared with others): no migrations are applied to it and its schema is never altered, so "
+        + "do not pick it for work that creates or applies migrations. "
+        + "DOCKER, disposable and dedicated to one piece of work: each repository is a worktree on a branch, and a "
+        + "compose project runs the database (restored from a seed and migrated to the branch), the api and the web; "
+        + "act on these freely with the *_docker tools. "
+        + "Typical flow for new work: list_environments for the catalog ids; create_docker_environment "
+        + "with the branch of each repository (a branch that does not exist is created from the main development "
+        + "branch) and a note saying what the environment is for; write code in the worktrees named in the "
+        + "response; the web receives saved code through Compose Watch, the api is rebuilt with "
+        + "start_docker_service; after a new migration, apply_docker_migrations; docker_environment_status "
+        + "and docker_service_logs to verify. Commit and push with git in the worktrees. "
+        + "Long operations (create, start, migrations) run in the background: the response contains "
+        + "an id to follow with operation_status. A Docker environment can only be destroyed from the app: a "
+        + "person does it with \"Destroy environment\" on the environment's column, so whoever asks to destroy one "
+        + "should be pointed to that button. When the work is done, leave the environment running unless the "
+        + "person using it says otherwise.")
     .WithStdioServerTransport()
     .WithToolsFromAssembly();
 

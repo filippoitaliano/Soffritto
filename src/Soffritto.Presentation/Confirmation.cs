@@ -1,16 +1,16 @@
 namespace Soffritto.Presentation;
 
 /// <summary>
-/// Una richiesta di conferma: titolo, un paragrafo breve che dice cosa succede, gli elenchi con i
-/// dettagli (cosa viene toccato, dove) e il testo del bottone di conferma.
+/// A confirmation request: title, a short paragraph saying what happens, the lists with the
+/// details (what gets touched, and where) and the text of the confirm button.
 /// </summary>
 public sealed record Confirmation(
     string Title,
     string Description,
     IReadOnlyList<ConfirmationList> Lists,
-    string ConfirmText = "Conferma")
+    string ConfirmText = "Confirm")
 {
-    /// <summary>La stessa conferma in testo semplice, per i prompt che non disegnano elenchi.</summary>
+    /// <summary>The same confirmation as plain text, for prompts that cannot draw lists.</summary>
     public string ToPlainText()
     {
         var lines = new List<string> { Title, string.Empty, Description };
@@ -25,8 +25,8 @@ public sealed record Confirmation(
     }
 }
 
-/// <summary>Un elenco della conferma, con la sua intestazione; vuoto non si mostra.</summary>
+/// <summary>A list in the confirmation, with its heading; an empty list is not shown.</summary>
 public sealed record ConfirmationList(string Heading, IReadOnlyList<ConfirmationRow> Rows);
 
-/// <summary>Una riga: badge grigio a sinistra (etichetta breve), testo, nota a destra; badge e nota facoltativi.</summary>
+/// <summary>A row: grey badge on the left (short label), text, note on the right; badge and note are optional.</summary>
 public sealed record ConfirmationRow(string Text, string Badge = "", string Note = "");

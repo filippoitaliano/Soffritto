@@ -5,10 +5,10 @@ using Soffritto.Desktop.Infrastructure;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Le impostazioni dell'exe (scheda Preferenze del setup, Ctrl+G, Ctrl+T, Ctrl+D), separate dalla
-/// configurazione di config.json: si applicano subito, senza riavvio. Gattino, sfondo e sue scene,
-/// tema e colonne nascoste si salvano a ogni cambio accanto alle note degli ambienti; la demo no: riaprire
-/// l'exe sui dati inventati confonderebbe.
+/// The app's settings (Preferences tab of the setup, Ctrl+G, Ctrl+T, Ctrl+D), kept apart from the
+/// config.json configuration: they apply immediately, without a restart. Kitten, background and its scenes,
+/// theme and hidden columns are saved on every change next to the environment notes; the demo is not:
+/// reopening the app on made-up data would be confusing.
 /// </summary>
 public sealed class AppSettings : ObservableObject
 {
@@ -23,7 +23,7 @@ public sealed class AppSettings : ObservableObject
     private IReadOnlyList<string> sceneries = AllSceneries;
     private readonly List<int> collapsedEnvironments = [];
 
-    // Calcolata, non inizializzata: Current nasce in un inizializzatore statico che gira prima.
+    // Computed, not initialised: Current is created in a static initialiser that runs earlier.
     public static IReadOnlyList<string> DefaultInitials => ["SF", "ML", "LZ", "FI"];
 
     private static IReadOnlyList<string> AllSceneries => [.. PixelScenery.Scenes.Select(s => s.Key)];
@@ -36,7 +36,7 @@ public sealed class AppSettings : ObservableObject
 
     public bool IsDemo { get => isDemo; set => SetProperty(ref isDemo, value); }
 
-    /// <summary>Tema chiaro o scuro dell'exe (ThemeManager): di default segue Windows.</summary>
+    /// <summary>Light or dark theme of the app (ThemeManager): follows Windows by default.</summary>
     public ThemeMode Theme
     {
         get => theme;
@@ -51,21 +51,21 @@ public sealed class AppSettings : ObservableObject
 
     public static IReadOnlyList<ThemeOption> ThemeOptions { get; } =
     [
-        new(ThemeMode.System, "Sistema"),
-        new(ThemeMode.Light, "Chiaro"),
-        new(ThemeMode.Dark, "Scuro"),
-        new(ThemeMode.Scenery, "In base allo sfondo"),
+        new(ThemeMode.System, "System"),
+        new(ThemeMode.Light, "Light"),
+        new(ThemeMode.Dark, "Dark"),
+        new(ThemeMode.Scenery, "Match the background"),
     ];
 
-    /// <summary>Alla chiusura dell'exe toglie le immagini degli ambienti Docker che non esistono piu' e riduce la cache di build: attiva di default.</summary>
+    /// <summary>When the app closes, removes the images of Docker environments that no longer exist and trims the build cache: on by default.</summary>
     public bool DockerCleanupOnExit { get => dockerCleanupOnExit; set => SetAndSave(ref dockerCleanupOnExit, value); }
 
-    /// <summary>Le chiavi delle scene di PixelScenery.Scenes che entrano nella rotazione dello sfondo: di default tutte.</summary>
+    /// <summary>The keys of the PixelScenery.Scenes scenes included in the background rotation: all of them by default.</summary>
     public IReadOnlyList<string> Sceneries => sceneries;
 
     /// <summary>
-    /// Mette o toglie una scena dalla rotazione. L'ultima non si toglie: per non avere sfondi
-    /// c'e' l'interruttore «Sfondo» (ShowScenery). Restituisce false se la scelta e' rifiutata.
+    /// Adds a scene to the rotation or removes it. The last one cannot be removed: to have no background
+    /// there is the “Background” switch (ShowScenery). Returns false if the choice is rejected.
     /// </summary>
     public bool SetSceneryIncluded(string key, bool included)
     {
@@ -87,7 +87,7 @@ public sealed class AppSettings : ObservableObject
         return true;
     }
 
-    /// <summary>Le sigle dei partecipanti della riunione punti storia, nell'ordine in cui compaiono.</summary>
+    /// <summary>The initials of the story points meeting participants, in the order they appear.</summary>
     public IReadOnlyList<string> MeetingInitials
     {
         get => meetingInitials;
@@ -99,7 +99,7 @@ public sealed class AppSettings : ObservableObject
         }
     }
 
-    /// <summary>I numeri degli ambienti con la colonna nascosta.</summary>
+    /// <summary>The numbers of the environments whose column is hidden.</summary>
     public IReadOnlyList<int> CollapsedEnvironments => collapsedEnvironments;
 
     public void SetCollapsed(int number, bool collapsed)
@@ -129,7 +129,7 @@ public sealed class AppSettings : ObservableObject
         }
     }
 
-    // Un file illeggibile vale come assente: si riparte dai default.
+    // An unreadable file counts as missing: start again from the defaults.
     private static AppSettings Load()
     {
         var settings = new AppSettings();
@@ -152,7 +152,7 @@ public sealed class AppSettings : ObservableObject
 
                     settings.collapsedEnvironments.AddRange(saved.CollapsedEnvironments ?? []);
 
-                    // Chiavi sconosciute (scene tolte) si scartano; se non ne resta nessuna valgono tutte.
+                    // Unknown keys (removed scenes) are dropped; if none are left, all scenes apply.
                     var known = AllSceneries.Where(k => saved.Sceneries?.Contains(k) == true).ToArray();
                     if (known.Length > 0)
                     {
@@ -168,7 +168,7 @@ public sealed class AppSettings : ObservableObject
         return settings;
     }
 
-    // Se non si riesce a scrivere la scelta vale fino alla chiusura.
+    // If the file cannot be written, the choice lasts until the app closes.
     private void Save()
     {
         try
@@ -181,7 +181,7 @@ public sealed class AppSettings : ObservableObject
         }
     }
 
-    // I campi aggiunti nel tempo mancano nei file scritti prima: valgono i default.
+    // Fields added over time are missing from files written earlier: the defaults apply.
     private sealed record Saved(bool ShowCat, bool ShowScenery, string[]? MeetingInitials = null, int[]? CollapsedEnvironments = null, bool? DockerCleanupOnExit = null, string? Theme = null, string[]? Sceneries = null);
 }
 

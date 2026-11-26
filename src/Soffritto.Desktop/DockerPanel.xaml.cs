@@ -10,7 +10,7 @@ public partial class DockerPanel : UserControl
         InitializeComponent();
     }
 
-    /// <summary>La X del pannello: chi lo ospita decide come nasconderlo.</summary>
+    /// <summary>The panel's X: the host decides how to hide it.</summary>
     public event Action? CloseRequested;
 
     private void Close_Click(object sender, RoutedEventArgs e) => CloseRequested?.Invoke();

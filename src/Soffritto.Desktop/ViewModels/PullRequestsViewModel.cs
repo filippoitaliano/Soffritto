@@ -9,8 +9,8 @@ using Soffritto.Presentation;
 namespace Soffritto.Desktop.ViewModels;
 
 /// <summary>
-/// Una PR nel pannello. Cio' che l'utente deve fare (<see cref="TodoText"/>) e' l'unica parte
-/// in evidenza; lo stato dei voti resta un'informazione di contorno.
+/// A PR in the panel. What the user has to do (<see cref="TodoText"/>) is the only highlighted
+/// part; the vote status stays secondary information.
 /// </summary>
 public sealed partial class PullRequestRow
 {
@@ -23,7 +23,7 @@ public sealed partial class PullRequestRow
         (RepoTag, RepoOrder, RepoForeground, RepoBackground, RepoBorder) = RepoStyle(typeOf(pr.Repository), pr.Repository);
         RepoToolTip = pr.Repository;
 
-        // Il numero del work item sta gia' nell'intestazione del gruppo.
+        // The work item number is already in the group header.
         Title = WorkItemPrefix().Replace(pr.Title, string.Empty);
         if (Title.Length == 0)
         {
@@ -55,7 +55,7 @@ public sealed partial class PullRequestRow
 
     public IReadOnlyList<PullRequestAlert> Alerts { get; }
 
-    /// <summary>Sulle proprie PR: approvata da tutti i reviewer. Su quelle degli altri: approvata dall'utente.</summary>
+    /// <summary>On the user's own PRs: approved by all reviewers. On other people's: approved by the user.</summary>
     public bool IsApproved { get; }
 
     public string RepoTag { get; }
@@ -92,8 +92,8 @@ public sealed partial class PullRequestRow
 
     public ICommand OpenCommand { get; }
 
-    // Lo schema del Tag dell'app (fondo al 10%, bordo al 30%) con una tinta per strato, senza
-    // rosso ne' arancio: non devono sembrare avvisi.
+    // The app's Tag scheme (10% background, 30% border) with one tint per layer, without red or
+    // orange: they must not look like warnings.
     private static (string Tag, int Order, string Foreground, string Background, string Border) RepoStyle(RepositoryType? type, string repository) => type switch
     {
         RepositoryType.Backend => ("BE", 0, "#3F43A8", "#1A5B5FC7", "#4D5B5FC7"),
@@ -105,11 +105,11 @@ public sealed partial class PullRequestRow
     private static string Age(DateTime created)
     {
         var age = DateTime.UtcNow - created.ToUniversalTime();
-        return age.TotalHours < 1 ? "meno di un'ora fa"
-            : age.TotalHours < 2 ? "un'ora fa"
-            : age.TotalDays < 1 ? $"{(int)age.TotalHours} ore fa"
-            : age.TotalDays < 2 ? "ieri"
-            : $"{(int)age.TotalDays} giorni fa";
+        return age.TotalHours < 1 ? "less than an hour ago"
+            : age.TotalHours < 2 ? "an hour ago"
+            : age.TotalDays < 1 ? $"{(int)age.TotalHours} hours ago"
+            : age.TotalDays < 2 ? "yesterday"
+            : $"{(int)age.TotalDays} days ago";
     }
 
     [GeneratedRegex(@"^\s*#\d+\s*[-:]?\s*")]
@@ -117,17 +117,17 @@ public sealed partial class PullRequestRow
 }
 
 /// <summary>
-/// Una cosa da fare su una PR: diventa notifica (vedi <see cref="PullRequestNotifications"/>) se
-/// la sua <see cref="Key"/> non c'era alla lettura precedente o se <see cref="Count"/> e' cresciuto.
+/// Something to do on a PR: it becomes a notification (see <see cref="PullRequestNotifications"/>) if
+/// its <see cref="Key"/> was not there at the previous read or if <see cref="Count"/> has grown.
 /// </summary>
 public sealed record PullRequestAlert(string Key, int Count, string Text, string Title, Uri Url, int PullRequestId);
 
-/// <summary>Una voce del menu «Apri in»: porta l'ambiente sui branch delle PR del gruppo.</summary>
+/// <summary>An item of the “Open in” menu: moves the environment onto the branches of the group's PRs.</summary>
 public sealed record CheckoutTarget(string Label, ICommand Command, string? ToolTip = null);
 
 /// <summary>
-/// Le PR di una sezione che appartengono allo stesso work item, una per repository. «Apri in»
-/// porta un ambiente sui loro branch sorgente, ognuno nelle card di quel repository.
+/// The PRs of a section that belong to the same work item, one per repository. “Open in” moves an
+/// environment onto their source branches, each one in that repository's cards.
 /// </summary>
 public sealed class PullRequestGroup : ObservableObject
 {
@@ -161,13 +161,13 @@ public sealed class PullRequestGroup : ObservableObject
         Todo = Rows.Sum(r => r.Todo);
         Latest = Rows.Max(r => r.Created);
 
-        // Un work item senza niente da fare parte chiuso: resta l'intestazione.
+        // A work item with nothing to do starts collapsed: only the header shows.
         IsAllApproved = Todo == 0 && Rows.All(r => r.IsApproved);
         Expander = new Expander(isExpanded: Todo > 0);
         HasWorkItem = workItem is not null;
         WorkItemId = workItem is null ? string.Empty : $"#{workItem.Id}";
-        Title = workItem?.Title ?? "Senza work item";
-        TitleToolTip = workItem is null ? "PR non collegate a nessun work item" : $"{workItem.Type} {workItem.Id}: {workItem.Title}";
+        Title = workItem?.Title ?? "No work item";
+        TitleToolTip = workItem is null ? "PRs not linked to any work item" : $"{workItem.Type} {workItem.Id}: {workItem.Title}";
         OpenWorkItemCommand = workItem is not null && AzureDevOpsAccess.WorkItemUrl(workItem.Id) is { } workItemUrl
             ? open(workItemUrl)
             : null;
@@ -178,7 +178,7 @@ public sealed class PullRequestGroup : ObservableObject
             .Distinct()
             .ToList();
 
-        // Due PR dello stesso repository su branch diversi: quale mettere nel clone lo decide l'utente.
+        // Two PRs of the same repository on different branches: the user decides which one goes in the clone.
         var ambiguous = branches
             .GroupBy(b => b.Repository, StringComparer.OrdinalIgnoreCase)
             .Where(g => g.Count() > 1)
@@ -187,10 +187,10 @@ public sealed class PullRequestGroup : ObservableObject
         targets = branches.Select(b => (b.Repository, b.SourceBranch)).ToList();
 
         CheckoutToolTip = ambiguous.Count > 0
-            ? $"Non disponibile: piu' PR di {string.Join(", ", ambiguous)} su branch diversi"
+            ? $"Not available: several PRs of {string.Join(", ", ambiguous)} on different branches"
             : targets.Count == 0
-                ? "Non disponibile: nessuna PR dei repository configurati"
-                : "Spegne un ambiente (app compresa) e lo porta sui branch di queste PR, gli altri repository su dev, solo se sono tutti puliti:"
+                ? "Not available: no PRs from the configured repositories"
+                : "Stops an environment (app included) and moves it onto the branches of these PRs, the other repositories onto dev, only if they are all clean:"
                     + Environment.NewLine + string.Join(Environment.NewLine, branches.Select(b => $"{b.Repository}: {b.SourceBranch}"));
         CanCheckout = ambiguous.Count == 0 && targets.Count > 0;
 
@@ -200,24 +200,24 @@ public sealed class PullRequestGroup : ObservableObject
         RefreshMatch();
     }
 
-    /// <summary>Gli ambienti della griglia al momento del clic: quelli Docker entrano ed escono mentre l'exe gira.</summary>
+    /// <summary>The grid's environments at the time of the click: Docker ones come and go while the app is running.</summary>
     public IReadOnlyList<CheckoutTarget> Targets => environments
         .Select(env => env.Number)
         .Select(number => new CheckoutTarget(
-            $"Ambiente {number}",
-            Run($"Ambiente {number}", number, "controllo i repository e fetch, poi spengo i servizi…", () => checkout(number, targets))))
+            $"Environment {number}",
+            Run($"Environment {number}", number, "checking the repositories and fetching, then stopping the services…", () => checkout(number, targets))))
         .ToList();
 
     /// <summary>
-    /// La voce che crea un ambiente Docker nuovo sui branch delle PR del gruppo; null se la
-    /// configurazione non ha un backend con compose e clone sorgente, o nella demo.
+    /// The item that creates a new Docker environment on the branches of the group's PRs; null if
+    /// the configuration has no backend with a compose file and source clone, or in the demo.
     /// </summary>
     public CheckoutTarget? NewDockerTarget => createDocker is { } create
         && ActiveConfiguration.Current.Repositories.Any(r => r.Type == RepositoryType.Backend && r.DockerCompose.Length > 0 && r.SourceClone is { Length: > 0 })
             ? new CheckoutTarget(
-                "Nuovo ambiente Docker",
-                Run("Nuovo ambiente Docker", null, "fetch dei cloni sorgente, poi creazione: il dettaglio va in «Operazioni» nella card del nuovo ambiente…", () => create(targets)),
-                $"Crea un ambiente Docker sul primo numero libero, con i worktree sui branch di queste PR; backend e frontend senza PR su {GitConventions.DevelopmentBranch}")
+                "New Docker environment",
+                Run("New Docker environment", null, "fetching the source clones, then creating: details go to “Operations” in the new environment's card…", () => create(targets)),
+                $"Creates a Docker environment on the first free number, with worktrees on the branches of these PRs; backend and frontend without PRs on {GitConventions.DevelopmentBranch}")
             : null;
 
     private ICommand Run(string subject, int? number, string start, Func<Task<string>> action) => new AsyncCommand(async () =>
@@ -246,8 +246,8 @@ public sealed class PullRequestGroup : ObservableObject
     });
 
     /// <summary>
-    /// Ricalcola il tag degli ambienti che stanno esattamente sui branch di queste PR. Quando
-    /// ci arriva l'ambiente dell'ultimo «Apri in», il tag prende il posto della sua riga d'esito.
+    /// Recomputes the tag of the environments that sit exactly on the branches of these PRs. When
+    /// the environment of the last “Open in” gets there, the tag replaces its outcome line.
     /// </summary>
     public void RefreshMatch()
     {
@@ -258,8 +258,8 @@ public sealed class PullRequestGroup : ObservableObject
         MatchText = matching.Count switch
         {
             0 => string.Empty,
-            1 => $"Ambiente {matching[0]}",
-            _ => $"Ambienti {string.Join(", ", matching)}",
+            1 => $"Environment {matching[0]}",
+            _ => $"Environments {string.Join(", ", matching)}",
         };
 
         if (isNotBusy && lastCheckout is { } number && matching.Contains(number))
@@ -269,7 +269,7 @@ public sealed class PullRequestGroup : ObservableObject
         }
     }
 
-    /// <summary>Gli ambienti gia' sui branch delle PR del gruppo, vuoto se nessuno.</summary>
+    /// <summary>The environments already on the branches of the group's PRs, empty if none.</summary>
     public string MatchText
     {
         get => matchText;
@@ -284,7 +284,7 @@ public sealed class PullRequestGroup : ObservableObject
 
     public string MatchVisibility => matchText.Length > 0 ? "Visible" : "Collapsed";
 
-    public string MatchToolTip => "Su questi branch, gli altri repository su dev:"
+    public string MatchToolTip => "On these branches, the other repositories on dev:"
         + Environment.NewLine + string.Join(Environment.NewLine, targets.Select(t => $"{t.Repository}: {t.Branch}"));
 
     public Expander Expander { get; }
@@ -309,10 +309,10 @@ public sealed class PullRequestGroup : ObservableObject
         }
     }
 
-    /// <summary>Spento durante un «Apri in» e quando i branch non si possono assegnare: il tooltip dice perche'.</summary>
+    /// <summary>Disabled during an “Open in” and when the branches cannot be assigned: the tooltip says why.</summary>
     public bool CheckoutEnabled => CanCheckout && isNotBusy;
 
-    /// <summary>Esito dell'ultimo «Apri in», sotto l'intestazione del gruppo.</summary>
+    /// <summary>Outcome of the last “Open in”, under the group header.</summary>
     public string ActionLine
     {
         get => actionLine;
@@ -327,7 +327,7 @@ public sealed class PullRequestGroup : ObservableObject
 
     public string ActionVisibility => actionLine.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Bordo verde acceso per qualche secondo: la card a cui porta il clic su una notifica.</summary>
+    /// <summary>Green border lit for a few seconds: the card a click on a notification leads to.</summary>
     public bool IsHighlighted { get => isHighlighted; set => SetProperty(ref isHighlighted, value); }
 
     public IReadOnlyList<PullRequestRow> Rows { get; }
@@ -346,7 +346,7 @@ public sealed class PullRequestGroup : ObservableObject
 
     public string TitleToolTip { get; }
 
-    public string TodoText => Todo == 1 ? "1 da fare" : $"{Todo} da fare";
+    public string TodoText => Todo == 1 ? "1 to do" : $"{Todo} to do";
 
     public string TodoVisibility => Todo > 0 ? "Visible" : "Collapsed";
 
@@ -354,9 +354,9 @@ public sealed class PullRequestGroup : ObservableObject
 }
 
 /// <summary>
-/// Il pannello delle pull request attive che riguardano l'utente: le sue e quelle degli altri in
-/// cui e' reviewer. In ogni sezione le PR sono raggruppate per work item, e in cima vanno i gruppi
-/// e le PR con piu' cose da fare. Si legge all'apertura e col refresh.
+/// The panel of active pull requests that concern the user: their own and other people's where
+/// they are a reviewer. In each section the PRs are grouped by work item, with the groups and PRs
+/// that have the most to do on top. It is read on opening and on refresh.
 /// </summary>
 public sealed class PullRequestsViewModel : ObservableObject
 {
@@ -370,7 +370,7 @@ public sealed class PullRequestsViewModel : ObservableObject
     private string createdSummary = string.Empty;
     private string toReviewSummary = string.Empty;
 
-    // La stessa collezione della griglia: gli ambienti Docker entrano ed escono mentre l'exe gira.
+    // The same collection as the grid: Docker environments come and go while the app is running.
     private readonly ObservableCollection<EnvironmentViewModel> environments;
     private readonly Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<string>> checkout;
     private readonly Func<Task<MyPullRequests>> read;
@@ -378,10 +378,10 @@ public sealed class PullRequestsViewModel : ObservableObject
     private readonly Func<IReadOnlyList<(string Repository, string Branch)>, Task<string>>? createDocker;
     private readonly Func<string, RepositoryType?> typeOf;
 
-    /// <param name="read">Da dove arrivano le PR: Azure DevOps se omesso, dati inventati nella demo.</param>
-    /// <param name="open">Cosa fa il clic su PR e work item: il browser se omesso.</param>
-    /// <param name="createDocker">Crea un ambiente Docker nuovo sui branch indicati e restituisce l'esito; senza, «Apri in» non lo propone.</param>
-    /// <param name="typeOf">Lo strato di un repository dal suo nome sul server: la configurazione attiva se omesso, i repository inventati nella demo.</param>
+    /// <param name="read">Where the PRs come from: Azure DevOps if omitted, made-up data in the demo.</param>
+    /// <param name="open">What a click on a PR or work item does: the browser if omitted.</param>
+    /// <param name="createDocker">Creates a new Docker environment on the given branches and returns the outcome; without it, “Open in” does not offer it.</param>
+    /// <param name="typeOf">A repository's layer from its name on the server: the active configuration if omitted, the made-up repositories in the demo.</param>
     public PullRequestsViewModel(
         IReadOnlyList<EnvironmentViewModel> environments,
         Func<int, IReadOnlyList<(string Repository, string Branch)>, Task<string>> checkout,
@@ -404,14 +404,14 @@ public sealed class PullRequestsViewModel : ObservableObject
         }
     }
 
-    /// <summary>Un ambiente appena entrato nella griglia: i gruppi ricalcolano su quali ambienti stanno le loro PR.</summary>
+    /// <summary>An environment that just joined the grid: the groups recompute which environments their PRs are on.</summary>
     public void Track(EnvironmentViewModel environment)
     {
         environment.BranchesChanged += RefreshMatches;
         RefreshMatches();
     }
 
-    /// <summary>Un ambiente uscito dalla griglia: non si seguono piu' i suoi branch.</summary>
+    /// <summary>An environment that left the grid: its branches are no longer tracked.</summary>
     public void Untrack(EnvironmentViewModel environment)
     {
         environment.BranchesChanged -= RefreshMatches;
@@ -433,8 +433,8 @@ public sealed class PullRequestsViewModel : ObservableObject
     public ICommand RefreshCommand { get; }
 
     /// <summary>
-    /// Tutte le cose da fare dell'ultima lettura riuscita: chi le riceve decide cosa e' nuovo.
-    /// Una lettura fallita non lo solleva, perche' le sue liste vuote sembrerebbero tutto risolto.
+    /// All the things to do from the last successful read: the receiver decides what is new.
+    /// A failed read does not raise it, because its empty lists would look like everything was resolved.
     /// </summary>
     public event Action<IReadOnlyList<PullRequestAlert>>? AlertsRead;
 
@@ -461,7 +461,7 @@ public sealed class PullRequestsViewModel : ObservableObject
 
     public string ErrorVisibility => errorLine.Length > 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Pallino accanto al titolo a riposo: verde se l'ultima lettura e' riuscita, rosso se e' fallita.</summary>
+    /// <summary>Dot next to the title when idle: green if the last read succeeded, red if it failed.</summary>
     public string StatusColor => errorLine.Length > 0 ? StatusBadge.ErrorColor : StatusBadge.OkColor;
 
     public string CreatedEmptyVisibility => !isLoading && Created.Count == 0 ? "Visible" : "Collapsed";
@@ -476,7 +476,7 @@ public sealed class PullRequestsViewModel : ObservableObject
         }
 
         IsLoading = true;
-        StatusLine = "lettura da Azure DevOps…";
+        StatusLine = "reading from Azure DevOps…";
 
         var result = await read();
 
@@ -491,15 +491,15 @@ public sealed class PullRequestsViewModel : ObservableObject
         CreatedSummary = Summary(result.Created.Count, Created.Sum(g => g.Todo));
         ToReviewSummary = Summary(result.ToReview.Count, ToReview.Sum(g => g.Todo));
         ErrorLine = result.Error ?? string.Empty;
-        StatusLine = result.Error is null ? $"aggiornato alle {DateTime.Now:HH:mm}" : "lettura fallita";
+        StatusLine = result.Error is null ? $"updated at {DateTime.Now:HH:mm}" : "read failed";
         IsLoading = false;
         OnPropertyChanged(nameof(CreatedEmptyVisibility));
         OnPropertyChanged(nameof(ToReviewEmptyVisibility));
     }
 
     /// <summary>
-    /// Apre e illumina per qualche secondo la card del work item che contiene la PR. Null se la
-    /// PR non e' nelle liste (chiusa, o lavoro gia' risolto e PR sparita dall'ultima lettura).
+    /// Expands and highlights for a few seconds the card of the work item containing the PR. Null if
+    /// the PR is not in the lists (closed, or work already resolved and the PR gone since the last read).
     /// </summary>
     public PullRequestGroup? Highlight(int pullRequestId)
     {
@@ -526,7 +526,7 @@ public sealed class PullRequestsViewModel : ObservableObject
         group.IsHighlighted = false;
     }
 
-    // Prima i gruppi con piu' cose da fare, poi i piu' recenti; "Senza work item" sempre in fondo.
+    // Groups with the most to do first, then the most recent; "No work item" always at the bottom.
     private void Fill(ObservableCollection<PullRequestGroup> target, IReadOnlyList<PullRequestSummary> prs, Func<PullRequestSummary, PullRequestRow> toRow)
     {
         target.Clear();
@@ -545,20 +545,20 @@ public sealed class PullRequestsViewModel : ObservableObject
     }
 
     private static string Summary(int count, int todo)
-        => todo == 0 ? $"{count} aperte, niente da fare" : $"{todo} da fare · {count} aperte";
+        => todo == 0 ? $"{count} open, nothing to do" : $"{todo} to do · {count} open";
 
-    // Sulle proprie PR il lavoro c'e' solo quando sono in bozza: e' il reviewer a rimetterle in
-    // bozza quando restituisce la PR all'autore, specchio delle PR degli altri, dove la bozza non
-    // chiede niente. Finche' la PR e' pubblicata i voti e i commenti restano nel dettaglio ma non
-    // sono da fare. In bozza c'e' da fare quando un reviewer chiede modifiche o un commento
-    // aspetta risposta (l'ultima parola nella discussione non e' dell'utente). Le discussioni
-    // aperte dall'utente stesso contano sempre: sono promemoria da risolvere, come i commenti altrui.
+    // On the user's own PRs there is work only while they are drafts: the reviewer puts them back
+    // into draft when handing the PR back to the author, mirroring other people's PRs, where a
+    // draft asks for nothing. While the PR is published, votes and comments stay in the details but
+    // are not to-dos. In draft there is something to do when a reviewer asks for changes or a
+    // comment awaits a reply (the last word in the thread is not the user's). Threads opened by the
+    // user themselves always count: they are reminders to resolve, like other people's comments.
     private PullRequestRow MineRow(PullRequestSummary pr, string? myId)
     {
         var people = pr.Reviewers.Where(r => !r.IsGroup).ToList();
         var detail = people.Count == 0
-            ? "Nessun reviewer"
-            : string.Join(Environment.NewLine, people.Select(r => $"{r.Name}: {VoteName(r.Vote)}{(r.IsRequired ? " (obbligatorio)" : string.Empty)}"));
+            ? "No reviewers"
+            : string.Join(Environment.NewLine, people.Select(r => $"{r.Name}: {VoteName(r.Vote)}{(r.IsRequired ? " (required)" : string.Empty)}"));
 
         var todos = new List<string>();
         var alerts = new List<PullRequestAlert>();
@@ -566,31 +566,31 @@ public sealed class PullRequestsViewModel : ObservableObject
         {
             foreach (var reviewer in people.Where(r => r.Vote < 0))
             {
-                var todo = reviewer.Vote == -10 ? $"rivedi: rifiutata da {reviewer.Name}" : $"modifiche chieste da {reviewer.Name}";
+                var todo = reviewer.Vote == -10 ? $"rework: rejected by {reviewer.Name}" : $"changes requested by {reviewer.Name}";
                 todos.Add(todo);
-                alerts.Add(new PullRequestAlert($"vote|{pr.Id}|{reviewer.Id}|{reviewer.Vote}", 1, $"La tua PR !{pr.Id}: {todo}.", pr.Title, pr.WebUrl, pr.Id));
+                alerts.Add(new PullRequestAlert($"vote|{pr.Id}|{reviewer.Id}|{reviewer.Vote}", 1, $"Your PR !{pr.Id}: {todo}.", pr.Title, pr.WebUrl, pr.Id));
             }
 
             var replies = pr.ActiveThreads.Count(t => !IsMe(t.LastAuthorId, myId) || IsMe(t.AuthorIds[0], myId));
             if (replies > 0)
             {
-                var todo = replies == 1 ? "rispondi a 1 commento" : $"rispondi a {replies} commenti";
+                var todo = replies == 1 ? "reply to 1 comment" : $"reply to {replies} comments";
                 todos.Add(todo);
-                alerts.Add(new PullRequestAlert($"replies|{pr.Id}", replies, $"La tua PR !{pr.Id}: {todo}.", pr.Title, pr.WebUrl, pr.Id));
+                alerts.Add(new PullRequestAlert($"replies|{pr.Id}", replies, $"Your PR !{pr.Id}: {todo}.", pr.Title, pr.WebUrl, pr.Id));
             }
         }
 
         var approved = people.Count(r => r.Vote > 0);
-        var (status, dot) = people.Count == 0 ? ("senza reviewer", Neutral)
-            : people.Any(r => r.Vote < 0) ? ("modifiche richieste", Changes)
-            : approved == people.Count ? ("approvata", Approved)
-            : ($"{approved}/{people.Count} approvazioni", Neutral);
+        var (status, dot) = people.Count == 0 ? ("no reviewers", Neutral)
+            : people.Any(r => r.Vote < 0) ? ("changes requested", Changes)
+            : approved == people.Count ? ("approved", Approved)
+            : ($"{approved}/{people.Count} approvals", Neutral);
 
         return new PullRequestRow(pr, showAuthor: false, todos, alerts, isApproved: dot == Approved, status, dot, detail, open, typeOf);
     }
 
-    // Sulle PR degli altri c'e' da fare il voto e le risposte ai propri commenti. Una bozza non
-    // chiede niente: quando l'autore la ripubblica il lavoro ricompare e diventa notifica.
+    // On other people's PRs the to-dos are the vote and the replies to the user's own comments. A
+    // draft asks for nothing: when the author publishes it again, the work reappears and becomes a notification.
     private PullRequestRow ReviewRow(PullRequestSummary pr, string? myId)
     {
         var vote = pr.Reviewers.FirstOrDefault(r => IsMe(r.Id, myId))?.Vote ?? 0;
@@ -600,19 +600,19 @@ public sealed class PullRequestsViewModel : ObservableObject
         var alerts = new List<PullRequestAlert>();
         if (vote == 0 && !pr.IsDraft)
         {
-            todos.Add("da revisionare e votare");
-            alerts.Add(new PullRequestAlert($"review|{pr.Id}", 1, $"PR !{pr.Id} di {pr.Author}: da revisionare e votare.", pr.Title, pr.WebUrl, pr.Id));
+            todos.Add("to review and vote");
+            alerts.Add(new PullRequestAlert($"review|{pr.Id}", 1, $"PR !{pr.Id} by {pr.Author}: to review and vote.", pr.Title, pr.WebUrl, pr.Id));
         }
 
         var replies = pr.IsDraft ? 0 : pr.ActiveThreads.Count(t => t.AuthorIds.Any(a => IsMe(a, myId)) && !IsMe(t.LastAuthorId, myId));
         if (replies > 0)
         {
-            var todo = replies == 1 ? "1 risposta ai tuoi commenti" : $"{replies} risposte ai tuoi commenti";
+            var todo = replies == 1 ? "1 reply to your comments" : $"{replies} replies to your comments";
             todos.Add(todo);
-            alerts.Add(new PullRequestAlert($"replies|{pr.Id}", replies, $"PR !{pr.Id} di {pr.Author}: {todo}.", pr.Title, pr.WebUrl, pr.Id));
+            alerts.Add(new PullRequestAlert($"replies|{pr.Id}", replies, $"PR !{pr.Id} by {pr.Author}: {todo}.", pr.Title, pr.WebUrl, pr.Id));
         }
 
-        var status = vote == 0 ? "non hai votato" : $"hai votato: {VoteName(vote)}";
+        var status = vote == 0 ? "you have not voted" : $"you voted: {VoteName(vote)}";
         var dot = vote > 0 ? Approved : vote < 0 ? Changes : Neutral;
         return new PullRequestRow(pr, showAuthor: true, todos, alerts, isApproved: vote > 0, status, dot, detail, open, typeOf);
     }
@@ -621,24 +621,24 @@ public sealed class PullRequestsViewModel : ObservableObject
 
     private static string VoteName(int vote) => vote switch
     {
-        10 => "approvata",
-        5 => "approvata con suggerimenti",
-        -5 => "in attesa dell'autore",
-        -10 => "rifiutata",
-        _ => "nessun voto",
+        10 => "approved",
+        5 => "approved with suggestions",
+        -5 => "waiting for author",
+        -10 => "rejected",
+        _ => "no vote",
     };
 }
 
 internal static class Browser
 {
-    // Il browser predefinito parte da rundll32, fuori dal job dell'exe (vedi DevToolsController).
+    // The default browser starts from rundll32, outside the exe's job (see DevToolsController).
     public static ICommand OpenCommand(Uri url) => new AsyncCommand(() => Task.Run(() => Open(url)));
 
-    /// <summary>Apre l'URL nel browser predefinito, fuori dal job dell'exe. Restituisce la riga di attivita'.</summary>
+    /// <summary>Opens the URL in the default browser, outside the exe's job. Returns the activity line.</summary>
     public static string Open(Uri url)
     {
         DetachedLauncher.Start($"rundll32.exe url.dll,FileProtocolHandler {url.AbsoluteUri}", System.IO.Path.GetTempPath(), newConsole: false);
-        return $"{url.AbsoluteUri} aperto nel browser predefinito";
+        return $"{url.AbsoluteUri} opened in the default browser";
     }
 
     public static void OpenFolder(string folder)

@@ -1,9 +1,9 @@
 namespace Soffritto.Desktop;
 
-// La centrale elettrica diventata locale, di sera. Da sinistra: il palco con il comico, la sala con
-// i tavoli davanti alla vecchia turbina rimasta come arredo, il bar. Tre strati fissi (fondo in
-// sky, arredi dietro le persone in land, arredi davanti in fore) e in mezzo le persone animate;
-// sopra tutto le luci.
+// The power station turned into a venue, in the evening. From the left: the stage with the
+// comedian, the hall with the tables in front of the old turbine kept as decor, the bar. Three fixed
+// layers (background in sky, furniture behind the people in land, furniture in front in fore) with
+// the animated people in between; the lights on top of everything.
 public sealed partial class PixelScenery
 {
     private const int StageHeight = 7;
@@ -11,7 +11,7 @@ public sealed partial class PixelScenery
     private const uint WindowFrame = 0xFF15181C;
     private const uint Night = 0xFF0C080A;
 
-    // Mattone scuro, tra i muri e il sipario.
+    // Dark brick, between the walls and the curtain.
     private const uint VenueChrome = 0xFF3A1B1F;
 
     private static readonly uint[] Dusk = [0xFF0E1433, 0xFF1F2152, 0xFF452A66, 0xFF8A3E6E, 0xFFC8645A];
@@ -45,7 +45,7 @@ public sealed partial class PixelScenery
     private static readonly string[] LaughH = ["X.X", "X.X", "XXX", "X.X", "X.X"];
     private static readonly string[] LaughA = [".X.", "X.X", "XXX", "X.X", "X.X"];
 
-    // Il comico e' di fronte, alto 24 righe: 17 di busto e 7 di gambe, che cambiano quando cammina.
+    // The comedian faces front, 24 rows tall: 17 of torso and 7 of legs, which change while walking.
     private static readonly string[] ComicTalk =
     [
         "....HHHH....",
@@ -226,8 +226,8 @@ public sealed partial class PixelScenery
         ".......BBB..",
     ];
 
-    // Seduto di profilo, rivolto a sinistra: le mani (riga 9) poggiano sul tavolo, le cosce
-    // (righe 12-13) sulla sedia, i piedi (riga 19) sul pavimento. Specchiato guarda a destra.
+    // Seated in profile, facing left: the hands (row 9) rest on the table, the thighs (rows 12-13)
+    // on the chair, the feet (row 19) on the floor. Mirrored, it faces right.
     private static readonly string[] Seated =
     [
         "...HHHH...",
@@ -414,8 +414,8 @@ public sealed partial class PixelScenery
         }
     }
 
-    // Finestrone ad arco della sala macchine: fuori il cielo della sera, la citta' in controluce e
-    // qualche stella; i montanti di ferro restano davanti a tutto.
+    // Large arched window of the engine hall: outside, the evening sky, the city in silhouette and a
+    // few stars; the iron mullions stay in front of everything.
     private void PaintWindow(Random r, int center, int width, int top, int bottom, bool moon)
     {
         var half = width / 2;
@@ -557,8 +557,8 @@ public sealed partial class PixelScenery
         }
     }
 
-    // La turbina della centrale, lasciata in sala come arredo: cilindro coricato su un plinto, con
-    // manometro, volantino, quadretto di spie e lo scarico che sale fino alle capriate.
+    // The power station's turbine, left in the hall as decor: a cylinder lying on a plinth, with a
+    // pressure gauge, a handwheel, a small panel of indicator lights and the exhaust rising to the trusses.
     private void PaintTurbine(int left, int right, int truss)
     {
         var span = right - left;
@@ -696,8 +696,8 @@ public sealed partial class PixelScenery
         }
     }
 
-    // La trave del carroponte corre da parete a parete; il carrello e' fermo sopra la sala con
-    // il gancio calato.
+    // The overhead crane beam runs from wall to wall; the trolley sits still above the hall with
+    // its hook lowered.
     private void PaintGirder(int girder, int left, int right)
     {
         for (var x = 0; x < cols; x++)
@@ -855,8 +855,8 @@ public sealed partial class PixelScenery
         }
     }
 
-    // Il retro del bancone: tre mensole di bottiglie illuminate da sotto, l'insegna sopra e le
-    // lampade a sospensione che scendono dalla trave.
+    // The back bar: three shelves of bottles lit from below, the sign above and the pendant lamps
+    // hanging from the beam.
     private void PaintBackBar(Random r, int below)
     {
         var left = barLeft + 3;
@@ -989,8 +989,8 @@ public sealed partial class PixelScenery
         {
             var tx = left + (int)(step * (i + 0.5));
 
-            // Chi siede a destra del tavolo guarda verso il palco; chi siede a sinistra guarda il
-            // compagno di tavolo, e la sua sedia resta vuota piu' spesso.
+            // Whoever sits on the right of the table faces the stage; whoever sits on the left looks
+            // at their tablemate, and that chair is empty more often.
             PaintSeat(r, tx + 5, false, r.Next(5) != 0);
             PaintSeat(r, tx - 14, true, r.Next(3) != 0);
 
@@ -1048,7 +1048,7 @@ public sealed partial class PixelScenery
         }
     }
 
-    // Un bicchiere sul tavolo, con il fondo sulla riga bottom: birra, vino o cocktail.
+    // A glass on the table, with its base on the bottom row: beer, wine or a cocktail.
     private void PaintDrink(Random r, int x, int bottom)
     {
         const uint glass = 0xFFC8D8E0;
@@ -1211,8 +1211,8 @@ public sealed partial class PixelScenery
         }
     }
 
-    // Il vecchio quadro di comando della centrale, rimasto appeso sopra il bar: lastra di marmo
-    // con tre strumenti ancora vivi e una fila di sezionatori a coltello.
+    // The power station's old control panel, still hanging above the bar: a marble slab with three
+    // gauges still alive and a row of knife switches.
     private void PaintSwitchboard(int below)
     {
         var bottom = floor - 74;
@@ -1320,7 +1320,7 @@ public sealed partial class PixelScenery
         Put(sky, spotX - 1, spotY + 3, 0xFFFFF0C0);
     }
 
-    // Il tubo spento si vede anche quando una lettera sfarfalla; l'alone si calcola una volta sola.
+    // The unlit tube shows even while a letter flickers; the halo is computed only once.
     private void AddNeon(string text, int center, int top, uint color)
     {
         var neon = new Neon { Color = color, Core = Mix(color, 0xFFFFFFFF, 0.45), Off = Mix(color, 0xFF100810, 0.75), Letters = text.Length };
@@ -1421,8 +1421,8 @@ public sealed partial class PixelScenery
         laughs.RemoveAll(l => l.Phase > 32);
     }
 
-    // Il comico parla e ogni tanto cammina sul palco; a ogni battuta alza il braccio o allarga le
-    // braccia, e quando la posa finisce il pubblico ride.
+    // The comedian talks and now and then walks across the stage; on every joke he raises an arm or
+    // spreads his arms, and when the pose ends the audience laughs.
     private void StepComedian()
     {
         if (poseTicks > 0)
@@ -1573,7 +1573,7 @@ public sealed partial class PixelScenery
         }
     }
 
-    // Lancette che oscillano piano e tremano un poco, come su un impianto ancora sotto carico.
+    // Needles that swing slowly and tremble a little, as on a plant still under load.
     private void DrawGauges()
     {
         foreach (var (x, y, length, phase) in gauges)
@@ -1592,7 +1592,7 @@ public sealed partial class PixelScenery
     {
         foreach (var neon in neons)
         {
-            // Mentre una lettera sfarfalla l'alone dell'insegna si abbassa un poco.
+            // While a letter flickers, the sign's halo dims a little.
             var level = neon.Flicker > 0 ? 0.8 : 1;
             foreach (var (i, amount) in neon.Glow)
             {
@@ -1885,7 +1885,7 @@ public sealed partial class PixelScenery
             _ => 0,
         };
 
-        // Il pubblico sta nella penombra della sala: i colori scendono verso il buio.
+        // The audience sits in the dim light of the hall: colours fade toward the dark.
         public Look Dimmed() => new(Dim(Hair), Dim(Skin), Dim(SkinShade), Dim(Shirt), Dim(ShirtShade), Dim(Pants), Dim(Shoes), LongHair);
 
         private static uint Dim(uint color) => Mix(color, 0xFF140E18, 0.25);

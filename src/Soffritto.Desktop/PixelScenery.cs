@@ -7,25 +7,25 @@ using System.Windows.Threading;
 namespace Soffritto.Desktop;
 
 /// <summary>
-/// Easter egg di Ctrl+T: al posto del gradiente di sfondo una scena in pixel art, scelta a caso
-/// (diversa dalla precedente) tra tre paesaggi in stile Terraria (neve, giungla e oceano, con
-/// nuvole, uccelli, foglie, neve, lucciole e onde), l'interno di una vecchia centrale elettrica
-/// diventata locale, con un comico sul palco, il pubblico ai tavoli e il bar, e il lungomare art
-/// deco dedicato a GTA VI. Un'altra pressione torna al gradiente.
+/// Ctrl+T easter egg: instead of the background gradient, a pixel-art scene picked at random
+/// (different from the previous one) among three Terraria-style landscapes (snow, jungle and ocean,
+/// with clouds, birds, leaves, snowflakes, fireflies and waves), the inside of an old power station
+/// turned into a venue, with a comedian on stage, the audience at the tables and the bar, and the
+/// art deco seafront in the style of the Florida crime sagas. Pressing it again goes back to the gradient.
 /// </summary>
 public sealed partial class PixelScenery : Canvas
 {
-    // Un pixel del paesaggio e' un quadrato di 4 DIP: la griglia resta piccola (sotto i 500x300
-    // su uno schermo full HD) e ridisegnarla intera a ogni fotogramma costa poco.
+    // A landscape pixel is a 4 DIP square: the grid stays small (under 500x300 on a full HD
+    // screen) and redrawing all of it every frame is cheap.
     private const int PixelSize = 4;
 
-    // Righe di terreno sopra il footer: il gattino di Ctrl+G, coi piedi sul footer, cammina sull'erba.
+    // Ground rows above the footer: the Ctrl+G kitten, with its feet on the footer, walks on the grass.
     private const int GroundRows = 3;
     private const int FireflyHeight = 70;
     private const double SeaLevel = 0.74;
 
-    // Le misure sono pensate sul gattino, alto una quattordicina di pixel del paesaggio: come il
-    // giocatore di Terraria, gli alberi gli stanno da due a quattro volte sopra la testa.
+    // Sizes are designed around the kitten, about fourteen landscape pixels tall: as with the
+    // Terraria player, trees tower two to four times above its head.
     private static readonly string[] BirdUp = ["XX.....XX", "..X...X..", "...XXX...", "....X...."];
     private static readonly string[] BirdDown = [".........", "...XXX...", "XXX.X.XXX", "X.......X"];
 
@@ -33,7 +33,7 @@ public sealed partial class PixelScenery : Canvas
 
     private static readonly Biome[] Biomes =
     [
-        // Neve
+        // Snow
         new(
             Sky: [0xFF6A9FD6, 0xFF97C2E8, 0xFFC6E0F3, 0xFFE8F3FB],
             Far: new(0xFF8FA8C6, 0xFFA6BCD6, 0.78, 0.13, 120, Peaks: true, Cap: 0xFFF5F9FD),
@@ -46,7 +46,7 @@ public sealed partial class PixelScenery : Canvas
             CloudShade: 0xFFDDE8F2,
             Chrome: 0xFF2E4A6B),
 
-        // Giungla
+        // Jungle
         new(
             Sky: [0xFF3F8EC4, 0xFF63B2B4, 0xFF9AD3A2, 0xFFC9E9B8],
             Far: new(0xFF4F9060, 0xFF62A56D, 0.78, 0.05, 28),
@@ -62,7 +62,7 @@ public sealed partial class PixelScenery : Canvas
             FireflyEvery: 40,
             Chrome: 0xFF1E4A2B),
 
-        // Oceano: il mare sta dietro la spiaggia, fino all'orizzonte.
+        // Ocean: the sea lies behind the beach, up to the horizon.
         new(
             Sky: [0xFF3A84D8, 0xFF64A9EC, 0xFF9ACDF4, 0xFFD0ECFB],
             Far: null,
@@ -121,7 +121,7 @@ public sealed partial class PixelScenery : Canvas
         IsHitTestVisible = false;
         ClipToBounds = true;
 
-        // Hidden e non Collapsed, come il gattino: alla prima accensione la misura c'e' gia'.
+        // Hidden rather than Collapsed, like the kitten: the size is already known the first time it turns on.
         Visibility = Visibility.Hidden;
         RenderOptions.SetBitmapScalingMode(image, BitmapScalingMode.NearestNeighbor);
         Children.Add(image);
@@ -135,7 +135,7 @@ public sealed partial class PixelScenery : Canvas
             }
         };
 
-        // Finestra nascosta nell'area di notifica: niente fotogrammi che nessuno guarda.
+        // Window hidden in the notification area: no frames that nobody is watching.
         IsVisibleChanged += (_, _) =>
         {
             if (active && IsVisible)
@@ -152,29 +152,29 @@ public sealed partial class PixelScenery : Canvas
     public bool IsActive => active;
 
     /// <summary>
-    /// Colore scuro di barra del titolo e footer intonato alla scena accesa; null col gradiente.
+    /// Dark title bar and footer colour matching the active scene; null with the gradient.
     /// </summary>
     public Color? ChromeColor { get; private set; }
 
-    /// <summary>Scena accesa buia (luminosita' media sotto la soglia): le card passano alla notte.</summary>
+    /// <summary>The active scene is dark (average brightness below the threshold): the cards switch to night mode.</summary>
     public bool IsDark { get; private set; }
 
     public event Action? AppearanceChanged;
 
     /// <summary>
-    /// Le scene in ordine: prima i paesaggi di Biomes, poi la centrale elettrica e il lungomare.
-    /// La chiave e' quella salvata nelle impostazioni (AppSettings.Sceneries).
+    /// The scenes in order: first the Biomes landscapes, then the power station and the seafront.
+    /// The key is the one saved in the settings (AppSettings.Sceneries).
     /// </summary>
     public static IReadOnlyList<SceneInfo> Scenes { get; } =
     [
-        new("neve", "Neve"),
-        new("giungla", "Giungla"),
-        new("oceano", "Oceano"),
-        new("centrale", "Centrale elettrica"),
-        new("lungomare", "Lungomare"),
+        new("neve", "Snow"),
+        new("giungla", "Jungle"),
+        new("oceano", "Ocean"),
+        new("centrale", "Power station"),
+        new("lungomare", "Seafront"),
     ];
 
-    /// <summary>Le chiavi delle scene tra cui sceglie Toggle; con nessuna chiave valida valgono tutte.</summary>
+    /// <summary>The keys of the scenes Toggle picks from; with no valid key, all of them apply.</summary>
     public IReadOnlyCollection<string> Rotation { get; private set; } = [.. Scenes.Select(s => s.Key)];
 
     public void Toggle()
@@ -198,7 +198,7 @@ public sealed partial class PixelScenery : Canvas
         timer.Start();
     }
 
-    /// <summary>Cambia le scene in rotazione: se quella accesa ne e' uscita, passa subito a un'altra.</summary>
+    /// <summary>Changes the scenes in rotation: if the active one has left it, switches to another right away.</summary>
     public void SetRotation(IReadOnlyCollection<string> keys)
     {
         Rotation = keys;
@@ -208,7 +208,7 @@ public sealed partial class PixelScenery : Canvas
         }
     }
 
-    // Una scena a caso tra quelle in rotazione, diversa dalla precedente quando ce n'e' piu' d'una.
+    // A random scene among those in rotation, different from the previous one when there is more than one.
     private void ShowNext()
     {
         var pool = InRotation();
@@ -242,8 +242,8 @@ public sealed partial class PixelScenery : Canvas
     }
 
     /// <summary>
-    /// Il primo fotogramma della scena su una griglia di cols x rows pixel del paesaggio, per le
-    /// anteprime del setup: seme fisso, cosi' l'anteprima non cambia a ogni apertura.
+    /// The scene's first frame on a grid of cols x rows landscape pixels, for the setup previews:
+    /// fixed seed, so the preview does not change every time it opens.
     /// </summary>
     public static BitmapSource RenderPreview(int index, int cols, int rows)
     {
@@ -256,8 +256,8 @@ public sealed partial class PixelScenery : Canvas
         return preview;
     }
 
-    // Luma media (0-1) del primo fotogramma: sotto questa soglia il testo scuro delle card di
-    // giorno starebbe su un fondo buio.
+    // Average luma (0-1) of the first frame: below this threshold the cards' dark daytime text
+    // would sit on a dark background.
     private const double DarkLuma = 0.3;
 
     private static double MeanLuma(uint[] pixels)
@@ -279,15 +279,15 @@ public sealed partial class PixelScenery : Canvas
         AppearanceChanged?.Invoke();
     }
 
-    // Il paesaggio dipende solo dal seme: ridimensionando la finestra si ridisegna lo stesso
-    // paesaggio sulla griglia nuova.
-    // Per eccesso: l'immagine sborda di qualche DIP in alto, dove il Canvas la taglia. Per
-    // difetto restava scoperta una striscia del gradiente sotto la barra del titolo.
+    // The landscape depends only on the seed: resizing the window redraws the same landscape on
+    // the new grid.
+    // Rounded up: the image overflows by a few DIP at the top, where the Canvas clips it. Rounding
+    // down left a strip of the gradient showing under the title bar.
     private void Build() => Build((int)Math.Ceiling(ActualWidth / PixelSize), (int)Math.Ceiling(ActualHeight / PixelSize));
 
     private void Build(int newCols, int newRows)
     {
-        // Sotto i 160 DIP per lato non c'e' spazio per alberi e caverne: resta il gradiente.
+        // Below 160 DIP per side there is no room for trees and caves: the gradient stays.
         if (newCols < 40 || newRows < 40)
         {
             image.Source = null;
@@ -365,7 +365,7 @@ public sealed partial class PixelScenery : Canvas
         const int bands = 14;
         for (var y = 0; y < rows; y++)
         {
-            // A fasce, con una riga a scacchiera tra una fascia e l'altra, come i cieli di Terraria.
+            // In bands, with a checkerboard row between one band and the next, like Terraria skies.
             var level = (double)y / rows * bands;
             var band = (int)level;
             var seam = level - band > 0.82;
@@ -616,8 +616,8 @@ public sealed partial class PixelScenery : Canvas
         m.Color = biome.Birds![random.Next(biome.Birds.Length)];
     }
 
-    // Una foglia parte da un punto della chioma e ne prende il colore: finche' non si stacca
-    // dalla chioma non si distingue.
+    // A leaf starts from a point of the canopy and takes its colour: until it breaks away from
+    // the canopy it cannot be told apart.
     private void RespawnLeaf(Mote m)
     {
         var (x, y) = canopy[random.Next(canopy.Count)];
@@ -652,8 +652,8 @@ public sealed partial class PixelScenery : Canvas
         bitmap.WritePixels(new Int32Rect(0, 0, cols, rows), frame, cols * 4, 0);
     }
 
-    // Sfondo, poi cio' che vive dietro le colline (nuvole, uccelli, mare), poi colline, terreno e
-    // piante, poi cio' che vive davanti (foglie, neve, lucciole).
+    // Background, then what lives behind the hills (clouds, birds, sea), then hills, ground and
+    // plants, then what lives in front (leaves, snow, fireflies).
     private void RenderLandscape()
     {
         Array.Copy(sky, frame, frame.Length);
@@ -698,7 +698,7 @@ public sealed partial class PixelScenery : Canvas
             var depth = (double)(y - horizon) / depthRows;
             var water = Gradient(colors, depth);
 
-            // Le onde vicine scorrono piu' in fretta di quelle lontane: parallasse.
+            // Near waves move faster than far ones: parallax.
             var speed = 0.04 + (depth * 0.1);
             for (var x = 0; x < cols; x++)
             {
@@ -844,8 +844,8 @@ public sealed partial class PixelScenery : Canvas
 
     private int GroundAt(double x) => groundTop[Math.Clamp((int)x, 0, cols - 1)];
 
-    // Profilo di colline o montagne: somma di tre sinusoidi con fasi casuali, a gradini di due
-    // colonne perche' in Terraria il terreno sale e scende a blocchi.
+    // Hill or mountain profile: the sum of three sine waves with random phases, in two-column
+    // steps because in Terraria the ground rises and falls in blocks.
     private static int[] Ridge(Random r, int cols, double baseY, double amplitude, double wavelength, bool peaks)
     {
         var phase1 = r.NextDouble() * Math.Tau;
@@ -864,8 +864,8 @@ public sealed partial class PixelScenery : Canvas
         return top;
     }
 
-    // Sbuffi rotondi in fila, piu' grandi al centro, su una base piatta. Il raggio massimo fa
-    // stare lo sbuffo centrale dentro la sagoma: tagliato dal bordo, la nuvola diventa un rettangolo.
+    // Round puffs in a row, bigger in the middle, on a flat base. The maximum radius keeps the
+    // central puff inside the shape: clipped by the edge, the cloud would turn into a rectangle.
     private static bool[,] CloudShape(Random r)
     {
         var width = r.Next(30, 65);
@@ -971,7 +971,7 @@ public sealed partial class PixelScenery : Canvas
             p.Put(x + 1, y, barkDark);
         }
 
-        // A palchi di sei righe: ogni palco si allarga e porta la neve sulla riga in alto e sulle punte.
+        // In tiers of six rows: each tier widens and carries snow on its top row and on its tips.
         var maxHalf = 4 + (height / 5);
         for (var y = top; y < trunk; y++)
         {
@@ -1071,7 +1071,7 @@ public sealed partial class PixelScenery : Canvas
             p.Put(topX + 1, y, isRing ? ring : trunkDark);
         }
 
-        // Fronde che partono dalla cima e ricadono: parabola verso il basso lungo ogni direzione.
+        // Fronds that start at the top and droop: a downward parabola along each direction.
         var topY = ground - height;
         foreach (var degrees in new[] { -175.0, -150, -125, -100, -80, -55, -30, -5 })
         {
@@ -1133,8 +1133,8 @@ public sealed partial class PixelScenery : Canvas
         public int Shape;
     }
 
-    // Disegna nei due strati fissi del paesaggio: il cielo (alone del sole) e la
-    // terra (colline, terreno, piante), dove 0 vuol dire trasparente.
+    // Draws into the landscape's two fixed layers: the sky (the sun's halo) and the
+    // land (hills, ground, plants), where 0 means transparent.
     private sealed class Painter(uint[] sky, uint[] land, int cols, int rows, Random random)
     {
         public Random Random => random;

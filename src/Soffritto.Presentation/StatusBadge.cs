@@ -1,10 +1,10 @@
 namespace Soffritto.Presentation;
 
-// Colori dei pallini di stato, gli stessi per ogni pallino di VSIX ed exe: tinte morbide, come
-// le icone della testata (stile Animal Crossing), che si leggono sia su tema chiaro sia su scuro.
-// Verde a posto (acceso, allineato, approvata), arancio serve attenzione, rosso errore, blu in
-// corso (nell'exe pulsa: StatusDot), grigio spento o in attesa. Solo per i pallini: per i testi
-// sul fondo del tema serve piu' contrasto (vedi MigrationColors).
+// Status dot colors, the same for every dot in the VSIX and the app: soft tints, like
+// the header icons (Animal Crossing style), readable on both light and dark themes.
+// Green all good (running, up to date, approved), orange needs attention, red error, blue in
+// progress (it pulses in the app: StatusDot), grey off or waiting. Dots only: text on the
+// theme background needs more contrast (see MigrationColors).
 public static class StatusBadge
 {
     public const string OkColor = "#6BB36B";
@@ -14,20 +14,20 @@ public static class StatusBadge
     public const string OffColor = "#B8B8B8";
 }
 
-/// <summary>Etichette di stato di una migrazione, come compaiono a fianco del nome.</summary>
+/// <summary>Status labels of a migration, as they appear next to its name.</summary>
 public static class MigrationLabels
 {
-    public const string Applied = "applicata";
-    public const string Missing = "mancante";
-    public const string OutOfOrder = "fuori ordine";
-    public const string Unknown = "sconosciuta";
-    public const string NotRead = "non letta";
+    public const string Applied = "applied";
+    public const string Missing = "missing";
+    public const string OutOfOrder = "out of order";
+    public const string Unknown = "unknown";
+    public const string NotRead = "not read";
 }
 
-// Le pendenti non hanno piu' un elenco dedicato: e' l'etichetta a segnalarle, quindi
-// "mancante" e' in rosso e tutto il resto in grigio traslucido (leggibile su chiaro e scuro).
-// Non e' il rosso dei badge: quello e' pensato per il bianco su tinta piena, qui il testo sta
-// sul fondo del tema e serve un tono che tenga il contrasto da entrambe le parti.
+// Pending migrations no longer have a list of their own: the label flags them, so
+// "missing" is red and everything else translucent grey (readable on light and dark).
+// It is not the badge red: that one is meant for white on a solid fill, while here the text sits
+// on the theme background and needs a tone that keeps its contrast on both.
 public static class MigrationColors
 {
     public const string Missing = "#D13438";

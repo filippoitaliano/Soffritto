@@ -7,14 +7,14 @@ namespace Soffritto.Desktop.ViewModels;
 
 public sealed class MainViewModel : ObservableObject
 {
-    // Le letture sopravvivono al comando che le ha chieste: si fermano solo con la finestra.
+    // Reads outlive the command that requested them: they stop only with the window.
     private readonly CancellationTokenSource lifetime = new();
     private readonly Dictionary<int, EnvironmentRuntime> runtimes = [];
     private readonly IUserPrompt prompt = new DialogPrompt();
     private readonly IClipboard clipboard = new ClipboardText();
     private readonly PlaywrightPreviewController playwrightPreview;
 
-    // Sveglia la scansione dei processi subito dopo un avvio o uno stop, senza aspettare il giro.
+    // Wakes the process scan right after a start or a stop, without waiting for the next round.
     private readonly SemaphoreSlim scanRequested = new(0);
     private bool isLoading;
     private int activeOperations;
@@ -22,10 +22,10 @@ public sealed class MainViewModel : ObservableObject
     public MainViewModel(IReadOnlyList<EnvironmentLayout> layouts)
     {
         WindowTitle = Soffritto.Core.Configuration.ConfigurationFiles.IsDataFolderOverridden
-            ? $"{App.ProductName} · dati: {Soffritto.Core.Configuration.ConfigurationFiles.DataFolder}"
+            ? $"{App.ProductName} · data: {Soffritto.Core.Configuration.ConfigurationFiles.DataFolder}"
             : App.ProductName;
 
-        // Osservabile: gli ambienti Docker si aggiungono e si tolgono senza riavvio.
+        // Observable: Docker environments are added and removed without a restart.
         Environments = new ObservableCollection<EnvironmentViewModel>(layouts
             .Select(layout => new EnvironmentViewModel(layout, BeginOperation, EndOperation)));
 
@@ -74,31 +74,31 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    /// <summary>Avviso nella testata: vuoto sugli ambienti veri, lo valorizza solo la demo di Ctrl+D.</summary>
+    /// <summary>Banner in the header: empty on real environments, only the Ctrl+D demo sets it.</summary>
     public string DemoBanner => string.Empty;
 
-    /// <summary>Il «+» della testata, che la demo nasconde.</summary>
+    /// <summary>The header's “+”, which the demo hides.</summary>
     public string NewDockerVisibility => "Visible";
 
     public string WindowTitle { get; }
 
-    /// <summary>Senza ambienti (primo avvio, configurazione da sistemare) le colonne lasciano il posto all'invito al setup.</summary>
+    /// <summary>With no environments (first launch, configuration to fix) the columns make way for the invitation to the setup.</summary>
     public string EmptyVisibility => Environments.Count == 0 ? "Visible" : "Collapsed";
 
-    /// <summary>Versione dell'exe (Version del csproj) per il footer: "v1.0.0".</summary>
+    /// <summary>The app version (the csproj Version) for the footer: "v1.0.0".</summary>
     public string AppVersion { get; } =
         $"v{System.Reflection.Assembly.GetEntryAssembly()?.GetName().Version?.ToString(3) ?? "?"}";
 
     private string updateNotice = string.Empty;
 
-    /// <summary>Accanto alla versione nel footer: un aggiornamento scaricato che si installa alla chiusura.</summary>
+    /// <summary>Next to the version in the footer: a downloaded update that installs on close.</summary>
     public string UpdateNotice { get => updateNotice; set => SetProperty(ref updateNotice, value); }
 
     public ObservableCollection<EnvironmentViewModel> Environments { get; }
 
     public PullRequestsViewModel PullRequests { get; }
 
-    /// <summary>Le azioni Docker globali: creazione degli ambienti (il «+»), seed, spazio, log e pool dei tunnel (setup).</summary>
+    /// <summary>The global Docker actions: environment creation (the “+”), seed, disk space, log and tunnel pool (setup).</summary>
     public DockerPanelViewModel Docker { get; }
 
     public PullRequestNotifications Notifications { get; }
@@ -106,18 +106,18 @@ public sealed class MainViewModel : ObservableObject
     public StoryPointsMeetingViewModel Meeting { get; }
 
     /// <summary>
-    /// Larghezza fissa di una colonna (DIP), tra i vecchi limiti di 480 e 720: le card hanno
-    /// sempre la stessa forma, con molte colonne compare lo scroll orizzontale.
+    /// Fixed width of a column (DIP), between the old limits of 480 and 720: cards always have
+    /// the same shape, and with many columns a horizontal scrollbar appears.
     /// </summary>
     public const double ColumnWidth = 550;
 
-    /// <summary>Larghezza minima della griglia: una <see cref="ColumnWidth"/> per colonna aperta; le nascoste non contano.</summary>
+    /// <summary>Minimum grid width: one <see cref="ColumnWidth"/> per open column; hidden ones do not count.</summary>
     public double ColumnsMinWidth => MinWidthOf(Environments);
 
     public static double MinWidthOf(IEnumerable<EnvironmentViewModel> environments)
         => environments.Count(e => !e.IsCollapsed) * ColumnWidth;
 
-    /// <summary>Vero mentre almeno una lettura o un'azione e' in corso in un ambiente: anima la barra in alto.</summary>
+    /// <summary>True while at least one read or action is running in an environment: it animates the top bar.</summary>
     public bool IsLoading { get => isLoading; private set => SetProperty(ref isLoading, value); }
 
     public ICommand RefreshAllCommand { get; }
@@ -135,7 +135,7 @@ public sealed class MainViewModel : ObservableObject
 
     public void Shutdown()
     {
-        // Prima di fermare tutto: con un'azione in corso nell'exe la pulizia salta.
+        // Before stopping everything: with an action running in the app, the cleanup is skipped.
         if (AppSettings.Current.DockerCleanupOnExit && !AppSettings.Current.IsDemo && activeOperations == 0 && !Docker.IsWorking)
         {
             try
@@ -156,15 +156,15 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    /// <summary>Porta l'ambiente <paramref name="number"/> sui branch indicati: vedi <see cref="EnvironmentController.CheckoutAsync"/>.</summary>
+    /// <summary>Moves environment <paramref name="number"/> to the given branches: see <see cref="EnvironmentController.CheckoutAsync"/>.</summary>
     public Task<string> CheckoutAsync(int number, IReadOnlyList<(string Repository, string Branch)> targets)
         => runtimes.TryGetValue(number, out var runtime)
             ? runtime.Controller.CheckoutAsync(targets)
-            : Task.FromResult($"Ambiente {number} non c'e' piu'");
+            : Task.FromResult($"Environment {number} no longer exists");
 
     /// <summary>
-    /// Una colonna nuova (un ambiente Docker appena creato), senza riavvio: controller, strumenti,
-    /// pannello PR e anteprime la vedono subito. Va chiamato sul thread della UI.
+    /// A new column (a freshly created Docker environment), without a restart: controller, tools,
+    /// PR panel and previews see it right away. Must be called on the UI thread.
     /// </summary>
     public void AddEnvironment(EnvironmentLayout layout)
     {
@@ -198,8 +198,8 @@ public sealed class MainViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Toglie la colonna di un ambiente (distrutto): le sue letture si fermano con il suo token.
-    /// Va chiamato sul thread della UI.
+    /// Removes the column of a (destroyed) environment: its reads stop with its token.
+    /// Must be called on the UI thread.
     /// </summary>
     public void RemoveEnvironment(int number)
     {
@@ -221,9 +221,9 @@ public sealed class MainViewModel : ObservableObject
     private System.IO.FileSystemWatcher? configurationWatcher;
     private CancellationTokenSource? configurationDebounce;
 
-    // Gli ambienti Docker si creano e si distruggono anche da fuori (server MCP, CLI): config.json
-    // si osserva e le colonne Docker seguono il file. Gli ambienti locali cambiano solo col setup,
-    // che riavvia l'exe.
+    // Docker environments are also created and destroyed from outside (MCP server, CLI): config.json
+    // is watched and the Docker columns follow the file. Local environments change only through the
+    // setup, which restarts the app.
     private void WatchConfiguration()
     {
         if (Soffritto.Core.Configuration.ConfigurationFiles.DataFolderProblem is not null)
@@ -242,7 +242,7 @@ public sealed class MainViewModel : ObservableObject
         configurationWatcher.EnableRaisingEvents = true;
     }
 
-    // La scrittura e' tmp + move: si rilegge una volta, poco dopo l'ultimo evento.
+    // The write is tmp + move: read it again once, shortly after the last event.
     private void ConfigurationChanged()
     {
         var debounce = new CancellationTokenSource();
@@ -286,8 +286,8 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    // Controller e strumenti di una colonna, con un token proprio legato a quello della finestra:
-    // una colonna tolta ferma le sue letture senza toccare le altre.
+    // Controller and tools of a column, with a token of its own linked to the window's:
+    // a removed column stops its reads without touching the others.
     private void Attach(EnvironmentViewModel environment)
     {
         var columnLifetime = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
@@ -315,9 +315,9 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    // Un ambiente locale il cui backend punta al database nel container di uno slot Docker
-    // (127.0.0.1,<porta del db dello slot>) segue la fase di quell'ambiente: database spento o in
-    // avvio come «non letta», e rilettura quando il database torna.
+    // A local environment whose backend points to the database in a Docker slot's container
+    // (127.0.0.1,<slot db port>) follows that environment's phase: a database that is off or
+    // starting counts as "not read", and it is read again when the database comes back.
     private EnvironmentRuntime? DockerOwningDatabaseOf(EnvironmentViewModel local)
     {
         if (LocalDatabasePort(local) is not { } port)
@@ -348,10 +348,10 @@ public sealed class MainViewModel : ObservableObject
             : null;
 
     /// <summary>
-    /// «Distruggi» di un ambiente Docker: controllo senza modifiche (codice che si perderebbe),
-    /// conferma con il riepilogo, console del Compose Watch e programmi aperti sulle sue cartelle
-    /// chiusi, poi la distruzione. La colonna
-    /// sparisce quando la voce lascia config.json; il dettaglio va in «Operazioni» della colonna, l'esito della distruzione nel log della scheda «Docker» del setup.
+    /// “Destroy” for a Docker environment: a check for no changes (code that would be lost),
+    /// confirmation with the summary, the Compose Watch console and programs open on its folders
+    /// closed, then the destruction. The column
+    /// disappears when the entry leaves config.json; the details go to the column's “Operations”, the outcome of the destruction to the log of the setup's “Docker” tab.
     /// </summary>
     public async Task DestroyDockerAsync(int number)
     {
@@ -362,63 +362,63 @@ public sealed class MainViewModel : ObservableObject
 
         if (!environment.IsNotBusy)
         {
-            environment.ActivityLine = $"Ambiente {number} non distrutto: c'e' un'azione in corso";
+            environment.ActivityLine = $"Environment {number} not destroyed: an action is in progress";
             return;
         }
 
         if (docker.Slot is not { } slot)
         {
-            environment.ActivityLine = $"Ambiente {number} non distrutto: {docker.SlotError ?? "slot non calcolabile"}";
+            environment.ActivityLine = $"Environment {number} not destroyed: {docker.SlotError ?? "slot cannot be computed"}";
             return;
         }
 
-        void Log(string line) => environment.Report($"distruggi: {line}");
+        void Log(string line) => environment.Report($"destroy: {line}");
 
         environment.BeginOperation();
         try
         {
-            environment.Report("distruggi: controllo che nessun worktree abbia codice da perdere…");
+            environment.Report("destroy: checking that no worktree has code to lose…");
             var configuration = ActiveConfiguration.Current;
             var (ok, problems) = await Task.Run(
                 () => Soffritto.Core.Docker.DockerEnvironmentProvisioner.CheckDestroyableAsync(configuration, number, lifetime.Token),
                 lifetime.Token).ConfigureAwait(false);
             if (!ok)
             {
-                environment.Report($"Ambiente {number} non distrutto: {string.Join("; ", problems)}");
+                environment.Report($"Environment {number} not destroyed: {string.Join("; ", problems)}");
                 return;
             }
 
-            // Un programma chiuso a mano puo' restare vivo senza finestre (un'estensione dell'editor che
-            // lo tiene in piedi): invece di bloccare, la conferma li elenca e Distruggi li termina.
+            // A program closed by hand can stay alive without windows (an editor extension keeping
+            // it up): instead of blocking, the confirmation lists them and Destroy terminates them.
             var holders = await Task.Run(() => DockerFolderHolders.Find(ProcessTable.ReadAll(), slot), lifetime.Token).ConfigureAwait(false);
             var removed = new List<ConfirmationRow>
             {
-                new($"progetto {slot.Project}", "compose", "container e volume del database"),
-                new("immagini dell'api e del web", "immagini"),
+                new($"project {slot.Project}", "compose", "containers and database volume"),
+                new("api and web images", "images"),
             };
-            removed.AddRange(slot.Repositories.Select(r => new ConfirmationRow(r.Path, "worktree", "senza --force")));
-            removed.Add(new(slot.ComposeFolder, "slot", "con gli env_file"));
-            removed.Add(new("porte dell'ambiente rilasciate", "pool"));
-            removed.Add(new("voce tolta da config.json, colonna chiusa", "config"));
+            removed.AddRange(slot.Repositories.Select(r => new ConfirmationRow(r.Path, "worktree", "without --force")));
+            removed.Add(new(slot.ComposeFolder, "slot", "with the env_files"));
+            removed.Add(new("environment ports released", "pool"));
+            removed.Add(new("entry removed from config.json, column closed", "config"));
 
             var confirmed = await prompt.ConfirmAsync(
                 new Confirmation(
-                    $"Distruggi l'ambiente {number}",
-                    $"L'ambiente Docker {number} viene tolto del tutto; il database si rigenera dal seed con un ambiente nuovo. Restano i branch nei cloni sorgente e la nota dell'ambiente.",
+                    $"Destroy environment {number}",
+                    $"Docker environment {number} is removed entirely; the database is regenerated from the seed with a new environment. The branches in the source clones and the environment note are kept.",
                     [
-                        new("Programmi da chiudere, senza salvare", holders.Select(h => new ConfirmationRow($"{h.Name} su {h.Folder}", h.ProcessId.ToString(), "con i figli")).ToList()),
-                        new("Cosa viene tolto", removed),
+                        new("Programs to close, without saving", holders.Select(h => new ConfirmationRow($"{h.Name} on {h.Folder}", h.ProcessId.ToString(), "with children")).ToList()),
+                        new("What gets removed", removed),
                     ],
-                    "Distruggi"),
+                    "Destroy"),
                 lifetime.Token).ConfigureAwait(false);
             if (!confirmed)
             {
-                environment.Report($"Ambiente {number} non distrutto: annullato");
+                environment.Report($"Environment {number} not destroyed: cancelled");
                 return;
             }
 
-            // Prima di down: con il watch acceso una regola rebuild riaccenderebbe il web a meta', e
-            // una console del watch o dei log aperta bloccherebbe la cancellazione della cartella dello slot.
+            // Before down: with the watch running, a rebuild rule would restart the web halfway through, and
+            // an open watch or log console would block the deletion of the slot folder.
             Log(await Task.Run(() => DockerWatchConsole.StopAll(ProcessTable.Read([]), slot), lifetime.Token).ConfigureAwait(false));
             if (holders.Count > 0)
             {
@@ -439,18 +439,18 @@ public sealed class MainViewModel : ObservableObject
                 lifetime.Token).ConfigureAwait(false);
             if (error is not null)
             {
-                environment.Report($"Ambiente {number} non distrutto: {error}");
+                environment.Report($"Environment {number} not destroyed: {error}");
             }
             else
             {
-                // La colonna non c'e' piu': l'esito resta nel log Docker del setup, il log delle operazioni si scarta.
-                Docker.AppendLog($"Ambiente {number} distrutto; restano i branch nei cloni sorgente");
+                // The column is gone: the outcome stays in the setup's Docker log, the operations log is discarded.
+                Docker.AppendLog($"Environment {number} destroyed; the branches in the source clones are kept");
                 UiThread.Run(() => OperationLogs.Remove(number));
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            environment.Report($"Ambiente {number} non distrutto: {ex.Message}");
+            environment.Report($"Environment {number} not destroyed: {ex.Message}");
         }
         finally
         {
@@ -458,37 +458,37 @@ public sealed class MainViewModel : ObservableObject
         }
     }
 
-    // «Ripara env»: riscrive gli env dei worktree e dei container, poi rilegge la colonna. Un
-    // errore resta nella riga di attivita': la rilettura lo coprirebbe con «pronto».
+    // "Repair env": rewrites the env files of the worktrees and containers, then reads the column again.
+    // An error stays in the activity line: the reread would cover it with "ready".
     private static async Task RepairEnvAsync(EnvironmentViewModel environment, EnvironmentController controller, CancellationToken cancellationToken)
     {
         if (!environment.IsNotBusy)
         {
-            environment.ActivityLine = "Ripara env non avviato: c'e' un'azione in corso";
+            environment.ActivityLine = "Repair env not started: an action is in progress";
             return;
         }
 
         environment.BeginOperation();
         try
         {
-            environment.Report("ripara env: riscrivo gli env dei worktree e dei container…");
+            environment.Report("repair env: rewriting the env files of the worktrees and containers…");
             var configuration = ActiveConfiguration.Current;
             var error = await Task.Run(
                 () => Soffritto.Core.Docker.DockerEnvironmentProvisioner.RepairEnvAsync(
                     configuration,
                     environment.Number,
-                    line => environment.Report($"ripara env: {line}"),
+                    line => environment.Report($"repair env: {line}"),
                     cancellationToken),
                 cancellationToken).ConfigureAwait(false);
             if (error is not null)
             {
-                environment.Report($"Ripara env non riuscito: {error}");
+                environment.Report($"Repair env failed: {error}");
                 return;
             }
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            environment.Report($"Ripara env non riuscito: {ex.Message}");
+            environment.Report($"Repair env failed: {ex.Message}");
             return;
         }
         finally
@@ -501,21 +501,21 @@ public sealed class MainViewModel : ObservableObject
 
     private sealed record EnvironmentRuntime(EnvironmentController Controller, DevToolsController Tools, CancellationTokenSource Lifetime);
 
-    /// <summary>Le azioni di scrittura in corso, una riga per ambiente occupato.</summary>
+    /// <summary>The write actions in progress, one line per busy environment.</summary>
     public bool HasWriteInProgress(out string description)
     {
         var busy = Environments
             .Where(e => !e.IsNotBusy)
-            .Select(e => $"Ambiente {e.Number}: {e.ActivityLine}")
+            .Select(e => $"Environment {e.Number}: {e.ActivityLine}")
             .ToList();
 
         description = string.Join("; ", busy);
         return busy.Count > 0;
     }
 
-    // Gli ambienti con un'azione in corso non vengono riletti: la sessione esce da sola finche'
-    // il gate e' occupato, e l'azione rilegge quando finisce. Le PR si rileggono anche a pannello
-    // chiuso: le notifiche devono accorgersi delle novita'.
+    // Environments with an action in progress are not read again: the session bails out on its own
+    // while the gate is busy, and the action rereads when it finishes. PRs are read again even with
+    // the panel closed: notifications must notice what is new.
     private void RefreshAll()
     {
         foreach (var runtime in runtimes.Values)
@@ -526,7 +526,7 @@ public sealed class MainViewModel : ObservableObject
         _ = PullRequests.RefreshAsync();
     }
 
-    // Solo l'exe rilegge da solo: la VSIX resta a refresh manuale.
+    // Only the app rereads on its own: the VSIX stays on manual refresh.
     private async Task RefreshPeriodicallyAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -546,9 +546,9 @@ public sealed class MainViewModel : ObservableObject
 
     private void RequestScan() => scanRequested.Release();
 
-    // Lo stato di Kestrel, dev server e app cambia anche fuori dall'exe (una console chiusa a
-    // mano, un debug avviato da Visual Studio): la barra strumenti si allinea ogni pochi secondi.
-    // E' una lettura locale dei processi, non tocca git, database o rete.
+    // The state of Kestrel, dev server and app also changes outside the app (a console closed by
+    // hand, a debug session started from Visual Studio): the toolbar catches up every few seconds.
+    // It is a local read of the processes; it does not touch git, the database or the network.
     private async Task ScanProcessesAsync(CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -558,14 +558,14 @@ public sealed class MainViewModel : ObservableObject
                 var apiProcesses = ActiveConfiguration.Current.Repositories.OfType<Soffritto.Core.Configuration.BackendConfiguration>().Select(b => b.ApiProcess).ToList();
                 var scan = await Task.Run(() => ProcessTable.Read(apiProcesses), cancellationToken).ConfigureAwait(false);
 
-                // I container degli ambienti Docker: una lettura di docker ps filtrata sull'etichetta
-                // della cartella dati, solo se c'e' almeno un ambiente Docker.
+                // The containers of Docker environments: a docker ps read filtered on the data folder
+                // label, only if there is at least one Docker environment.
                 var docker = ActiveConfiguration.Current.DockerEnvironments.Any()
                     ? await Soffritto.Core.Docker.DockerStatusReader.ReadAsync(cancellationToken).ConfigureAwait(false)
                     : null;
 
-                // Prontezza di db, api e web dei container accesi: login e richieste HTTP brevi, in
-                // parallelo per tutte le colonne, prima di ricalcolare le card sul thread della UI.
+                // Readiness of db, api and web of the running containers: login and short HTTP requests,
+                // in parallel for all columns, before recomputing the cards on the UI thread.
                 if (docker is { IsReachable: true })
                 {
                     var tools = new List<DevToolsController>();
@@ -587,7 +587,7 @@ public sealed class MainViewModel : ObservableObject
             }
             catch
             {
-                // WMI non disponibile per un giro: la barra resta com'era e si riprova al successivo.
+                // WMI unavailable for one round: the bar stays as it was and the next round tries again.
             }
 
             try
