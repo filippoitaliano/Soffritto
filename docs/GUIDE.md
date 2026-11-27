@@ -24,7 +24,7 @@ drop-down. See “Actions and guards”.
 | `Soffritto.Presentation` | Orchestration shared by VSIX and app: per-section reads and their queue, actions with guards and follow-up refreshes, panel texts, Kestrel and tunnel host tools. Depends on Core and on `System.Management`; no dependency on Visual Studio or WPF. |
 | `Soffritto.Vsix` | The extension package (out-of-process `VisualStudio.Extensibility` model): a Remote UI adapter over the shared orchestration. |
 | `Soffritto.Desktop` | WPF executable independent of Visual Studio: the state of the configured environments in one window, one column per environment with the cards of its repositories, on the same orchestration as the VSIX. |
-| `Soffritto.Mcp` | stdio MCP server for any MCP client: the same environment state as tools, read-only on local environments, and the same actions as the app on Docker environments. See “MCP server”. |
+| `Soffritto.Mcp` | stdio MCP server for any MCP client: the same environment state and the same actions as the app, on local and Docker environments. See “MCP server”. |
 
 ## How it reads the state
 
@@ -305,9 +305,9 @@ A repository that is not the first of its type in the environment carries the ta
 to its name, to tell it apart (see “Repository tools”).
 
 At the top of every column is the environment card. Its header holds the name, the backend's
-database and server tags read from the appsettings, the activity, environment start/stop,
-Refresh, the crossed-out eye that hides the column and, on the right edge, the dot. A tag is
-orange if its name is among the backend's `highlightedTags` (“Tags to highlight” in the setup); in
+database and server tags read from the appsettings (“DB: …” and “Server: …”), the activity,
+environment start/stop, Refresh, the crossed-out eye that hides the column and, on the right edge,
+the dot. A database to handle with care is marked “Protected DB” (see `protectedDatabase`); in
 a Docker environment there is no server tag; under the note sit the secondary actions, “Reset to
 dev” (the Reset) and the Tunnel switch. A Docker environment also has the “Docker” tag and, under
 the note, “Repair env” and “Destroy environment” (see “Docker environments”). The card scrolls
@@ -316,8 +316,7 @@ disappears completely from the grid, and the state survives a restart. In the wi
 to the app buttons, there is a chip per environment (number and dot, the activity in the
 tooltip): it stays visible even when scrolling horizontally. Clicking a chip shows or hides the
 column, and showing it brings it into view; a hidden column has the crossed-out eye on its chip.
-An environment with every repository on `dev` has the same peach-pink sunset on the environment
-card and on the chip. After the chips, the “+” opens the “New Docker environment” panel.
+After the chips, the “+” opens the “New Docker environment” panel.
 Every port is a pill with the number in a grey badge and the public host without `https://`: a
 click anywhere on the pill copies the URL. Whether it responds is told by the host dot: the pill
 writes “no response” in red only when that port's HTTP probe got no response.
@@ -506,6 +505,15 @@ others to `dev`, the main development branch (see “Development branch”). If 
 local changes, a git operation half done or lacks the branch, nothing changes: this applies to a
 generic repository too, so a generic repository with work in progress or without `dev` blocks
 Reset and “Open in” for the environment it belongs to.
+
+**Work on the environment.** A PR panel card shows in a green tag (“Env 1”, “Env 1, 3”) the environments that sit exactly on
+its PRs' branches, the other repositories on `dev`: the state “Open in” leaves. The environment
+card mirrors it: under the name, a green FlashCard for each work item (or PR without one) whose
+branches the environment sits on; a click opens the work item. The rule is one, `EnvironmentWork`
+in Presentation, shared with the MCP server; it is recomputed with no reads of its own, after every
+branch read of the environment and every PR read, which the app runs even with the panel closed.
+Only the PRs the panel knows count, the active ones you opened or review, the two sections
+separately: a work item without an open PR, or a colleague's PR you do not review, does not show.
 
 ### Dev tunnel
 
@@ -1102,11 +1110,10 @@ environment is aligned, `1` otherwise (the tunnel state does not count towards t
 ## MCP server
 
 `Soffritto.Mcp` is a stdio MCP server that works with any MCP client: it works on the numbered
-environments of the same `config.json` as the app. On local environments it is **read-only**: on
-the database only the `SELECT` on the history, on git at most a `fetch` on request, on processes
-only the WMI read. The exceptions are the repository's extra command and the environment's tunnel
-(see “Tools for every environment”). On Docker environments it performs the same actions as the app, with the same
-Core functions. The server instructions explain the flow to any client, with no need for skills.
+environments of the same `config.json` as the app. On local and Docker environments it performs
+the same actions as the app's buttons, with the same Core and Presentation functions, so that
+everything can be done from the app or from an agent without skills. The server instructions
+explain the flow to any client.
 
 Read tools:
 
@@ -1148,6 +1155,46 @@ Docker environment tools:
   branch, for all contexts or for one, with the guard on the slot database.
 - `repair_docker_env` — like “Repair env” in the app.
 
+Local environment tools:
+
+- `start_local_service`, `stop_local_service` — like Start and Stop on a card: Kestrel, dev server
+  or app (`bundler: true` for Metro), in consoles detached from the server with the usual markers
+  (`LocalServices`, shared with the app). The stop of an app also stops its bundler.
+- `start_local_environment`, `stop_local_environment` — like the play and stop of the column:
+  the start brings up Kestrel and the dev servers that are off (not the app) and the environment's
+  tunnel host if it dropped; the stop closes everything, app and bundler included.
+- `pull_repository` — `git pull --ff-only`, like the pull icon.
+- `switch_branch` — `git switch` to a branch among the local and remote ones, like the drop-down.
+- `checkout_local_environment` — like Reset (no branches: every repository on the development
+  branch) and “Open in” (a branch per catalog id): it checks every repository first (fetch, local
+  changes, git operation halfway through, detached HEAD, branch present, action in progress, with
+  `CheckoutGuard` shared with the app); if one fails nothing changes and the services keep
+  running; otherwise it stops the services, then switch and, if behind, pull.
+- `prune_branches`, `apply_local_migrations`, `update_local_database_to` — branch cleanup,
+  database update and update to a chosen migration. They keep the app's guards: `CanApplyPending`
+  (an out-of-order migration sends the decision back to the person), the refusal on
+  `protectedDatabase`, `Development` forced on `dotnet ef`.
+
+The irreversible ones go **in two steps**, because the app's confirmation dialog has no MCP
+equivalent: elicitation is not reliable (see below). Without `confirm` the tool computes the plan
+(branches to delete; clone, server, database and migrations to apply or revert) and returns it
+with a code, the hash of the plan. The client shows it to the person and calls again with
+`confirm` = code. The worker reads the state again and runs only if the plan is still the same;
+otherwise it does nothing and returns the new plan with its new code.
+
+Work items:
+
+- `environments_work` — for every environment the work items (or PRs without one) whose branches
+  it sits on, like the green tag of the PR panel and its mirror on the environment card: it reads
+  the PRs from Azure DevOps once and the current branch of every clone or worktree.
+- `environment_status` and `docker_environment_status` have the same answer in the `work` section
+  (`work: false` skips it). The PR read runs in parallel with the others and stops after 10 s:
+  without Azure DevOps, or with a PAT this Windows user cannot decrypt, the section says why and
+  the rest of the status comes out anyway.
+
+The MCP server reads the PRs itself, with the app's connection and credentials
+(`AzureDevOpsSecrets`, in Core): it does not depend on the app being open.
+
 Tools for every environment, local or Docker:
 
 - `enable_tunnel`, `disable_tunnel` — like the “Tunnel” switch in the environment header in the
@@ -1163,19 +1210,28 @@ environment” in the app. Confirmation through MCP elicitation is not reliable:
 declare elicitation support and answer on its own with a refusal, without showing anything to the
 person.
 
-Creation, start, migrations and pool ports run in the background in the server process: the tool
-waits a few seconds (`waitSeconds`) and, if the operation takes longer, replies with an id to
-follow with `operation_status`. One operation at a time runs on an environment per process.
-Operations die with the server process, that is with the client session: a half-created
-environment is removed with “Destroy environment” in the app.
+Long operations (creation, start and stop of containers, migrations, pool ports, git, extra
+command) run in a **worker process** of their own: the server's exe started with `--operation <id>`
+by an intermediate `cmd` that exits at once, like the service consoles, so a client that kills the
+server with its whole process tree does not reach it. Each operation is a folder in
+`<data folder>\operations\<id>` with `request.json` (kind and arguments), `worker.json` (PID and
+start time of the worker), `log.txt` and, at the end, `outcome.json`. The tool waits a few seconds
+(`waitSeconds`) and, if the operation takes longer, replies with the id to follow with
+`operation_status`, which any server process can read: the operation survives the server and the
+client session. A worker that disappears without an outcome (killed, machine restarted) shows up
+as failed. One operation at a time runs on an environment, across processes (`operations.lock`);
+folders older than a week are removed when a server starts.
 
 The app watches `config.json`: a Docker environment created or destroyed by the MCP appears in or
 disappears from the grid without a restart, and the note written by the MCP reaches the column
 right away. Writes to `config.json` and `tunnel-pool.json` go through a cross-process lock
 (`config.lock`, `tunnel-pool.lock` in the data folder), so app and MCP server do not overwrite each
-other. There is, however, no cross-process lock on compose commands for the same environment:
-launching a start and a stop on the same environment at the same time from the app and from the
-MCP gives an unpredictable result.
+other. Write actions on a clone (pull, branch switch, branch cleanup, database update, checkout) take
+a cross-process lock on the repository (`RepositoryLock`, `locks\repository-<hash>.lock` in the
+data folder), in the app as in the MCP worker: the second one says the repository is busy instead
+of running in parallel. There is, however, no cross-process lock on compose commands for the same
+environment: launching a start and a stop on the same environment at the same time from the app
+and from the MCP gives an unpredictable result.
 
 Every MCP client registers it as a stdio server that launches `Soffritto.Mcp.exe`. For example,
 with Claude Code the per-user registration, pointing to the Debug build, is:
@@ -1184,8 +1240,9 @@ with Claude Code the per-user registration, pointing to the Debug build, is:
 claude mcp add --scope user soffritto -- <repository folder>\src\Soffritto.Mcp\bin\Debug\net11.0\Soffritto.Mcp.exe
 ```
 
-The process lives as long as the client session and keeps its DLLs locked: to rebuild the project
-close the session, or just the server (in Claude Code from `/mcp`).
+The process lives as long as the client session and keeps its DLLs locked, and so does a worker
+while its operation runs: to rebuild the project close the session, or just the server (in Claude
+Code from `/mcp`), and wait for the running operations.
 
 With the Setup.exe installation the server is `Soffritto.Mcp.exe` next to the exe, and “Register
 in Claude Code” in the setup's Components tab does the registration (see “Setup.exe”).
@@ -1556,12 +1613,14 @@ on origin. The setup reminds you of this in a light blue note above the catalog,
 
 ### Azure DevOps
 
-The pull request panel connects directly to Azure DevOps, without going through the MCP server:
+The pull request panel, and the MCP server for the work items of the environments, connect directly
+to Azure DevOps, without going through the Azure DevOps MCP server:
 from the MCP it takes the collection URL, project and PAT, sent in Basic auth with an empty user as
 its `VssBasicCredential` does (`src\Soffritto.Core\AzureDevOps\AzureDevOpsConnection.cs`).
 The default authentication is the Windows user; with a PAT, the token is saved encrypted with DPAPI
-for the current Windows user: the working copy does not contain it in clear text, but for another
-user or on another machine it must be entered again. In the imported file you can write `"pat"` in
+for the current Windows user (`AzureDevOpsSecrets`): the working copy does not contain it in clear
+text, and the app and the MCP server, running as the same user, both read it; for another user or
+on another machine it must be entered again. In the imported file you can write `"pat"` in
 clear text: at the first save it becomes `"patProtected"`.
 
 ### Connection string

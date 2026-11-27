@@ -98,8 +98,10 @@
     <Style x:Key="IconButton" TargetType="Button">
       <Setter Property="Background" Value="{DynamicResource Theme.Control}" />
       <Setter Property="Foreground" Value="{DynamicResource Theme.TextSoft}" />
-      <Setter Property="BorderBrush" Value="Transparent" />
-      <Setter Property="BorderThickness" Value="0" />
+      <!-- A thin outline on every button, the same as the hidden-column chips: it separates the
+           button from the card even where the background is close to the card's. -->
+      <Setter Property="BorderBrush" Value="{DynamicResource Theme.ChipOutline}" />
+      <Setter Property="BorderThickness" Value="1" />
       <Setter Property="Width" Value="26" />
       <Setter Property="Height" Value="26" />
       <Setter Property="Padding" Value="0" />
@@ -252,7 +254,7 @@
       <Setter Property="TextTrimming" Value="CharacterEllipsis" />
     </Style>
 
-    <!-- Environment markers in the header chip (Docker, protected database, sunset). -->
+    <!-- Environment markers in the header chip (Docker, protected database). -->
     <Style x:Key="ChipGlyph" TargetType="TextBlock">
       <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
       <Setter Property="FontWeight" Value="Normal" />
@@ -281,6 +283,8 @@
               <Border x:Name="Veil" CornerRadius="13" Background="White" Opacity="0" />
               <Border CornerRadius="13" BorderBrush="#2E000000" BorderThickness="0,0,0,3" />
               <Border CornerRadius="13" BorderBrush="#40FFFFFF" BorderThickness="0,1,0,0" />
+              <!-- The thin outline of every button (IconButton), around the colored pill too. -->
+              <Border CornerRadius="13" BorderBrush="{DynamicResource Theme.ChipOutline}" BorderThickness="1" />
               <!-- Equal side margins. 1 px at the bottom: halfway between the center of the face (above
                    the 3 px lip) and that of the whole pill, where the eye sees them centered. -->
               <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,14,1">

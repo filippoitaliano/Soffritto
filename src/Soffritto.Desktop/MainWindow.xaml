@@ -165,13 +165,23 @@
          the default backend. Each tag is 4 px from the previous one and the group 4 px from the
          title, so the first visible one is always at 8 px. Used by the environment card and by its
          chip's card in the header. -->
-    <DataTemplate x:Key="EnvironmentTags">
+    <!-- The plate under each environment tag: transparent in the row, the card's surface in the
+         hover copy (the ContentPresenter's Tag), so the copy's translucent tags hide the buttons. -->
+    <Style x:Key="TagPlate" TargetType="Border">
+      <Setter Property="CornerRadius" Value="9" />
+      <Setter Property="Margin" Value="4,0,0,0" />
+      <Setter Property="VerticalAlignment" Value="Center" />
+      <Setter Property="Background" Value="{Binding Tag, RelativeSource={RelativeSource AncestorType=ContentPresenter}}" />
+    </Style>
+
+    <DataTemplate x:Key="EnvironmentTagRow">
       <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="4,0,0,0">
         <!-- Local environment with a protected database: migrations are read but not applied. -->
-        <Border Visibility="{Binding ProtectedDatabaseVisibility}" ToolTip="{Binding ProtectedDatabaseToolTip}">
+        <Border Visibility="{Binding ProtectedDatabaseVisibility}" Style="{StaticResource TagPlate}">
+        <Border ToolTip="{Binding ProtectedDatabaseToolTip}">
           <Border.Style>
             <Style TargetType="Border" BasedOn="{StaticResource Tag}">
-              <Setter Property="Margin" Value="4,0,0,0" />
+              <Setter Property="Margin" Value="0" />
               <Setter Property="Background" Value="#26DC2626" />
               <Setter Property="BorderBrush" Value="#80DC2626" />
               <Setter Property="TextElement.Foreground" Value="{DynamicResource Theme.ProtectedDatabaseTagText}" />
@@ -179,11 +189,12 @@
           </Border.Style>
           <TextBlock Text="{Binding ProtectedDatabaseTag}" Style="{StaticResource TagText}" />
         </Border>
-        <Border Visibility="{Binding KindBadgeVisibility}"
-                ToolTip="Docker environment: worktrees from the source clones, api, web and database in the slot's containers">
+        </Border>
+        <Border Visibility="{Binding KindBadgeVisibility}" Style="{StaticResource TagPlate}">
+        <Border ToolTip="Docker environment: worktrees from the source clones, api, web and database in the slot's containers">
           <Border.Style>
             <Style TargetType="Border" BasedOn="{StaticResource Tag}">
-              <Setter Property="Margin" Value="4,0,0,0" />
+              <Setter Property="Margin" Value="0" />
               <Setter Property="Background" Value="#1A7C3AED" />
               <Setter Property="BorderBrush" Value="#4D7C3AED" />
               <Setter Property="TextElement.Foreground" Value="{DynamicResource Theme.DockerTagText}" />
@@ -191,41 +202,74 @@
           </Border.Style>
           <TextBlock Text="Docker" Style="{StaticResource TagText}" />
         </Border>
-        <!-- Database and server of the environment's default backend, read from the
-             appsettings. In a Docker environment the server is always the slot's container
-             and is not shown. Orange, each on its own, for a tag whose name the
-             configuration asks to highlight (the backend's highlightedTags). -->
-        <Border Visibility="{Binding DatabaseTagVisibility}" ToolTip="{Binding DatabaseTagToolTip}">
-          <Border.Style>
-            <Style TargetType="Border" BasedOn="{StaticResource Tag}">
-              <Setter Property="Margin" Value="4,0,0,0" />
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding IsDatabaseHighlighted}" Value="True">
-                  <Setter Property="Background" Value="#26F59E0B" />
-                  <Setter Property="BorderBrush" Value="#80D97706" />
-                  <Setter Property="TextElement.Foreground" Value="{DynamicResource Theme.HighlightTagText}" />
-                </DataTrigger>
-              </Style.Triggers>
-            </Style>
-          </Border.Style>
-          <TextBlock Text="{Binding DatabaseTag}" Style="{StaticResource TagText}" />
         </Border>
-        <Border Visibility="{Binding ServerTagVisibility}" ToolTip="{Binding ServerTagToolTip}">
+        <!-- Database and server of the environment's default backend, read from the
+             appsettings, each with its label, in neutral grey: the coloured tags are kept for
+             what needs attention (Protected DB, Docker). In a Docker environment the server is
+             always the slot's container and is not shown. -->
+        <Border Visibility="{Binding DatabaseTagVisibility}" Style="{StaticResource TagPlate}">
+        <Border ToolTip="{Binding DatabaseTagToolTip}">
           <Border.Style>
             <Style TargetType="Border" BasedOn="{StaticResource Tag}">
-              <Setter Property="Margin" Value="4,0,0,0" />
-              <Style.Triggers>
-                <DataTrigger Binding="{Binding IsServerHighlighted}" Value="True">
-                  <Setter Property="Background" Value="#26F59E0B" />
-                  <Setter Property="BorderBrush" Value="#80D97706" />
-                  <Setter Property="TextElement.Foreground" Value="{DynamicResource Theme.HighlightTagText}" />
-                </DataTrigger>
-              </Style.Triggers>
+              <Setter Property="Margin" Value="0" />
+              <Setter Property="Background" Value="#1A808080" />
+              <Setter Property="BorderBrush" Value="#4D808080" />
+              <Setter Property="TextElement.Foreground" Value="{DynamicResource Theme.NeutralTagText}" />
             </Style>
           </Border.Style>
-          <TextBlock Text="{Binding ServerTag}" Style="{StaticResource TagText}" />
+          <TextBlock Text="{Binding DatabaseTag, StringFormat='DB: {0}'}" Style="{StaticResource TagText}" />
+        </Border>
+        </Border>
+        <Border Visibility="{Binding ServerTagVisibility}" Style="{StaticResource TagPlate}">
+        <Border ToolTip="{Binding ServerTagToolTip}">
+          <Border.Style>
+            <Style TargetType="Border" BasedOn="{StaticResource Tag}">
+              <Setter Property="Margin" Value="0" />
+              <Setter Property="Background" Value="#1A808080" />
+              <Setter Property="BorderBrush" Value="#4D808080" />
+              <Setter Property="TextElement.Foreground" Value="{DynamicResource Theme.NeutralTagText}" />
+            </Style>
+          </Border.Style>
+          <TextBlock Text="{Binding ServerTag, StringFormat='Server: {0}'}" Style="{StaticResource TagText}" />
+        </Border>
         </Border>
       </StackPanel>
+    </DataTemplate>
+
+    <!-- The environment tags in the card header: in the row they get cut off when they do not fit;
+         with the mouse over them a full copy fades in above the buttons, like the repository
+         cards' tags (TagsOverlay: a Canvas, which does not clip; the host ContentControl has a
+         ZIndex above the header's buttons). The copy ignores the mouse. -->
+    <DataTemplate x:Key="EnvironmentTags">
+      <Grid Background="Transparent" VerticalAlignment="Center">
+        <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource EnvironmentTagRow}" />
+        <Canvas>
+          <Border Style="{StaticResource TagsOverlay}">
+            <ContentPresenter Content="{Binding}" ContentTemplate="{StaticResource EnvironmentTagRow}" Tag="{DynamicResource Theme.Surface}" />
+          </Border>
+        </Canvas>
+      </Grid>
+    </DataTemplate>
+
+    <!-- The mirror of the green environment tag on the PR panel's cards: the work items whose PR
+         branches the environment sits on, one green FlashCard each; a click opens the work item.
+         Used by the environment card and by its chip's card in the header; nothing when there are none. -->
+    <DataTemplate x:Key="MatchedWorkList">
+      <ItemsControl ItemsSource="{Binding MatchedWork}" Visibility="{Binding MatchedWorkVisibility}" Margin="0,6,0,0" Focusable="False">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <!-- A Button has the system's black text of its own: the card's text colour is set back here,
+                 otherwise in the dark theme the FlashCard text would be black. -->
+            <Button Command="{Binding Open}" ToolTip="{Binding ToolTip}" AutomationProperties.Name="{Binding Text}" Foreground="{DynamicResource Theme.Text}" Cursor="Hand" Margin="0,0,0,2">
+              <Button.Template>
+                <ControlTemplate TargetType="Button">
+                  <local:FlashCard Kind="Success" Content="{Binding Text}" FontSize="11" />
+                </ControlTemplate>
+              </Button.Template>
+            </Button>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
     </DataTemplate>
 
     <!-- Same look as the cards' small grey texts (the git status under the drop-down). -->
@@ -252,16 +296,6 @@
       <Setter Property="CornerRadius" Value="20" />
       <Setter Property="Padding" Value="14,8" />
       <Setter Property="Margin" Value="0,0,0,8" />
-      <Style.Triggers>
-        <!-- Environment entirely on dev, usually unused: the card is solid like the others but with
-             a faint sunset, peach at the top left fading into pink at the bottom right, so it
-             looks "at rest" next to the warm white of the environments in use without looking
-             disabled. -->
-        <Trigger Property="local:CardTint.AllOnDev" Value="True">
-          <Setter Property="Background" Value="{DynamicResource Theme.CardBackgroundAllOnDev}" />
-          <Setter Property="BorderBrush" Value="{DynamicResource Theme.CardBorderAllOnDev}" />
-        </Trigger>
-      </Style.Triggers>
     </Style>
 
     <!-- Separator between a card's header and body, edge to edge as in the PR panel: the
@@ -932,14 +966,14 @@
           </Grid>
           <StackPanel x:Name="TopBarChips" Orientation="Horizontal" HorizontalAlignment="Left" VerticalAlignment="Center" SizeChanged="TopBar_SizeChanged">
           <!-- One chip per environment, always visible even when scrolling the columns horizontally.
-               From the left: number, status dot (pulsing light blue while the environment reads
-               or the containers start) and the environment markers only when they apply: a
-               purple layer stack for Docker, a red padlock for the protected database, a teal
-               check if every repository is on dev.
+               From the left: number, the environment markers only when they apply (a purple
+               layer stack for Docker, a red padlock for the protected database) and, last, the
+               status dot (pulsing light blue while the environment reads or the containers start).
                The background only tells whether the column is shown (warm beige) or hidden
                (transparent, outline only).
                Hovering opens the environment's card (ChipCard, at the bottom of the window). A
-               click shows or hides the column; showing it scrolls it into view. -->
+               click shows or hides the column, with the chip flipping over like a toggle
+               (StatusChip_Click); showing it scrolls it into view. -->
           <ItemsControl ItemsSource="{Binding Environments}" VerticalAlignment="Center">
             <ItemsControl.ItemsPanel>
               <ItemsPanelTemplate>
@@ -958,12 +992,10 @@
                   <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource TextButton}">
                       <Style.Triggers>
-                        <!-- Hidden column: only the outline of the chip (the buttons' lip, plus a
-                             thin border that carries it around the top) on a transparent background. -->
+                        <!-- Hidden column: only the outline of the chip (the thin border every button
+                             has, plus the lip) on a transparent background. -->
                         <DataTrigger Binding="{Binding IsCollapsed}" Value="True">
                           <Setter Property="Background" Value="Transparent" />
-                          <Setter Property="BorderBrush" Value="{DynamicResource Theme.ChipOutline}" />
-                          <Setter Property="BorderThickness" Value="1" />
                         </DataTrigger>
                       </Style.Triggers>
                     </Style>
@@ -973,10 +1005,10 @@
                   <local:SmoothWidth>
                     <StackPanel Orientation="Horizontal">
                       <TextBlock Text="{Binding Number}" FontWeight="ExtraBold" VerticalAlignment="Center" />
-                      <local:StatusDot Color="{Binding StatusColor}" IsLoading="{Binding IsHeaderBusy}" DotSize="8" Width="8" Height="8" Margin="6,0,0,0" />
                       <TextBlock Text="&#xE81E;" Visibility="{Binding KindBadgeVisibility}" Foreground="{DynamicResource Theme.DockerTagText}" Style="{StaticResource ChipGlyph}" />
                       <TextBlock Text="&#xE72E;" Visibility="{Binding ProtectedDatabaseVisibility}" Foreground="{DynamicResource Theme.ProtectedDatabaseTagText}" Style="{StaticResource ChipGlyph}" />
-                      <TextBlock Text="&#xE930;" Visibility="{Binding SunsetVisibility}" Foreground="{DynamicResource Theme.ChipSunset}" Style="{StaticResource ChipGlyph}" />
+                      <!-- The status dot always last, on the right edge of the chip. -->
+                      <local:StatusDot Color="{Binding StatusColor}" IsLoading="{Binding IsHeaderBusy}" DotSize="8" Width="8" Height="8" Margin="6,0,0,0" />
                     </StackPanel>
                   </local:SmoothWidth>
                 </Button>
@@ -1031,8 +1063,7 @@
             <!-- The first row is the environment card, as tall as its content: each column has
                  its own. A hidden column disappears entirely and reopens from its chip in the header. -->
             <Grid x:Name="Column"
-                  Margin="8,8,8,3"
-                  local:CardTint.AllOnDev="{Binding AllOnDev}">
+                  Margin="8,8,8,3">
               <Grid.RowDefinitions>
                 <RowDefinition Height="Auto" />
                 <RowDefinition Height="Auto" />
@@ -1069,8 +1100,9 @@
                               Style="{StaticResource ServiceToggle}"
                               Content="{Binding Tools.Stack.ToggleGlyph}" />
                       <TextBlock DockPanel.Dock="Left" Text="{Binding Title}" FontWeight="ExtraBold" FontSize="15" Foreground="{DynamicResource Theme.TextStrong}" VerticalAlignment="Center" />
-                      <ContentControl DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource EnvironmentTags}" Focusable="False" IsTabStop="False" VerticalAlignment="Center" />
+                      <ContentControl Panel.ZIndex="1" DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource EnvironmentTags}" Focusable="False" IsTabStop="False" VerticalAlignment="Center" />
                     </DockPanel>
+                    <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MatchedWorkList}" Focusable="False" IsTabStop="False" />
                     <!-- Only in Docker environments: docker not responding and warnings about the slot's env files (names, never values). -->
                     <local:Reveal Shown="{Binding Docker.UnreachableVisibility, FallbackValue=Collapsed}">
                       <local:FlashCard Kind="Error"
@@ -1315,7 +1347,6 @@
            PopupAnimation="Fade"
            Focusable="False">
       <Border Style="{StaticResource Section}"
-              local:CardTint.AllOnDev="{Binding AllOnDev}"
               Margin="12,2,12,16"
               Padding="14,8,14,12"
               MinWidth="340"
@@ -1330,8 +1361,9 @@
           <DockPanel Style="{StaticResource CardHeader}" Cursor="Arrow">
             <local:StatusDot DockPanel.Dock="Right" Color="{Binding StatusColor}" IsLoading="{Binding IsHeaderBusy}" ToolTip="{Binding StatusLine}" />
             <TextBlock DockPanel.Dock="Left" Text="{Binding Title}" FontWeight="ExtraBold" FontSize="15" Foreground="{DynamicResource Theme.TextStrong}" VerticalAlignment="Center" />
-            <ContentControl DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource EnvironmentTags}" Focusable="False" IsTabStop="False" VerticalAlignment="Center" />
+            <ContentControl Panel.ZIndex="1" DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource EnvironmentTags}" Focusable="False" IsTabStop="False" VerticalAlignment="Center" />
           </DockPanel>
+          <ContentControl Content="{Binding}" ContentTemplate="{StaticResource MatchedWorkList}" Focusable="False" IsTabStop="False" />
 
           <Border Margin="0,6,0,2" CornerRadius="10" Background="{DynamicResource Theme.Note}">
             <Grid>

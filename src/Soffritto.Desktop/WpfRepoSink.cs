@@ -45,7 +45,7 @@ public sealed class WpfRepoSink(
         card.GitActionsVisibility = Visibility(view.GitActionsVisible);
         card.PullToolTip = view.PullToolTip;
         card.BranchPicker.SetBranches(view.CurrentBranch, view.Branches);
-        environment.RefreshAllOnDev();
+        environment.RefreshBranches();
     });
 
     public void SetMigrationsLoading() => UiThread.Run(() =>

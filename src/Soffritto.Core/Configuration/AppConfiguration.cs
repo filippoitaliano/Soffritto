@@ -865,12 +865,6 @@ public sealed class BackendConfiguration : RepositoryConfiguration
 
     public List<ContextConfiguration> Contexts { get; set; } = [];
 
-    /// <summary>
-    /// The database and server names whose tag is highlighted on the environment card: the ones
-    /// to handle with care. Each tag is compared on its own against the name read from the
-    /// connection string.
-    /// </summary>
-    public List<string> HighlightedTags { get; set; } = [];
 }
 
 public sealed class ContextConfiguration

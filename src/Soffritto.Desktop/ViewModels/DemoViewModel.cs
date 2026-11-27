@@ -48,7 +48,7 @@ public sealed class DemoViewModel : ObservableObject
 
         foreach (var environment in Environments)
         {
-            environment.RefreshAllOnDev();
+            environment.RefreshBranches();
         }
 
         PullRequests = new PullRequestsViewModel(
@@ -427,7 +427,7 @@ public sealed class DemoViewModel : ObservableObject
             card.RepoDetail = "working tree clean";
         }
 
-        env.RefreshAllOnDev();
+        env.RefreshBranches();
         env.OperationLog?.Append($"demo · Open in: {targets.Count} branches");
         SetActivity(env, "demo · PR branches in place, git was not touched");
         heldUntil[env] = tick + 2;

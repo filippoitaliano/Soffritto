@@ -571,7 +571,42 @@ public partial class MainWindow : Window
 
     // The environment chip in the header shows or hides the column; showing it scrolls it into view.
     // Scrolling waits for layout: the column just reopened is not measured yet.
-    private void StatusChip_Click(object sender, RoutedEventArgs e) => ToggleColumn((sender as FrameworkElement)?.DataContext);
+    // The chip turns on itself around its vertical axis, like a card flipping over: it closes to
+    // a line, the column toggles while it is edge-on (so the new look appears with the turn), and it
+    // reopens with a slight overshoot. A click during the turn is ignored; without client-area
+    // animations (Windows setting) the column toggles at once.
+    private void StatusChip_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not FrameworkElement chip)
+        {
+            return;
+        }
+
+        if (!SystemParameters.ClientAreaAnimation)
+        {
+            ToggleColumn(chip.DataContext);
+            return;
+        }
+
+        if (chip.RenderTransform is ScaleTransform { HasAnimatedProperties: true })
+        {
+            return;
+        }
+
+        var flip = new ScaleTransform(1, 1);
+        chip.RenderTransformOrigin = new Point(0.5, 0.5);
+        chip.RenderTransform = flip;
+
+        var close = new DoubleAnimation(1, 0, TimeSpan.FromMilliseconds(110)) { EasingFunction = new QuadraticEase { EasingMode = EasingMode.EaseIn } };
+        close.Completed += (_, _) =>
+        {
+            ToggleColumn(chip.DataContext);
+            var open = new DoubleAnimation(0, 1, TimeSpan.FromMilliseconds(260)) { EasingFunction = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.5 } };
+            open.Completed += (_, _) => flip.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            flip.BeginAnimation(ScaleTransform.ScaleXProperty, open);
+        };
+        flip.BeginAnimation(ScaleTransform.ScaleXProperty, close);
+    }
 
     private void ChipCardToggle_Click(object sender, RoutedEventArgs e) => ToggleColumn(ChipCard.DataContext);
 

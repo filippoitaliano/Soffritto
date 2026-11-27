@@ -7,7 +7,7 @@ namespace Soffritto.Mcp;
 
 /// <summary>
 /// A repository's extra command (the accessory button on its card in the app), on local and
-/// Docker environments: it is the only tool that writes into the clones of a local environment.
+/// Docker environments, run as an operation in the worker process.
 /// </summary>
 [McpServerToolType]
 public static class ExtraCommandTools
@@ -54,25 +54,40 @@ public static class ExtraCommandTools
             return EnvironmentTools.Serialize(new { error = $"folder {target.Path} does not exist" });
         }
 
-        var command = ExtraCommand.Of(target.Repository)!;
+        var snapshot = await Operations.StartAsync(
+            OperationCatalog.Extra,
+            ExtraCommand.Name(ExtraCommand.Of(target.Repository)!),
+            number,
+            new RepositoryArgs(number, target.Id),
+            waitSeconds,
+            cancellationToken).ConfigureAwait(false);
+        return EnvironmentTools.Serialize(snapshot);
+    }
+
+    /// <summary>Runs the extra command in the worker process (see <see cref="OperationCatalog"/>).</summary>
+    internal static async Task<(string? Error, object? Result)> RunAsync(AppConfiguration configuration, RepositoryArgs args, Action<string> log, CancellationToken ct)
+    {
+        if (configuration.Environment(args.Number) is not { } environment
+            || configuration.RepositoriesOf(environment).FirstOrDefault(r => string.Equals(r.Id, args.Repository, StringComparison.OrdinalIgnoreCase)) is not { } target
+            || ExtraCommand.Of(target.Repository) is not { } command)
+        {
+            return ($"{args.Repository} is no longer a repository of environment {args.Number} with an extra command", null);
+        }
+
         // The server inherits NoDefaultCurrentDirectoryInExePath from Claude Code: with that variable cmd
         // does not look for commands in the current folder, so scripts that call a local .bat
         // (e.g. "cd envs && dev") fail, while they work from the app's button.
         var commandLine = $"set \"NoDefaultCurrentDirectoryInExePath=\" && {ExtraCommand.CommandLine(command, environment.Kind)}";
-        var snapshot = await Operations.RunAsync(ExtraCommand.Name(command), number, waitSeconds, async (operation, ct) =>
-        {
-            operation.Log($"{commandLine} in {target.Path}");
-            var outcome = await ProcessRunner.RunAsync(
-                "cmd.exe",
-                $"/d /s /c \"{commandLine}\"",
-                target.Path,
-                TimeoutSeconds,
-                onOutputLine: operation.Log,
-                cancellationToken: ct).ConfigureAwait(false);
-            return outcome.Success
-                ? (null, new { result = $"{command} succeeded", folder = target.Path })
-                : ($"{command} failed (exit {outcome.ExitCode}): {outcome.Tail(10)}", null);
-        }, cancellationToken).ConfigureAwait(false);
-        return EnvironmentTools.Serialize(snapshot);
+        log($"{commandLine} in {target.Path}");
+        var outcome = await ProcessRunner.RunAsync(
+            "cmd.exe",
+            $"/d /s /c \"{commandLine}\"",
+            target.Path,
+            TimeoutSeconds,
+            onOutputLine: log,
+            cancellationToken: ct).ConfigureAwait(false);
+        return outcome.Success
+            ? (null, new { result = $"{command} succeeded", folder = target.Path })
+            : ($"{command} failed (exit {outcome.ExitCode}): {outcome.Tail(10)}", null);
     }
 }

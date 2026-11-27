@@ -5,11 +5,6 @@
     <GradientStop Offset="0" Color="#FCFFFEFB" />
     <GradientStop Offset="1" Color="#F8FFFCF5" />
   </LinearGradientBrush>
-  <LinearGradientBrush x:Key="Theme.CardBackgroundAllOnDev" StartPoint="0,0" EndPoint="1,1">
-    <GradientStop Offset="0" Color="#FFFAF5" />
-    <GradientStop Offset="0.55" Color="#FFF7F4" />
-    <GradientStop Offset="1" Color="#FDF5F7" />
-  </LinearGradientBrush>
   <Color x:Key="Theme.BusyLight">#FCFFFCF6</Color>
   <Color x:Key="Theme.BusyWarm">#FCFDF8EF</Color>
   <Color x:Key="Theme.Base0">#F7F5EE</Color>
@@ -32,7 +27,6 @@
   <SolidColorBrush x:Key="Theme.TextMuted" Color="#8A7A62" />
   <SolidColorBrush x:Key="Theme.IconMuted" Color="#A8946F" />
   <SolidColorBrush x:Key="Theme.CardBorder" Color="#E6DAC0" />
-  <SolidColorBrush x:Key="Theme.CardBorderAllOnDev" Color="#F0DDD5" />
   <SolidColorBrush x:Key="Theme.Separator" Color="#EFE6D2" />
   <SolidColorBrush x:Key="Theme.SubtleBorder" Color="#EDE3CC" />
   <SolidColorBrush x:Key="Theme.FieldBorder" Color="#E0D3B4" />
@@ -61,7 +55,6 @@
   <SolidColorBrush x:Key="Theme.ErrorText" Color="#A4262C" />
   <SolidColorBrush x:Key="Theme.WarningText" Color="#B35C00" />
   <SolidColorBrush x:Key="Theme.SuccessText" Color="#2F6B2F" />
-  <SolidColorBrush x:Key="Theme.MatchText" Color="#5B2BD6" />
   <!-- FlashCard (App.xaml): background, border and badge for each kind of message. -->
   <SolidColorBrush x:Key="Theme.FlashInfoFill" Color="#120F6CBD" />
   <SolidColorBrush x:Key="Theme.FlashInfoBorder" Color="#330F6CBD" />
@@ -76,11 +69,13 @@
   <SolidColorBrush x:Key="Theme.FlashErrorBorder" Color="#40C42B1C" />
   <SolidColorBrush x:Key="Theme.FlashErrorBadge" Color="#C42B1C" />
   <SolidColorBrush x:Key="Theme.ChipOutline" Color="#26000000" />
-  <SolidColorBrush x:Key="Theme.ChipSunset" Color="#1B9A8A" />
   <SolidColorBrush x:Key="Theme.DockerTagText" Color="#6D28D9" />
-  <SolidColorBrush x:Key="Theme.HighlightTagText" Color="#B45309" />
   <SolidColorBrush x:Key="Theme.ProtectedDatabaseTagText" Color="#B91C1C" />
   <SolidColorBrush x:Key="Theme.MeterBar" Color="#264A4033" />
+  <SolidColorBrush x:Key="Theme.LayerBackendText" Color="#3F43A8" />
+  <SolidColorBrush x:Key="Theme.LayerFrontendText" Color="#0B6470" />
+  <SolidColorBrush x:Key="Theme.LayerAppText" Color="#6E3F94" />
+  <SolidColorBrush x:Key="Theme.NeutralTagText" Color="#55524C" />
   <SolidColorBrush x:Key="Theme.OpaqueTagBackground" Color="#E5F1FB" />
   <SolidColorBrush x:Key="Theme.OpaqueTagBorder" Color="#B2D6F2" />
   <SolidColorBrush x:Key="Theme.MeterTrack" Color="#0D4A4033" />

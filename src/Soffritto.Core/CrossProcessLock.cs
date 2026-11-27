@@ -33,6 +33,10 @@ public sealed class CrossProcessLock : IDisposable
         }
     }
 
+    /// <summary>Takes the lock only if it is free right now; null if another process holds it.</summary>
+    public static CrossProcessLock? TryAcquire(string lockPath)
+        => TryOpen(lockPath) is { } stream ? new CrossProcessLock(stream) : null;
+
     /// <summary>Like <see cref="Acquire"/>, without blocking the thread while waiting.</summary>
     public static async Task<CrossProcessLock> AcquireAsync(string lockPath, TimeSpan timeout, CancellationToken ct = default)
     {

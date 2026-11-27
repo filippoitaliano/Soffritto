@@ -122,28 +122,27 @@ public sealed class DevToolsController
         tools.IsPoolTunnel = card.Tunnel is not null;
 
         // Container cards go through compose before the switch on type: they have no
-        // BackendTools, and the backend branch would use them (tools.Backend!).
+        // local services, and the backend branch would start Kestrel on the machine.
         if (vm.Docker?.Slot is { } slot && ServiceOf(slot, location) is { } service)
         {
             WireContainer(card, tools, slot, service);
             return tools;
         }
 
+        var local = LocalServices.Of(location.Entry);
+        tools.Local = local;
         switch (location.Settings)
         {
             case BackendConfiguration backend:
-                tools.Backend = new BackendTools(location.Path, backend, key);
                 tool.OpenCommand = new AsyncCommand(() => Run(() => OpenVisualStudio(location, backend)));
-                tool.StartCommand = new AsyncCommand(() => Run(() => Report(tools.Backend.StartKestrel())));
-                tool.StopCommand = new AsyncCommand(() => Run(() => Report(tools.Backend.StopKestrel(lastScan))));
+                tool.StartCommand = new AsyncCommand(() => Run(() => Report(local.Start())));
+                tool.StopCommand = new AsyncCommand(() => Run(() => Report(local.Stop(lastScan))));
                 break;
 
             case FrontendConfiguration frontend:
-                tools.ServiceMarker = ConsoleServices.Marker("frontend", key);
-                tools.IsService = p => RepoProcesses.IsFrontend(p, location.Path, frontend);
                 tool.OpenCommand = new AsyncCommand(() => Run(() => OpenVisualStudioCode(location)));
-                tool.StartCommand = new AsyncCommand(() => Run(() => StartConsole(location.Path, tools.ServiceMarker, frontend.StartCommand, $"{frontend.StartCommand} started")));
-                tool.StopCommand = new AsyncCommand(() => Run(() => Stop(tools.ServiceMarker, tools.IsService, "frontend dev server stopped")));
+                tool.StartCommand = new AsyncCommand(() => Run(() => Report(local.Start())));
+                tool.StopCommand = new AsyncCommand(() => Run(() => Report(local.Stop(lastScan))));
 
                 if (ExtraCommand.Of(frontend) is { } extra)
                 {
@@ -171,23 +170,15 @@ public sealed class DevToolsController
 
                 break;
 
-            case AppRepoConfiguration app:
-                tools.ServiceMarker = ConsoleServices.Marker("app", key);
-                tools.MetroMarker = ConsoleServices.Marker("metro", key);
-                tools.IsService = p => RepoProcesses.IsApp(p, location.Path);
-                tools.IsMetro = p => RepoProcesses.IsMetro(p, location.Path);
+            case AppRepoConfiguration:
                 tool.OpenCommand = new AsyncCommand(() => Run(() => OpenVisualStudioCode(location)));
-                tool.StartCommand = new AsyncCommand(() => Run(() => StartConsole(location.Path, tools.ServiceMarker, app.StartCommand, $"{app.StartCommand} started")));
-                tool.StopCommand = new AsyncCommand(() => Run(() =>
-                {
-                    ConsoleServices.Stop(ConsoleServices.Pids(lastScan, tools.MetroMarker, tools.IsMetro));
-                    Stop(tools.ServiceMarker, tools.IsService, "app stopped");
-                }));
+                tool.StartCommand = new AsyncCommand(() => Run(() => Report(local.Start())));
+                tool.StopCommand = new AsyncCommand(() => Run(() => Report(local.Stop(lastScan))));
 
-                if (app.BundlerCommand.Length > 0)
+                if (local.HasBundler)
                 {
                     tool.SideText = "Metro";
-                    tool.SideCommand = new AsyncCommand(() => Run(() => StartConsole(location.Path, tools.MetroMarker, app.BundlerCommand, $"{app.BundlerCommand} (bundler) started")));
+                    tool.SideCommand = new AsyncCommand(() => Run(() => Report(local.StartBundler())));
                 }
 
                 break;
@@ -422,6 +413,7 @@ public sealed class DevToolsController
                 continue;
             }
 
+            var local = tools.Local!;
             switch (card.Location.Settings)
             {
                 case BackendConfiguration backend:
@@ -437,7 +429,7 @@ public sealed class DevToolsController
 
                 case FrontendConfiguration frontend:
                 {
-                    var state = ConsoleServices.StateOf(scan, tools.ServiceMarker, tools.IsService);
+                    var state = local.State(scan);
                     tool.SetState(state, "dev server");
                     tool.SetActions(
                         canStart: state == ServiceState.Stopped,
@@ -448,14 +440,14 @@ public sealed class DevToolsController
 
                 case AppRepoConfiguration app:
                 {
-                    var state = ConsoleServices.StateOf(scan, tools.ServiceMarker, tools.IsService);
+                    var state = local.State(scan);
                     tool.SetState(state, "app (react-native / Metro)");
                     tool.SetActions(
                         canStart: state == ServiceState.Stopped,
                         canStop: state != ServiceState.Stopped,
                         startToolTip: $"{app.StartCommand} in a console");
 
-                    var metro = ConsoleServices.StateOf(scan, tools.MetroMarker, tools.IsMetro);
+                    var metro = local.MetroState(scan);
                     tool.SetSide(
                         metro == ServiceState.Stopped,
                         metro == ServiceState.Stopped
@@ -541,32 +533,7 @@ public sealed class DevToolsController
             }
         }
 
-        foreach (var tools in cards)
-        {
-            var card = tools.Card;
-            if (tools.IsContainer)
-            {
-                continue;
-            }
-
-            if (tools.Backend is { } backend)
-            {
-                var view = EvaluateBackend(tools, scan);
-                if (view.Kestrel == ServiceState.Stopped)
-                {
-                    starts.Add((NameOf(card, "Kestrel"), () => backend.StartKestrel()));
-                }
-
-                continue;
-            }
-
-            if (card.Type == RepositoryType.Frontend
-                && ConsoleServices.StateOf(scan, tools.ServiceMarker, tools.IsService) == ServiceState.Stopped)
-            {
-                var command = ((FrontendConfiguration)card.Location.Settings).StartCommand;
-                starts.Add((NameOf(card, "dev server"), () => ConsoleServices.StartConsole(card.Location.Path, tools.ServiceMarker, command)));
-            }
-        }
+        starts.AddRange(LocalServices.StackStarts(LocalCards(), scan));
 
         return starts;
     }
@@ -602,38 +569,7 @@ public sealed class DevToolsController
             }
         }
 
-        foreach (var tools in cards)
-        {
-            var card = tools.Card;
-            if (tools.IsContainer)
-            {
-                continue;
-            }
-
-            if (tools.Backend is { } backend)
-            {
-                var view = EvaluateBackend(tools, scan);
-                if (view.Kestrel != ServiceState.Stopped)
-                {
-                    stops.Add((NameOf(card, "Kestrel"), () => backend.StopKestrel(scan)));
-                }
-
-                continue;
-            }
-
-            if (tools.ServiceMarker.Length > 0
-                && ConsoleServices.StateOf(scan, tools.ServiceMarker, tools.IsService) != ServiceState.Stopped)
-            {
-                var name = card.Type == RepositoryType.Frontend ? "dev server" : "app";
-                stops.Add((NameOf(card, name), () => ConsoleServices.Stop(ConsoleServices.Pids(scan, tools.ServiceMarker, tools.IsService))));
-            }
-
-            if (tools.MetroMarker.Length > 0
-                && ConsoleServices.StateOf(scan, tools.MetroMarker, tools.IsMetro) != ServiceState.Stopped)
-            {
-                stops.Add((NameOf(card, "Metro"), () => ConsoleServices.Stop(ConsoleServices.Pids(scan, tools.MetroMarker, tools.IsMetro))));
-            }
-        }
+        stops.AddRange(LocalServices.StackStops(LocalCards(), scan));
 
         return stops;
     }
@@ -663,39 +599,14 @@ public sealed class DevToolsController
     private static BackendToolsView EvaluateBackend(CardTools tools, IReadOnlyList<ProcessRow> scan)
     {
         var tunnel = tools.Card.Tunnel?.State;
-        return tools.Backend!.Evaluate(scan, tunnel?.Id, tunnel?.HostConnected == true, tunnel?.ReadStamp ?? string.Empty);
+        return tools.Local!.Backend!.Evaluate(scan, tunnel?.Id, tunnel?.HostConnected == true, tunnel?.ReadStamp ?? string.Empty);
     }
 
-    // Primary repositories keep their usual names; for the others the id says which repository it is.
-    private static string NameOf(RepoCardViewModel card, string service)
-        => card.IsPrimary ? service : $"{service} ({card.Id})";
+    private IEnumerable<LocalServices> LocalCards() => cards.Where(t => t.Local is not null).Select(t => t.Local!);
 
     // A failing service does not stop the others: the activity line reports both outcomes.
     private static (string Line, int Failed) Execute(string verb, List<(string Name, Action Act)> steps)
-    {
-        if (steps.Count == 0)
-        {
-            return ($"nothing to do: no service to {(verb == "started" ? "start" : "stop")}", 0);
-        }
-
-        var done = new List<string>();
-        var failed = new List<string>();
-        foreach (var (name, act) in steps)
-        {
-            try
-            {
-                act();
-                done.Add(name);
-            }
-            catch (Exception ex)
-            {
-                failed.Add($"{name} ({ex.Message})");
-            }
-        }
-
-        var line = done.Count > 0 ? $"{verb}: {string.Join(", ", done)}" : string.Empty;
-        return (failed.Count > 0 ? $"{line}{(line.Length > 0 ? "; " : string.Empty)}failed: {string.Join(", ", failed)}" : line, failed.Count);
-    }
+        => LocalServices.Execute(verb, steps);
 
     private static Soffritto.Core.Docker.DockerContainer? ContainerOf(Soffritto.Core.Docker.DockerStatus docker, Soffritto.Core.Docker.DockerSlot slot, string? service)
         => docker.OfProject(slot.Project).FirstOrDefault(c => string.Equals(c.Service, service, StringComparison.OrdinalIgnoreCase));
@@ -801,12 +712,6 @@ public sealed class DevToolsController
         }
     }
 
-    private void Stop(string marker, Func<ProcessRow, bool> isAnchor, string notice)
-    {
-        ConsoleServices.Stop(ConsoleServices.Pids(lastScan, marker, isAnchor));
-        Report(notice);
-    }
-
     private Task Run(Action action) => Task.Run(() =>
     {
         try
@@ -887,15 +792,8 @@ public sealed class DevToolsController
     {
         public RepoCardViewModel Card { get; } = card;
 
-        public BackendTools? Backend { get; set; }
-
-        public string ServiceMarker { get; set; } = string.Empty;
-
-        public Func<ProcessRow, bool> IsService { get; set; } = _ => false;
-
-        public string MetroMarker { get; set; } = string.Empty;
-
-        public Func<ProcessRow, bool> IsMetro { get; set; } = _ => false;
+        /// <summary>The services of a card that runs on this machine; null for container cards.</summary>
+        public LocalServices? Local { get; set; }
 
         /// <summary>Primary backend or frontend of a Docker environment: runs in a compose container.</summary>
         public bool IsContainer { get; set; }

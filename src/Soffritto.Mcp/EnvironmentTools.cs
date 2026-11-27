@@ -82,6 +82,7 @@ public static class EnvironmentTools
         [Description("Folder of a repository in the environment, used when 'number' is missing; empty = the server's current folder.")] string? folder = null,
         [Description("Runs git fetch before reading ahead/behind (touches only remote-tracking refs). Slower.")] bool fetch = false,
         [Description("Reads the dev tunnels of the environment's repositories (devtunnel list/show and port probes). Without it, a tunnel host is recognized only if it was started from the CLI.")] bool tunnel = true,
+        [Description("Reads from Azure DevOps the work items whose PR branches the environment sits on (section 'work', like the environment tag of the app's PR panel); at most 10 seconds, in parallel with the other reads.")] bool work = true,
         CancellationToken cancellationToken = default)
     {
         if (LoadConfiguration(out var error) is not { } configuration)
@@ -124,6 +125,7 @@ public static class EnvironmentTools
             .ToDictionary(r => r, r => GitStatusReader.ReadAsync(r.Path, fetch, cancellationToken));
         var apiProcesses = repositories.Select(r => r.Repository).OfType<BackendConfiguration>().Select(b => b.ApiProcess).ToList();
         var scanTask = Task.Run(() => ProcessTable.Read(apiProcesses), cancellationToken);
+        var workTask = work ? WorkTools.ReadAsync(configuration, cancellationToken) : null;
 
         var migrations = migrationsTask is null ? null : await migrationsTask.ConfigureAwait(false);
         var tunnels = tunnelsTask is null ? new Dictionary<EnvironmentRepository, DevTunnelStatus>() : await tunnelsTask.ConfigureAwait(false);
@@ -134,6 +136,11 @@ public static class EnvironmentTools
         }
 
         var scan = await scanTask.ConfigureAwait(false);
+        var workSection = workTask is null
+            ? null
+            : WorkTools.Section(
+                await workTask.ConfigureAwait(false),
+                repositories.Select(r => new WorkRepository(EnvironmentWork.RepositoryNameOf(r.Repository), Directory.Exists(r.Path), git.GetValueOrDefault(r)?.Branch)).ToList());
 
         var tunnelStatus = backendRepo is not null ? tunnels.GetValueOrDefault(backendRepo) : null;
         var frontendTunnelStatus = frontendRepo is not null ? tunnels.GetValueOrDefault(frontendRepo) : null;
@@ -180,6 +187,8 @@ public static class EnvironmentTools
             protectedDatabase = environment.SchemaLockReason is not null ? true : (bool?)null,
             protectedDatabaseReason = environment.SchemaLockReason,
             problems,
+            runningOperation = Operations.RunningOn(n)?.Snapshot(10),
+            work = workSection,
             backend = backendRepo is null
                 ? Missing(RepositoryType.Backend, n)
                 : new

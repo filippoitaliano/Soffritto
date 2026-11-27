@@ -55,10 +55,24 @@
                   Background="{Binding RepoBackground}"
                   BorderBrush="{Binding RepoBorder}"
                   ToolTip="{Binding RepoToolTip}">
-            <TextBlock Text="{Binding RepoTag}"
-                       Style="{StaticResource TagText}"
-                       Foreground="{Binding RepoForeground}"
-                       HorizontalAlignment="Center" />
+            <TextBlock Text="{Binding RepoTag}" HorizontalAlignment="Center">
+              <TextBlock.Style>
+                <Style TargetType="TextBlock" BasedOn="{StaticResource TagText}">
+                  <Setter Property="Foreground" Value="{DynamicResource Theme.NeutralTagText}" />
+                  <Style.Triggers>
+                    <DataTrigger Binding="{Binding RepoLayer}" Value="Backend">
+                      <Setter Property="Foreground" Value="{DynamicResource Theme.LayerBackendText}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding RepoLayer}" Value="Frontend">
+                      <Setter Property="Foreground" Value="{DynamicResource Theme.LayerFrontendText}" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding RepoLayer}" Value="App">
+                      <Setter Property="Foreground" Value="{DynamicResource Theme.LayerAppText}" />
+                    </DataTrigger>
+                  </Style.Triggers>
+                </Style>
+              </TextBlock.Style>
+            </TextBlock>
           </Border>
 
           <StackPanel Grid.Column="2" Margin="0,8,8,8">
@@ -131,8 +145,8 @@
                        VerticalAlignment="Center"
                        Margin="0,0,6,0" />
             <!-- Opens a menu of environments: the choice moves that environment onto the PRs' branches.
-                 First of the Dock="Right" items, so it always stays on the right edge and the tags
-                 line up to its left. -->
+                 First of the Dock="Right" items, so it always stays on the right edge and the
+                 environment tag lines up to its left. -->
             <Button DockPanel.Dock="Right"
                     Click="OpenIn_Click"
                     IsEnabled="{Binding CheckoutEnabled}"
@@ -141,27 +155,15 @@
                     Style="{StaticResource TextButton}"
                     Margin="8,0,0,0"
                     Content="Open in ▾" />
-            <Border DockPanel.Dock="Right"
-                    Visibility="{Binding TodoVisibility}"
-                    Style="{StaticResource Tag}">
-              <TextBlock Text="{Binding TodoText}" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.TagText}" />
-            </Border>
-            <Border DockPanel.Dock="Right"
-                    Visibility="{Binding AllApprovedVisibility}"
-                    Style="{StaticResource Tag}"
-                    Background="#1A6BB36B"
-                    BorderBrush="#4D6BB36B">
-              <TextBlock Text="All approved" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.SuccessText}" />
-            </Border>
             <!-- The environments already on these PRs' branches: the same state that “Open in” leaves.
-                 Purple, distinct from the “to do” blue and from the layer tints. -->
+                 Green, like its mirror on the environment card. -->
             <Border DockPanel.Dock="Right"
                     Visibility="{Binding MatchVisibility}"
                     Style="{StaticResource Tag}"
-                    Background="#1A7C4DFF"
-                    BorderBrush="#4D7C4DFF"
+                    Background="#1A6BB36B"
+                    BorderBrush="#4D6BB36B"
                     ToolTip="{Binding MatchToolTip}">
-              <TextBlock Text="{Binding MatchText}" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.MatchText}" />
+              <TextBlock Text="{Binding MatchText}" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.SuccessText}" />
             </Border>
             <Button DockPanel.Dock="Left"
                     Visibility="{Binding WorkItemVisibility}"

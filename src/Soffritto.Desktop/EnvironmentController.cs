@@ -309,12 +309,7 @@ public sealed class EnvironmentController
             }
 
             var status = await GitStatusReader.ReadAsync(card.Path, fetch: true, lifetime).ConfigureAwait(false);
-            var problem = status.Error
-                ?? (status.FetchError is { } fetchError ? $"fetch failed ({fetchError})" : null)
-                ?? GitStatusReader.ReadOperationInProgress(card.Path)
-                ?? (status.IsDetached ? "detached HEAD" : null)
-                ?? (status.DirtyFiles > 0 ? $"{status.DirtyFiles} modified or untracked files" : null)
-                ?? (!status.AllBranches.Contains(branch, StringComparer.OrdinalIgnoreCase) ? $"branch {branch} does not exist" : null)
+            var problem = CheckoutGuard.Problem(card.Path, branch, status)
                 ?? (card.Location.IsDocker ? await HeldElsewhereAsync(card, branch, worktreeBranches).ConfigureAwait(false) : null);
 
             if (problem is not null)

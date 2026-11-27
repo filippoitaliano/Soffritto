@@ -41,7 +41,7 @@ public static class ActiveConfiguration
 
     /// <summary>The repository name on the server; without a clone URL, the entry id.</summary>
     public static string RepositoryNameOf(RepositoryConfiguration repository)
-        => repository.RepositoryName is { Length: > 0 } name ? name : repository.Id;
+        => EnvironmentWork.RepositoryNameOf(repository);
 
     /// <summary>The server name of the default repository of that type; without one, the type name.</summary>
     public static string RepositoryNameOf(RepositoryType type)
@@ -49,10 +49,7 @@ public static class ActiveConfiguration
 
     /// <summary>The type of the first catalog entry with that server name; null if none.</summary>
     public static RepositoryType? TypeOfRepository(string repository)
-        => Current.Repositories
-            .Where(r => string.Equals(RepositoryNameOf(r), repository, StringComparison.OrdinalIgnoreCase))
-            .Select(r => (RepositoryType?)r.Type)
-            .FirstOrDefault();
+        => EnvironmentWork.TypeOf(Current, repository);
 }
 
 public static class EnvironmentDiscovery

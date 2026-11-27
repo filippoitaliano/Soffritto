@@ -16,7 +16,6 @@ public sealed class EnvironmentViewModel : ObservableObject
     private string activityLine = "starting…";
     private bool isNotBusy = true;
     private bool isLoading;
-    private bool allOnDev;
     private int activeOperations;
     private readonly RepoCardViewModel? backendCard;
 
@@ -40,8 +39,6 @@ public sealed class EnvironmentViewModel : ObservableObject
                 {
                     OnPropertyChanged(nameof(DatabaseTag));
                     OnPropertyChanged(nameof(ServerTag));
-                    OnPropertyChanged(nameof(IsDatabaseHighlighted));
-                    OnPropertyChanged(nameof(IsServerHighlighted));
                     OnPropertyChanged(nameof(DatabaseTagToolTip));
                     OnPropertyChanged(nameof(ServerTagToolTip));
                 }
@@ -108,21 +105,9 @@ public sealed class EnvironmentViewModel : ObservableObject
     /// <summary>In a Docker environment the server is always the slot's container: the tag says nothing.</summary>
     public string ServerTagVisibility => backendCard is null || IsDocker ? "Collapsed" : "Visible";
 
-    /// <summary>Each tag is highlighted on its own, when its name is among those the backend configuration asks to highlight.</summary>
-    public bool IsDatabaseHighlighted => IsHighlighted(DatabaseTag);
+    public string DatabaseTagToolTip => $"Database of the backend, from its appsettings: {DatabaseTag}";
 
-    public bool IsServerHighlighted => IsHighlighted(ServerTag);
-
-    public string DatabaseTagToolTip => ToolTipOf("Database", DatabaseTag);
-
-    public string ServerTagToolTip => ToolTipOf("Server", ServerTag);
-
-    private bool IsHighlighted(string tag) => backendCard?.Location.Settings is BackendConfiguration backend
-        && backend.HighlightedTags.Any(name => string.Equals(name.Trim(), tag, StringComparison.OrdinalIgnoreCase));
-
-    private string ToolTipOf(string kind, string tag) => IsHighlighted(tag)
-        ? $"{kind}: {tag} · highlighted in the setup: handle with care"
-        : $"{kind}: {tag}";
+    public string ServerTagToolTip => $"Server of the backend's database, from its appsettings: {ServerTag}";
 
     /// <summary>Operations log of the Docker environment (create, start, stop, repair env, destroy); null for a local one.</summary>
     public LogSectionViewModel? OperationLog { get; }
@@ -170,7 +155,6 @@ public sealed class EnvironmentViewModel : ObservableObject
     public string NotePlaceholderVisibility => noteText.Length == 0 ? "Visible" : "Collapsed";
 
 
-    public string SunsetVisibility => AllOnDev ? "Visible" : "Collapsed";
 
     /// <summary>Saves the pending note and stops watching the file.</summary>
     public void CloseNote() => note?.Dispose();
@@ -244,27 +228,17 @@ public sealed class EnvironmentViewModel : ObservableObject
         return card;
     }
 
-    /// <summary>Every repository present in the environment is on dev: the background of the column's cards drops to 70% opacity.</summary>
-    public bool AllOnDev
-    {
-        get => allOnDev;
-        private set
-        {
-            if (SetProperty(ref allOnDev, value))
-            {
-                OnPropertyChanged(nameof(SunsetVisibility));
-            }
-        }
-    }
-
     /// <summary>After every branch read of a repository of the environment: the PR panel recomputes which work items sit on it.</summary>
     public event Action? BranchesChanged;
 
-    // Missing clones do not count: an environment without the app is still "on dev" if backend and frontend are.
-    public void RefreshAllOnDev()
+    /// <summary>
+    /// After every branch read of a repository: the branches of the chip's card and the
+    /// <see cref="BranchesChanged"/> event, from which the PR panel's environment tags and their
+    /// mirror on this column are recomputed. Missing clones are left out.
+    /// </summary>
+    public void RefreshBranches()
     {
         var present = Repos.Where(repo => repo.ContentVisibility == "Visible").ToList();
-        AllOnDev = present.Count > 0 && present.All(repo => repo.BranchPicker.CurrentBranch == Soffritto.Core.GitConventions.DevelopmentBranch);
         ChipBranches = present
             .Select(repo => new ChipBranch(repo.IsPrimary ? repo.RepositoryName : repo.Clone, repo.BranchPicker.CurrentBranch ?? "—"))
             .ToList();
@@ -281,35 +255,29 @@ public sealed class EnvironmentViewModel : ObservableObject
     /// are on <see cref="Soffritto.Core.GitConventions.DevelopmentBranch"/>.
     /// </summary>
     public bool IsOnBranches(IReadOnlyList<(string Repository, string Branch)> targets)
+        => EnvironmentWork.IsOnBranches(
+            Repos.Select(repo => new WorkRepository(repo.RepositoryName, repo.ContentVisibility == "Visible", repo.BranchPicker.CurrentBranch)),
+            targets);
+
+    /// <summary>
+    /// The work items (or PRs without one) of the PR panel whose branches the environment sits on:
+    /// the mirror of the environment tag on the panel's cards. Empty if none, or before the first read.
+    /// </summary>
+    public IReadOnlyList<MatchedWork> MatchedWork { get; private set; } = [];
+
+    public string MatchedWorkVisibility => MatchedWork.Count > 0 ? "Visible" : "Collapsed";
+
+    /// <summary>Called by the PR panel after every match recomputation.</summary>
+    public void SetMatchedWork(IReadOnlyList<MatchedWork> work)
     {
-        if (targets.Count == 0)
+        if (work.Select(w => w.Text).SequenceEqual(MatchedWork.Select(w => w.Text)))
         {
-            return false;
+            return;
         }
 
-        foreach (var repo in Repos)
-        {
-            var requested = targets
-                .Where(t => string.Equals(t.Repository, repo.RepositoryName, StringComparison.OrdinalIgnoreCase))
-                .Select(t => t.Branch)
-                .FirstOrDefault();
-            if (repo.ContentVisibility != "Visible")
-            {
-                if (requested is not null)
-                {
-                    return false;
-                }
-
-                continue;
-            }
-
-            if (!string.Equals(repo.BranchPicker.CurrentBranch, requested ?? Soffritto.Core.GitConventions.DevelopmentBranch, StringComparison.Ordinal))
-            {
-                return false;
-            }
-        }
-
-        return true;
+        MatchedWork = work;
+        OnPropertyChanged(nameof(MatchedWork));
+        OnPropertyChanged(nameof(MatchedWorkVisibility));
     }
 
     public ToolBarViewModel Tools { get; } = new();

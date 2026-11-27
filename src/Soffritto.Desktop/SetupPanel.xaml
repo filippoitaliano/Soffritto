@@ -459,10 +459,6 @@
                               <local:FieldLabel Text="Connection string name" Info="The key under ConnectionStrings from which the environment's server and database are read. The first appsettings in the list that contains it wins: the same connection dotnet ef uses." />
                               <TextBox Text="{Binding Backend.ConnectionStringName, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
                             </StackPanel>
-                            <StackPanel Style="{StaticResource FormField}">
-                              <local:FieldLabel Text="Tags to highlight" Info="Optional. Database and server names, comma-separated, whose tag on the environment card turns orange: the ones to handle with care, like a copy of production. Each tag is colored on its own, and the name must be written as it appears in the tag." />
-                              <TextBox Text="{Binding HighlightedTagsText, UpdateSourceTrigger=PropertyChanged}" Style="{StaticResource FormMono}" />
-                            </StackPanel>
                           </UniformGrid>
                           <StackPanel Style="{StaticResource FormField}" Margin="0,0,14,14">
                             <local:FieldLabel Text="Appsettings" Hint="One per line, in reading order"

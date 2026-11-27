@@ -21,23 +21,7 @@ public static class TunnelTools
         [Description("Environment number, local or Docker.")] int number,
         [Description(WaitDescription)] int waitSeconds = 90,
         CancellationToken cancellationToken = default)
-        => OnEnvironment(number, "tunnel", waitSeconds, async (configuration, environment, operation, ct) =>
-        {
-            if (await EnvironmentTunnel.EnableAsync(configuration, number, operation.Log, ct).ConfigureAwait(false) is { } error)
-            {
-                return (error, null);
-            }
-
-            var urls = await DockerEnvironmentProvisioner.PoolUrlsAsync(number, ct).ConfigureAwait(false);
-            return (null, new
-            {
-                tunnel = TunnelPool.Read().Where(a => a.Environment == number).Select(a => a.TunnelDescription).Distinct(),
-                url = urls,
-                nextStep = environment.Kind == EnvironmentKind.Docker
-                    ? "start_docker_service so the containers read the new env files"
-                    : "restart the services named in the log so they read the new env files",
-            });
-        }, cancellationToken);
+        => OnEnvironment(number, OperationCatalog.TunnelEnable, "tunnel", waitSeconds, cancellationToken);
 
     [McpServerTool(Name = "disable_tunnel", ReadOnly = false, Destructive = false, Idempotent = true, OpenWorld = false)]
     [Description("Turns off the tunnel of an environment, local or Docker, like the “Tunnel” switch in its header in the app: releases all its pool ports (and their anonymous access), closes the host of tunnels left without ports, returns the tunnel to the pool and rewrites the env variables that depended on the pool. When turned on again, the environment may get a different tunnel, with different URLs.")]
@@ -45,31 +29,21 @@ public static class TunnelTools
         [Description("Environment number, local or Docker.")] int number,
         [Description(WaitDescription)] int waitSeconds = 60,
         CancellationToken cancellationToken = default)
-        => OnEnvironment(number, "tunnel off", waitSeconds, async (configuration, environment, operation, ct) =>
-        {
-            var had = EnvironmentTunnel.IsOn(number);
-            var error = await EnvironmentTunnel.DisableAsync(configuration, number, operation.Log, ct).ConfigureAwait(false);
-            return error is not null ? (error, null) : (null, new { result = had ? "tunnel turned off, ports released" : $"environment {number} did not have its tunnel on" });
-        }, cancellationToken);
+        => OnEnvironment(number, OperationCatalog.TunnelDisable, "tunnel off", waitSeconds, cancellationToken);
 
-    private static async Task<string> OnEnvironment(
-        int number,
-        string kind,
-        int waitSeconds,
-        Func<AppConfiguration, EnvironmentDefinition, Operation, CancellationToken, Task<(string? Error, object? Result)>> work,
-        CancellationToken cancellationToken)
+    private static async Task<string> OnEnvironment(int number, string kind, string label, int waitSeconds, CancellationToken cancellationToken)
     {
         if (EnvironmentTools.LoadConfiguration(out var error) is not { } configuration)
         {
             return EnvironmentTools.Serialize(new { error });
         }
 
-        if (configuration.Environment(number) is not { } environment)
+        if (configuration.Environment(number) is null)
         {
             return EnvironmentTools.Serialize(new { error = $"environment {number} is not configured" });
         }
 
-        var snapshot = await Operations.RunAsync(kind, number, waitSeconds, (operation, ct) => work(configuration, environment, operation, ct), cancellationToken).ConfigureAwait(false);
+        var snapshot = await Operations.StartAsync(kind, label, number, new EnvironmentArgs(number), waitSeconds, cancellationToken).ConfigureAwait(false);
         return EnvironmentTools.Serialize(snapshot);
     }
 }

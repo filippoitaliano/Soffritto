@@ -14,13 +14,12 @@ namespace Soffritto.Desktop.ViewModels;
 /// </summary>
 public sealed partial class PullRequestRow
 {
-    public PullRequestRow(PullRequestSummary pr, bool showAuthor, IReadOnlyList<string> todos, IReadOnlyList<PullRequestAlert> alerts, bool isApproved, string statusText, string statusDot, string statusToolTip, Func<Uri, ICommand> open, Func<string, RepositoryType?> typeOf)
+    public PullRequestRow(PullRequestSummary pr, bool showAuthor, IReadOnlyList<string> todos, IReadOnlyList<PullRequestAlert> alerts, string statusText, string statusDot, string statusToolTip, Func<Uri, ICommand> open, Func<string, RepositoryType?> typeOf)
     {
         Id = pr.Id;
         Alerts = alerts;
-        IsApproved = isApproved;
         Created = pr.Created;
-        (RepoTag, RepoOrder, RepoForeground, RepoBackground, RepoBorder) = RepoStyle(typeOf(pr.Repository), pr.Repository);
+        (RepoTag, RepoOrder, RepoLayer, RepoBackground, RepoBorder) = RepoStyle(typeOf(pr.Repository), pr.Repository);
         RepoToolTip = pr.Repository;
 
         // The work item number is already in the group header.
@@ -56,13 +55,12 @@ public sealed partial class PullRequestRow
     public IReadOnlyList<PullRequestAlert> Alerts { get; }
 
     /// <summary>On the user's own PRs: approved by all reviewers. On other people's: approved by the user.</summary>
-    public bool IsApproved { get; }
-
     public string RepoTag { get; }
 
     public int RepoOrder { get; }
 
-    public string RepoForeground { get; }
+    /// <summary>The layer (backend, frontend, app, other): the tag's text takes the theme's colour for it.</summary>
+    public string RepoLayer { get; }
 
     public string RepoBackground { get; }
 
@@ -93,13 +91,14 @@ public sealed partial class PullRequestRow
     public ICommand OpenCommand { get; }
 
     // The app's Tag scheme (10% background, 30% border) with one tint per layer, without red or
-    // orange: they must not look like warnings.
-    private static (string Tag, int Order, string Foreground, string Background, string Border) RepoStyle(RepositoryType? type, string repository) => type switch
+    // orange: they must not look like warnings. The translucent tints work on both themes; the
+    // text colour comes from the theme (Theme.Layer*Text), chosen in the panel by RepoLayer.
+    private static (string Tag, int Order, string Layer, string Background, string Border) RepoStyle(RepositoryType? type, string repository) => type switch
     {
-        RepositoryType.Backend => ("BE", 0, "#3F43A8", "#1A5B5FC7", "#4D5B5FC7"),
-        RepositoryType.Frontend => ("FE", 1, "#0B6470", "#1A0F7B8A", "#4D0F7B8A"),
-        RepositoryType.App => ("APP", 2, "#6E3F94", "#1A8E5BB5", "#4D8E5BB5"),
-        _ => (repository.ToUpperInvariant(), 3, "#404040", "#1A808080", "#4D808080"),
+        RepositoryType.Backend => ("BE", 0, "Backend", "#1A5B5FC7", "#4D5B5FC7"),
+        RepositoryType.Frontend => ("FE", 1, "Frontend", "#1A0F7B8A", "#4D0F7B8A"),
+        RepositoryType.App => ("APP", 2, "App", "#1A8E5BB5", "#4D8E5BB5"),
+        _ => (repository.ToUpperInvariant(), 3, "Other", "#1A808080", "#4D808080"),
     };
 
     private static string Age(DateTime created)
@@ -121,6 +120,9 @@ public sealed partial class PullRequestRow
 /// its <see cref="Key"/> was not there at the previous read or if <see cref="Count"/> has grown.
 /// </summary>
 public sealed record PullRequestAlert(string Key, int Count, string Text, string Title, Uri Url, int PullRequestId);
+
+/// <summary>A work item (or a PR without one) on the column of an environment that sits on its branches; the click opens it.</summary>
+public sealed record MatchedWork(string Text, string ToolTip, ICommand? Open);
 
 /// <summary>An item of the “Open in” menu: moves the environment onto the branches of the group's PRs.</summary>
 public sealed record CheckoutTarget(string Label, ICommand Command, string? ToolTip = null);
@@ -163,7 +165,6 @@ public sealed class PullRequestGroup : ObservableObject
         Latest = Rows.Max(r => r.Created);
 
         // A work item with nothing to do starts collapsed: only the header shows.
-        IsAllApproved = Todo == 0 && Rows.All(r => r.IsApproved);
         Expander = new Expander(isExpanded: Todo > 0);
         HasWorkItem = workItem is not null;
         WorkItemId = workItem is null ? string.Empty : $"#{workItem.Id}";
@@ -173,26 +174,23 @@ public sealed class PullRequestGroup : ObservableObject
             ? open(workItemUrl)
             : null;
 
-        var branches = prs
-            .Where(pr => typeOf(pr.Repository) is not null && pr.SourceBranch.Length > 0)
-            .Select(pr => (pr.Repository, pr.SourceBranch))
-            .Distinct()
-            .ToList();
+        var work = EnvironmentWork.Group(workItem, prs, typeOf);
+        var branches = work.Targets;
+        var ambiguous = work.Ambiguous;
+        targets = branches.ToList();
 
-        // Two PRs of the same repository on different branches: the user decides which one goes in the clone.
-        var ambiguous = branches
-            .GroupBy(b => b.Repository, StringComparer.OrdinalIgnoreCase)
-            .Where(g => g.Count() > 1)
-            .Select(g => g.Key)
-            .ToList();
-        targets = branches.Select(b => (b.Repository, b.SourceBranch)).ToList();
+        // The mirror on the environment column: the work item, or the PR when there is none.
+        var first = prs.OrderByDescending(pr => pr.Created).First();
+        Mirror = workItem is not null
+            ? new MatchedWork($"#{workItem.Id} {workItem.Title}", $"{workItem.Type} {workItem.Id}: {workItem.Title}", OpenWorkItemCommand)
+            : new MatchedWork($"PR {first.Id} {first.Title}", $"PR {first.Id} ({first.Repository}): {first.Title}", open(first.WebUrl));
 
         CheckoutToolTip = ambiguous.Count > 0
             ? $"Not available: several PRs of {string.Join(", ", ambiguous)} on different branches"
             : targets.Count == 0
                 ? "Not available: no PRs from the configured repositories"
                 : "Stops an environment (app included) and moves it onto the branches of these PRs, the other repositories onto dev, only if they are all clean:"
-                    + Environment.NewLine + string.Join(Environment.NewLine, branches.Select(b => $"{b.Repository}: {b.SourceBranch}"));
+                    + Environment.NewLine + string.Join(Environment.NewLine, branches.Select(b => $"{b.Repository}: {b.Branch}"));
         CanCheckout = ambiguous.Count == 0 && targets.Count > 0;
 
         this.checkout = checkout;
@@ -257,11 +255,11 @@ public sealed class PullRequestGroup : ObservableObject
             ? environments.Where(env => env.IsOnBranches(targets)).Select(env => env.Number).ToList()
             : [];
 
+        MatchingEnvironments = matching;
         MatchText = matching.Count switch
         {
             0 => string.Empty,
-            1 => $"Environment {matching[0]}",
-            _ => $"Environments {string.Join(", ", matching)}",
+            _ => $"Env {string.Join(", ", matching)}",
         };
 
         if (isNotBusy && lastCheckout is { } number && matching.Contains(number))
@@ -270,6 +268,12 @@ public sealed class PullRequestGroup : ObservableObject
             lastCheckout = null;
         }
     }
+
+    /// <summary>The numbers of the environments on the branches of the group's PRs.</summary>
+    public IReadOnlyList<int> MatchingEnvironments { get; private set; } = [];
+
+    /// <summary>How the group shows on the column of an environment that sits on its branches.</summary>
+    public MatchedWork Mirror { get; }
 
     /// <summary>The environments already on the branches of the group's PRs, empty if none.</summary>
     public string MatchText
@@ -290,10 +294,6 @@ public sealed class PullRequestGroup : ObservableObject
         + Environment.NewLine + string.Join(Environment.NewLine, targets.Select(t => $"{t.Repository}: {t.Branch}"));
 
     public Expander Expander { get; }
-
-    public bool IsAllApproved { get; }
-
-    public string AllApprovedVisibility => IsAllApproved ? "Visible" : "Collapsed";
 
     public bool CanCheckout { get; }
 
@@ -360,10 +360,6 @@ public sealed class PullRequestGroup : ObservableObject
     public string Title { get; }
 
     public string TitleToolTip { get; }
-
-    public string TodoText => Todo == 1 ? "1 to do" : $"{Todo} to do";
-
-    public string TodoVisibility => Todo > 0 ? "Visible" : "Collapsed";
 
     public ICommand? OpenWorkItemCommand { get; }
 }
@@ -435,9 +431,20 @@ public sealed class PullRequestsViewModel : ObservableObject
 
     private void RefreshMatches()
     {
-        foreach (var group in Created.Concat(ToReview))
+        var groups = Created.Concat(ToReview).ToList();
+        foreach (var group in groups)
         {
             group.RefreshMatch();
+        }
+
+        // The mirror of the tags on the environments' columns; a work item in both sections counts once.
+        foreach (var environment in environments)
+        {
+            environment.SetMatchedWork(groups
+                .Where(g => g.MatchingEnvironments.Contains(environment.Number))
+                .Select(g => g.Mirror)
+                .DistinctBy(m => m.Text)
+                .ToList());
         }
     }
 
@@ -503,6 +510,7 @@ public sealed class PullRequestsViewModel : ObservableObject
             AlertsRead?.Invoke(Created.Concat(ToReview).SelectMany(g => g.Rows).SelectMany(r => r.Alerts).ToList());
         }
 
+        RefreshMatches();
         CreatedSummary = Summary(result.Created.Count, Created.Sum(g => g.Todo));
         ToReviewSummary = Summary(result.ToReview.Count, ToReview.Sum(g => g.Todo));
         ErrorLine = result.Error ?? string.Empty;
@@ -601,7 +609,7 @@ public sealed class PullRequestsViewModel : ObservableObject
             : approved == people.Count ? ("approved", Approved)
             : ($"{approved}/{people.Count} approvals", Neutral);
 
-        return new PullRequestRow(pr, showAuthor: false, todos, alerts, isApproved: dot == Approved, status, dot, detail, open, typeOf);
+        return new PullRequestRow(pr, showAuthor: false, todos, alerts, status, dot, detail, open, typeOf);
     }
 
     // On other people's PRs the to-dos are the vote and the replies to the user's own comments. A
@@ -629,7 +637,7 @@ public sealed class PullRequestsViewModel : ObservableObject
 
         var status = vote == 0 ? "you have not voted" : $"you voted: {VoteName(vote)}";
         var dot = vote > 0 ? Approved : vote < 0 ? Changes : Neutral;
-        return new PullRequestRow(pr, showAuthor: true, todos, alerts, isApproved: vote > 0, status, dot, detail, open, typeOf);
+        return new PullRequestRow(pr, showAuthor: true, todos, alerts, status, dot, detail, open, typeOf);
     }
 
     private static bool IsMe(string id, string? myId) => string.Equals(id, myId, StringComparison.OrdinalIgnoreCase);

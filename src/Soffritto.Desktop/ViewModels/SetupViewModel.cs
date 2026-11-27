@@ -1198,20 +1198,6 @@ public sealed class RepositoryCardEditor : ObservableObject
         set => SetProperty(ref appSettingsText, value ?? string.Empty);
     }
 
-    /// <summary>The database and server names to highlight on the environment card, comma-separated.</summary>
-    public string HighlightedTagsText
-    {
-        get => string.Join(", ", Backend?.HighlightedTags ?? []);
-        set
-        {
-            if (Backend is { } backend)
-            {
-                backend.HighlightedTags = SplitList(value, [',', ';']);
-                changed();
-            }
-        }
-    }
-
     public ObservableCollection<ContextConfiguration> Contexts { get; } = [];
 
     public ICommand AddContextCommand { get; }

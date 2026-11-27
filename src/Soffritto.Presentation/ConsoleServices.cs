@@ -60,13 +60,24 @@ public static class ConsoleServices
     {
         foreach (var pid in pids.ToList())
         {
+            // Output redirected and discarded: inherited, it would land on the host's stdout, which
+            // for the MCP server is the JSON-RPC channel.
             using var taskkill = Process.Start(new ProcessStartInfo("taskkill.exe", $"/PID {pid} /T /F")
             {
                 UseShellExecute = false,
                 CreateNoWindow = true,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
             });
 
-            taskkill?.WaitForExit(10_000);
+            if (taskkill is not null)
+            {
+                taskkill.OutputDataReceived += (_, _) => { };
+                taskkill.ErrorDataReceived += (_, _) => { };
+                taskkill.BeginOutputReadLine();
+                taskkill.BeginErrorReadLine();
+                taskkill.WaitForExit(10_000);
+            }
         }
     }
 

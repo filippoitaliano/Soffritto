@@ -118,27 +118,9 @@ public static class ConfigurationStore
     }
 
     /// <summary>The plain-text PAT for Azure DevOps calls; null if missing or it cannot be decrypted (another user or another machine).</summary>
-    public static string? PatOf(AzureDevOpsConfiguration azure)
-    {
-        if (!string.IsNullOrEmpty(azure.Pat))
-        {
-            return azure.Pat;
-        }
+    public static string? PatOf(AzureDevOpsConfiguration azure) => AzureDevOpsSecrets.PatOf(azure);
 
-        try
-        {
-            return string.IsNullOrEmpty(azure.PatProtected)
-                ? null
-                : Encoding.UTF8.GetString(ProtectedData.Unprotect(Convert.FromBase64String(azure.PatProtected), null, DataProtectionScope.CurrentUser));
-        }
-        catch (Exception ex) when (ex is CryptographicException or FormatException)
-        {
-            return null;
-        }
-    }
-
-    private static string Protect(string secret)
-        => Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(secret), null, DataProtectionScope.CurrentUser));
+    private static string Protect(string secret) => AzureDevOpsSecrets.Protect(secret);
 
     private static string? ReadImportedHash()
     {

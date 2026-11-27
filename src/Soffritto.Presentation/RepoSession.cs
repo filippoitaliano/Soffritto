@@ -35,6 +35,9 @@ public sealed class RepoSession
     // Guarded by the gate: only one action at a time writes it.
     private bool actingOnMigrations;
 
+    // Guarded by the gate: held from BeginAction to EndAction.
+    private CrossProcessLock? repositoryLock;
+
     public RepoSession(
         Func<CancellationToken, Task<string?>> resolveRoot,
         RepoSessionOptions options,
@@ -154,7 +157,7 @@ public sealed class RepoSession
         }
 
         var root = await resolveRoot(cancellationToken).ConfigureAwait(false);
-        if (root is null || !BeginAction("git pull --ff-only…"))
+        if (root is null || !BeginAction("git pull --ff-only…", root))
         {
             return;
         }
@@ -202,7 +205,7 @@ public sealed class RepoSession
         }
 
         var root = await resolveRoot(cancellationToken).ConfigureAwait(false);
-        if (root is null || !BeginAction($"git switch {branch}…"))
+        if (root is null || !BeginAction($"git switch {branch}…", root))
         {
             sink.RestoreBranchSelection();
             return;
@@ -256,7 +259,7 @@ public sealed class RepoSession
             return (false, "folder not available");
         }
 
-        if (!BeginAction($"git switch {branch}…"))
+        if (!BeginAction($"git switch {branch}…", root))
         {
             return (false, "an action is already in progress");
         }
@@ -324,7 +327,7 @@ public sealed class RepoSession
         }
 
         var root = await resolveRoot(cancellationToken).ConfigureAwait(false);
-        if (root is null || !BeginAction("git fetch --prune…"))
+        if (root is null || !BeginAction("git fetch --prune…", root))
         {
             return;
         }
@@ -374,7 +377,7 @@ public sealed class RepoSession
                 options.EnvironmentLabel),
             cancellationToken).ConfigureAwait(false);
 
-        if (!confirmed || !BeginAction($"git branch -D — {candidates.Branches.Count} branch…"))
+        if (!confirmed || !BeginAction($"git branch -D — {candidates.Branches.Count} branch…", root))
         {
             return;
         }
@@ -438,7 +441,7 @@ public sealed class RepoSession
                 database),
             cancellationToken).ConfigureAwait(false);
 
-        if (!confirmed || GuardRefuses(root) || !BeginAction("dotnet ef database update…", onMigrations: true))
+        if (!confirmed || GuardRefuses(root) || !BeginAction("dotnet ef database update…", root, onMigrations: true))
         {
             return;
         }
@@ -493,7 +496,7 @@ public sealed class RepoSession
         }
 
         var root = await resolveRoot(cancellationToken).ConfigureAwait(false);
-        if (root is null || GuardRefuses(root) || SchemaLockRefuses(root) || !BeginAction("reading migrations…", onMigrations: true))
+        if (root is null || GuardRefuses(root) || SchemaLockRefuses(root) || !BeginAction("reading migrations…", root, onMigrations: true))
         {
             return;
         }
@@ -552,7 +555,7 @@ public sealed class RepoSession
                 report.Database ?? StatusText.Unresolved),
             cancellationToken).ConfigureAwait(false);
 
-        if (!confirmed || GuardRefuses(root) || !BeginAction($"dotnet ef database update {plan.Target.DisplayName}…", onMigrations: true))
+        if (!confirmed || GuardRefuses(root) || !BeginAction($"dotnet ef database update {plan.Target.DisplayName}…", root, onMigrations: true))
         {
             return;
         }
@@ -641,10 +644,19 @@ public sealed class RepoSession
 
     public bool CopyText(string text) => clipboard.TrySetText(text);
 
-    private bool BeginAction(string message, bool onMigrations = false)
+    private bool BeginAction(string message, string root, bool onMigrations = false)
     {
         if (!gate.TryEnter())
         {
+            return false;
+        }
+
+        // The gate covers this process; the repository lock also covers the app against an MCP
+        // session (and the other way round) acting on the same clone.
+        if (!TryLockRepository(root))
+        {
+            gate.Exit();
+            Fail("repository busy", RepositoryLock.BusyMessage(root));
             return false;
         }
 
@@ -669,9 +681,25 @@ public sealed class RepoSession
             sink.SetMigrationsAction(null);
         }
 
+        repositoryLock?.Dispose();
+        repositoryLock = null;
         gate.Exit();
         sink.SetBusy(false);
         sink.EndOperation();
+    }
+
+    private bool TryLockRepository(string root)
+    {
+        try
+        {
+            repositoryLock = RepositoryLock.TryAcquire(root);
+            return repositoryLock is not null;
+        }
+        catch (InvalidOperationException)
+        {
+            // Data folder unusable (SOFFRITTO_DATA not valid): no shared lock, as before.
+            return true;
+        }
     }
 
     private void Fail(string headline, string message)
