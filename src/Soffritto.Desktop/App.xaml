@@ -259,7 +259,7 @@
       <Setter Property="FontFamily" Value="Segoe Fluent Icons, Segoe MDL2 Assets" />
       <Setter Property="FontWeight" Value="Normal" />
       <Setter Property="FontSize" Value="11" />
-      <Setter Property="Margin" Value="5,1,0,0" />
+      <Setter Property="Margin" Value="5,0,0,0" />
       <Setter Property="VerticalAlignment" Value="Center" />
     </Style>
 
@@ -400,6 +400,37 @@
           </ControlTemplate>
         </Setter.Value>
       </Setter>
+    </Style>
+
+    <!-- TV variants, for screens watched from across the room (the story points meeting): the
+         standard TextButton and AppButton, enlarged as a whole by a LayoutTransform, so lip,
+         outline, radius and text keep the proportions of the originals. Sizes set on the button
+         (Width) are in the original's units. -->
+    <Style x:Key="TvTextButton" TargetType="Button" BasedOn="{StaticResource TextButton}">
+      <Setter Property="Margin" Value="0" />
+      <Setter Property="LayoutTransform">
+        <Setter.Value>
+          <ScaleTransform ScaleX="2" ScaleY="2" />
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- Unlike the header's apps, the main action of a screen can be disabled (no stories, no
+         votes yet): it fades like IconButton. The label is the button's accessible name, since
+         the Content is a glyph. -->
+    <Style x:Key="TvAppButton" TargetType="Button" BasedOn="{StaticResource AppButton}">
+      <Setter Property="Margin" Value="0" />
+      <Setter Property="AutomationProperties.Name" Value="{Binding (local:AppButton.Label), RelativeSource={RelativeSource Self}}" />
+      <Setter Property="LayoutTransform">
+        <Setter.Value>
+          <ScaleTransform ScaleX="2" ScaleY="2" />
+        </Setter.Value>
+      </Setter>
+      <Style.Triggers>
+        <Trigger Property="IsEnabled" Value="False">
+          <Setter Property="Opacity" Value="0.35" />
+        </Trigger>
+      </Style.Triggers>
     </Style>
 
     <!-- Status dot: a circle of DotSize px (10) in the resource's color (StatusBadge's shared
@@ -864,7 +895,8 @@
       <Setter Property="Margin" Value="0,0,0,12" />
     </Style>
 
-    <!-- The app's single message style (FlashCard.cs): low-alpha tint so it stands out without
+    <!-- The app's single message style (FlashCard.cs), the same size everywhere: the cards do not
+         set their own FontSize. Low-alpha tint so it stands out without
          shouting, a round badge with the kind's symbol, the text on the right. Info notes in the
          setup, errors and warnings in the cards and panels, the progress of an action. -->
     <Style TargetType="local:FlashCard">
@@ -879,23 +911,29 @@
                     CornerRadius="12"
                     Padding="8,7,10,7">
               <DockPanel>
-                <!-- The symbols are drawn on the badge's own 16x16 grid, so they sit exactly in the
-                     centre: a font glyph would move with its baseline. Info and warning are filled
-                     shapes, the others rounded strokes. -->
+                <!-- The symbols are drawn on a 16x16 grid, so they sit exactly in the centre: a font
+                     glyph would move with its baseline. The "i" and the "!" have their ink (dot
+                     included) centred on 8. Info and warning are filled shapes, the
+                     others rounded strokes. 17 px (odd) and 1 px up: measured on screen, badge
+                     and capitals of the first line share the same middle pixel. -->
                 <Grid x:Name="Badge"
                       DockPanel.Dock="Left"
-                      Width="16" Height="16"
-                      Margin="0,0,8,0"
+                      Width="17" Height="17"
+                      Margin="0,-1,8,0"
                       VerticalAlignment="Top"
                       RenderTransformOrigin="0.5,0.5">
                   <Grid.RenderTransform>
                     <RotateTransform x:Name="Spin" />
                   </Grid.RenderTransform>
                   <Ellipse x:Name="Dot" Fill="{DynamicResource Theme.FlashInfoBadge}" />
-                  <Path x:Name="Shape" Fill="White"
-                        Data="M8,3.4 A1.15,1.15 0 1 1 7.99,3.4 Z M7,6.9 H9 V12.2 H7 Z" />
-                  <Path x:Name="Stroke" Stroke="White" StrokeThickness="2"
-                        StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                  <Viewbox>
+                    <Grid Width="16" Height="16">
+                      <Path x:Name="Shape" Fill="White"
+                            Data="M8,4.1 A1.15,1.15 0 1 1 7.99,4.1 Z M7,7.6 H9 V12.9 H7 Z" />
+                      <Path x:Name="Stroke" Stroke="White" StrokeThickness="2"
+                            StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                    </Grid>
+                  </Viewbox>
                 </Grid>
                 <ContentPresenter VerticalAlignment="Center">
                   <ContentPresenter.Resources>
@@ -918,7 +956,7 @@
                 <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Theme.FlashWarningFill}" />
                 <Setter TargetName="Frame" Property="BorderBrush" Value="{DynamicResource Theme.FlashWarningBorder}" />
                 <Setter TargetName="Dot" Property="Fill" Value="{DynamicResource Theme.FlashWarningBadge}" />
-                <Setter TargetName="Shape" Property="Data" Value="M7,3.6 H9 V9.4 H7 Z M8,10.6 A1.15,1.15 0 1 1 7.99,10.6 Z" />
+                <Setter TargetName="Shape" Property="Data" Value="M7,3.9 H9 V9.7 H7 Z M8,10.9 A1.15,1.15 0 1 1 7.99,10.9 Z" />
               </Trigger>
               <Trigger Property="Kind" Value="Error">
                 <Setter TargetName="Frame" Property="Background" Value="{DynamicResource Theme.FlashErrorFill}" />

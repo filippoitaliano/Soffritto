@@ -1,8 +1,6 @@
 using System.ComponentModel;
-using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
 using System.Windows.Media;
 using Soffritto.Desktop.ViewModels;
 
@@ -50,19 +48,21 @@ public partial class StoryPointsMeetingPanel : UserControl
         var light = meeting.IsLight;
         var palette = meeting.Palette;
 
-        // WCAG contrast: buttons and the borders of boxes and pills at least 3:1 on card and
-        // background, text at least 4.5:1 on its own background.
-        Set("Bg", light ? "#EEF1F8" : "#111827");
-        Set("Card", light ? "#FFFFFF" : "#1B2338");
-        Set("CardLine", light ? "#DCE2EE" : "#1B2338");
-        Set("Tile", light ? "#E2E7F2" : "#26304D");
-        Set("ButtonFill", light ? "#5B6680" : "#66729A");
-        Set("Field", light ? "#FFFFFF" : "#0B1120");
-        Set("Line", light ? "#7F899E" : "#7C88A8");
-        Set("Text", light ? "#141B2D" : "#F3F5FB");
-        Set("Dim", light ? "#566076" : "#9AA3BC");
-        Set("Body", light ? "#2B3245" : "#D6DBEA");
-        Set("ScrollBarThumbBrush", light ? "#592B2F3A" : "#99F3F5FB");
+        // The app's warm neutrals (ThemeLight/ThemeDark), a step stronger where the TV needs it:
+        // the borders of boxes and pills at least 3:1 on the card, text at least 4.5:1.
+        Set("Bg", light ? "#F3F1EA" : "#1A1717");
+        Set("Card", light ? "#FFFFFB" : "#262021");
+        Set("CardLine", light ? "#E6DAC0" : "#3D3330");
+        Set("Tile", light ? "#EFE6D2" : "#3B332E");
+        Set("Theme.Control", light ? "#F2E6CB" : "#3B332E");
+        Set("Theme.ChipOutline", light ? "#26000000" : "#24FFFFFF");
+        Set("Theme.TextSoft", light ? "#4A4033" : "#DACDBA");
+        Set("Field", light ? "#FFFEFA" : "#1F1B1B");
+        Set("Line", light ? "#A8946F" : "#8A7A68");
+        Set("Text", light ? "#2E2820" : "#F6EEE2");
+        Set("Dim", light ? "#6B5B45" : "#A8987F");
+        Set("Body", light ? "#3B3226" : "#DACDBA");
+        Set("ScrollBarThumbBrush", light ? "#A65A4C38" : "#80CDBDA6");
         Set("ExpertBrush", palette.Expert);
         Set("DescriptionBrush", palette.Description);
         Set("ThinkingBrush", palette.Thinking);
@@ -77,17 +77,4 @@ public partial class StoryPointsMeetingPanel : UserControl
         brush.Freeze();
         Resources[key] = brush;
     }
-}
-
-/// <summary>
-/// Half-height radius for pill buttons, like ButtonRadius in App.xaml: WPF shrinks a larger
-/// radius separately in width and height, and the pill turns into an oval.
-/// </summary>
-public sealed class HalfHeightRadius : IValueConverter
-{
-    public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
-        => new CornerRadius(value is double height ? height / 2 : 0);
-
-    public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
-        => throw new NotSupportedException();
 }

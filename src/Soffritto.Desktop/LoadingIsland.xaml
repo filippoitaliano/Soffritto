@@ -1,4 +1,5 @@
-<!-- Indicator of reads in progress, like a dynamic island: a semi-transparent warm graphite pill with a
+<!-- Indicator of reads in progress, like a dynamic island: a semi-transparent pill (warm graphite on the
+     dark theme, cream on the light one) with a
      glowing border, a breathing halo, a sliding sheen and three bobbing dots. It appears when the
      DataContext's IsLoading turns true, spreading out like a drop, and closes again when it turns
      false; the animations live in LoadingIsland.xaml.cs. It does not catch the mouse. With
@@ -17,14 +18,7 @@
       <Setter Property="Height" Value="7" />
       <Setter Property="Margin" Value="0,0,4,0" />
       <Setter Property="VerticalAlignment" Value="Center" />
-      <Setter Property="Fill">
-        <Setter.Value>
-          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Offset="0" Color="#FFFFFF" />
-            <GradientStop Offset="1" Color="#E6DCC8" />
-          </LinearGradientBrush>
-        </Setter.Value>
-      </Setter>
+      <Setter Property="Fill" Value="{DynamicResource Theme.IslandDot}" />
     </Style>
   </UserControl.Resources>
 
@@ -37,26 +31,14 @@
     </Grid.RenderTransform>
 
     <!-- Blurred warm-grey halo behind the pill: it breathes while the island is on. -->
-    <Border x:Name="Halo" CornerRadius="22" Margin="-3" Background="#8C8273" Opacity="0.25">
+    <Border x:Name="Halo" CornerRadius="22" Margin="-3" Background="{DynamicResource Theme.IslandHalo}" Opacity="0.25">
       <Border.Effect>
         <BlurEffect Radius="14" />
       </Border.Effect>
     </Border>
 
-    <Border CornerRadius="20" BorderThickness="1">
-      <Border.Background>
-        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-          <GradientStop Offset="0" Color="#E04A4540" />
-          <GradientStop Offset="1" Color="#E0332F2B" />
-        </LinearGradientBrush>
-      </Border.Background>
-      <Border.BorderBrush>
-        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-          <GradientStop Offset="0" Color="#90F2E6CC" />
-          <GradientStop Offset="0.5" Color="#30C8BBA2" />
-          <GradientStop Offset="1" Color="#70F2E6CC" />
-        </LinearGradientBrush>
-      </Border.BorderBrush>
+    <!-- Colors from the theme: warm graphite on the dark theme, cream on the light one. -->
+    <Border CornerRadius="20" BorderThickness="1" Background="{DynamicResource Theme.IslandBackground}" BorderBrush="{DynamicResource Theme.IslandBorder}">
       <Border.Effect>
         <DropShadowEffect Direction="270" ShadowDepth="3" BlurRadius="16" Opacity="0.22" Color="#1E1A16" />
       </Border.Effect>
@@ -93,7 +75,7 @@
         </Ellipse.RenderTransform>
       </Ellipse>
       <TextBlock Text="{Binding Label, ElementName=Root}"
-                 Foreground="White"
+                 Foreground="{DynamicResource Theme.IslandText}"
                  FontFamily="{StaticResource Rounded}"
                  FontSize="13"
                  FontWeight="Bold"

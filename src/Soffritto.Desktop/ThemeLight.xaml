@@ -58,16 +58,16 @@
   <!-- FlashCard (App.xaml): background, border and badge for each kind of message. -->
   <SolidColorBrush x:Key="Theme.FlashInfoFill" Color="#120F6CBD" />
   <SolidColorBrush x:Key="Theme.FlashInfoBorder" Color="#330F6CBD" />
-  <SolidColorBrush x:Key="Theme.FlashInfoBadge" Color="#0F6CBD" />
+  <SolidColorBrush x:Key="Theme.FlashInfoBadge" Color="#5B9BD8" />
   <SolidColorBrush x:Key="Theme.FlashSuccessFill" Color="#146BB36B" />
   <SolidColorBrush x:Key="Theme.FlashSuccessBorder" Color="#406BB36B" />
-  <SolidColorBrush x:Key="Theme.FlashSuccessBadge" Color="#3E8E3E" />
+  <SolidColorBrush x:Key="Theme.FlashSuccessBadge" Color="#72B072" />
   <SolidColorBrush x:Key="Theme.FlashWarningFill" Color="#14D9822B" />
   <SolidColorBrush x:Key="Theme.FlashWarningBorder" Color="#40D9822B" />
-  <SolidColorBrush x:Key="Theme.FlashWarningBadge" Color="#D27A1E" />
+  <SolidColorBrush x:Key="Theme.FlashWarningBadge" Color="#E3A15E" />
   <SolidColorBrush x:Key="Theme.FlashErrorFill" Color="#14C42B1C" />
   <SolidColorBrush x:Key="Theme.FlashErrorBorder" Color="#40C42B1C" />
-  <SolidColorBrush x:Key="Theme.FlashErrorBadge" Color="#C42B1C" />
+  <SolidColorBrush x:Key="Theme.FlashErrorBadge" Color="#DB7066" />
   <SolidColorBrush x:Key="Theme.ChipOutline" Color="#26000000" />
   <SolidColorBrush x:Key="Theme.DockerTagText" Color="#6D28D9" />
   <SolidColorBrush x:Key="Theme.ProtectedDatabaseTagText" Color="#B91C1C" />
@@ -80,5 +80,21 @@
   <SolidColorBrush x:Key="Theme.OpaqueTagBorder" Color="#B2D6F2" />
   <SolidColorBrush x:Key="Theme.MeterTrack" Color="#0D4A4033" />
   <SolidColorBrush x:Key="Theme.MeterSeparator" Color="#334A4033" />
+  <!-- LoadingIsland: the pill, its border, halo, dots and text. -->
+  <LinearGradientBrush x:Key="Theme.IslandBackground" StartPoint="0,0" EndPoint="0,1">
+    <GradientStop Offset="0" Color="#F0FFFDF8" />
+    <GradientStop Offset="1" Color="#F0F3ECDF" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Theme.IslandBorder" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Offset="0" Color="#B0D9C9A6" />
+    <GradientStop Offset="0.5" Color="#60E6DAC0" />
+    <GradientStop Offset="1" Color="#A0D9C9A6" />
+  </LinearGradientBrush>
+  <LinearGradientBrush x:Key="Theme.IslandDot" StartPoint="0,0" EndPoint="1,1">
+    <GradientStop Offset="0" Color="#A8946F" />
+    <GradientStop Offset="1" Color="#6B5B45" />
+  </LinearGradientBrush>
+  <SolidColorBrush x:Key="Theme.IslandHalo" Color="#C9B994" />
+  <SolidColorBrush x:Key="Theme.IslandText" Color="#4A4033" />
   <SolidColorBrush x:Key="ScrollBarThumbBrush" Color="#A65A4C38" />
 </ResourceDictionary>

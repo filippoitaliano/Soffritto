@@ -30,9 +30,35 @@ public enum MeetingPhase
 /// </summary>
 public sealed record MeetingPalette(string Expert, string Description, string Thinking, string Votes, string Warning, string Expired, string OnAccent)
 {
-    public static MeetingPalette Dark { get; } = new("#A78BFA", "#60A5FA", "#FBBF24", "#34D399", "#FBBF24", "#F87171", "#0B1220");
+    public static MeetingPalette Dark { get; } = new("#A78BFA", "#60A5FA", "#FBBF24", "#34D399", "#FBBF24", "#F87171", "#1C1918");
 
     public static MeetingPalette Light { get; } = new("#7C3AED", "#2563EB", "#B45309", "#047857", "#B45309", "#DC2626", "#FFFFFF");
+}
+
+/// <summary>
+/// The colours of the meeting's AppButtons (the main action of each screen), one per phase:
+/// mid tones with white text, like the Tag colours of the app's AppButtons, the same in both
+/// themes.
+/// </summary>
+public static class MeetingButtonColors
+{
+    public const string Expert = "#A98BE3";
+
+    public const string Description = "#55B7EA";
+
+    public const string Thinking = "#E5A33B";
+
+    public const string Votes = "#3FB8A0";
+}
+
+/// <summary>
+/// The colours Azure DevOps gives the work item types, fixed: they never change.
+/// </summary>
+public static class WorkItemColors
+{
+    public const string UserStory = "#009CCC";
+
+    public const string Bug = "#CC293D";
 }
 
 /// <summary>
@@ -175,8 +201,8 @@ public sealed record MeetingOutcome(string WorkItem, string Title, string Result
     public bool IsSkipped => Points is null;
 }
 
-/// <summary>A story in the recap list shown before starting.</summary>
-public sealed record RecapStory(string WorkItem, string Title, string Feature);
+/// <summary>A story in the recap list shown before starting; Color is its type's Azure DevOps colour.</summary>
+public sealed record RecapStory(string WorkItem, string Title, string Feature, string Color);
 
 /// <summary>
 /// The story points meeting, a timed turn-based game: one turn per user story to estimate. Before
@@ -298,9 +324,6 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
 
     public IReadOnlyList<MeetingStep> PhaseSteps { get; }
 
-    /// <summary>One dot per story, shown at the top during the turns.</summary>
-    public ObservableCollection<MeetingStep> StoryDots { get; } = [];
-
     public ICommand LessCommand { get; }
 
     public ICommand MoreCommand { get; }
@@ -382,7 +405,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
     [
         nameof(StartVisibility), nameof(LoadingVisibility), nameof(RecapVisibility), nameof(TurnVisibility),
         nameof(ExpertVisibility), nameof(ThinkingVisibility), nameof(VotesVisibility),
-        nameof(BeforeVotesVisibility), nameof(StopwatchVisibility), nameof(FinishedVisibility), nameof(PhaseTitle), nameof(PhaseHint), nameof(PhaseColor),
+        nameof(BeforeVotesVisibility), nameof(StopwatchVisibility), nameof(FinishedVisibility), nameof(PhaseTitle), nameof(PhaseHint), nameof(PhaseColor), nameof(PhaseButtonColor),
     ];
 
     public string StartVisibility => Visible(phase == MeetingPhase.Start);
@@ -415,6 +438,14 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         MeetingPhase.Description => Palette.Description,
         MeetingPhase.Thinking => Palette.Thinking,
         _ => Palette.Votes,
+    };
+
+    public string PhaseButtonColor => phase switch
+    {
+        MeetingPhase.Expert => MeetingButtonColors.Expert,
+        MeetingPhase.Description => MeetingButtonColors.Description,
+        MeetingPhase.Thinking => MeetingButtonColors.Thinking,
+        _ => MeetingButtonColors.Votes,
     };
 
     public string PhaseTitle => phase switch
@@ -453,6 +484,9 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
     public string FeatureSectionVisibility => Visible(Story?.FeatureId is not null);
 
     public string StoryKindLabel => Story?.IsBug == true ? "BUG" : "USER STORY";
+
+    /// <summary>The Azure DevOps colour of the story's type, for the border of the story card.</summary>
+    public string StoryKindColor => Story?.IsBug == true ? WorkItemColors.Bug : WorkItemColors.UserStory;
 
     /// <summary>The description as it is on the work item, even when it repeats the title.</summary>
     public string StoryDescription => Story?.Description ?? string.Empty;
@@ -525,18 +559,17 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         }
     }
 
-    public string SelectedPoints => Selected?.Value.ToString(CultureInfo.CurrentCulture) ?? "–";
+    /// <summary>The value in the circle; empty until the votes give one.</summary>
+    public string SelectedPoints => Selected?.Value.ToString(CultureInfo.CurrentCulture) ?? string.Empty;
+
+    /// <summary>Whether the circle holds a value: without one it stays a faint shape.</summary>
+    public bool HasPoints => Selected is not null;
 
     private PointsChoice? Selected => Choices.FirstOrDefault(c => c.IsSelected);
 
     private int? Nearest => Votes() is { Count: > 0 } votes ? StoryPointsScale.Nearest(votes.Average()) : null;
 
     private bool IsManual => Selected is { } selected && selected.Value != Nearest;
-
-    /// <summary>Where the value in the circle comes from: the average, or a manual pick that overrides it.</summary>
-    public string PointsNote => Selected is null
-        ? "type in the votes to get the average"
-        : IsManual ? $"changed by hand · the average gave {Nearest}" : "the value closest to the average";
 
     /// <summary>The scale shows only after “Edit”: normally the average applies.</summary>
     public string ChoicesVisibility => Visible(isEditing);
@@ -640,7 +673,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         foreach (var story in stories)
         {
             var feature = story.IsBug ? string.Join(" · ", new[] { "Bug", story.FeatureTitle }.Where(t => t.Length > 0)) : story.FeatureTitle;
-            RecapStories.Add(new RecapStory($"#{story.Id}", story.Title, feature));
+            RecapStories.Add(new RecapStory($"#{story.Id}", story.Title, feature, story.IsBug ? WorkItemColors.Bug : WorkItemColors.UserStory));
         }
 
         foreach (var name in new[] { nameof(StoryCount), nameof(StoryCountLabel), nameof(EstimatedDuration), nameof(EstimatedDurationHint), nameof(EstimatedEnd), nameof(CanBegin), nameof(NoStoriesVisibility) })
@@ -659,12 +692,6 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         }
 
         Outcomes.Clear();
-        StoryDots.Clear();
-        for (var n = 1; n <= stories.Count; n++)
-        {
-            StoryDots.Add(new MeetingStep(n.ToString(CultureInfo.CurrentCulture), string.Empty));
-        }
-
         startedAt = DateTime.Now;
         index = 0;
         BeginTurn();
@@ -688,14 +715,9 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         }
 
         ErrorLine = string.Empty;
-        foreach (var name in new[] { nameof(Story), nameof(StoryCounter), nameof(StoryId), nameof(StoryTitle), nameof(FeatureId), nameof(FeatureTitle), nameof(FeatureSectionVisibility), nameof(StoryKindLabel), nameof(StoryDescription), nameof(DescriptionSectionVisibility) })
+        foreach (var name in new[] { nameof(Story), nameof(StoryCounter), nameof(StoryId), nameof(StoryTitle), nameof(FeatureId), nameof(FeatureTitle), nameof(FeatureSectionVisibility), nameof(StoryKindLabel), nameof(StoryKindColor), nameof(StoryDescription), nameof(DescriptionSectionVisibility) })
         {
             OnPropertyChanged(name);
-        }
-
-        for (var n = 0; n < StoryDots.Count; n++)
-        {
-            StoryDots[n].Show(done: n < index, current: n == index);
         }
 
         Enter(MeetingPhase.Expert);
@@ -853,7 +875,7 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         OnPropertyChanged(nameof(CanSave));
         OnPropertyChanged(nameof(SaveLabel));
         OnPropertyChanged(nameof(SelectedPoints));
-        OnPropertyChanged(nameof(PointsNote));
+        OnPropertyChanged(nameof(HasPoints));
         OnPropertyChanged(nameof(ChoicesVisibility));
         OnPropertyChanged(nameof(EditVisibility));
         OnPropertyChanged(nameof(UseAverageVisibility));
@@ -906,7 +928,6 @@ public sealed class StoryPointsMeetingViewModel : ObservableObject
         index = 0;
         Outcomes.Clear();
         RecapStories.Clear();
-        StoryDots.Clear();
         foreach (var participant in Participants)
         {
             participant.Clear();

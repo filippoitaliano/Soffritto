@@ -251,8 +251,9 @@
       </Grid>
     </DataTemplate>
 
-    <!-- The mirror of the green environment tag on the PR panel's cards: the work items whose PR
-         branches the environment sits on, one green FlashCard each; a click opens the work item.
+    <!-- The mirror of the blue environment tag on the PR panel's cards: the work items whose PR
+         branches the environment sits on, one info FlashCard each (not the green one: its check
+         mark reads as "done"); a click opens the work item.
          Used by the environment card and by its chip's card in the header; nothing when there are none. -->
     <DataTemplate x:Key="MatchedWorkList">
       <ItemsControl ItemsSource="{Binding MatchedWork}" Visibility="{Binding MatchedWorkVisibility}" Margin="0,6,0,0" Focusable="False">
@@ -263,7 +264,7 @@
             <Button Command="{Binding Open}" ToolTip="{Binding ToolTip}" AutomationProperties.Name="{Binding Text}" Foreground="{DynamicResource Theme.Text}" Cursor="Hand" Margin="0,0,0,2">
               <Button.Template>
                 <ControlTemplate TargetType="Button">
-                  <local:FlashCard Kind="Success" Content="{Binding Text}" FontSize="11" />
+                  <local:FlashCard Kind="Info" Content="{Binding Text}" />
                 </ControlTemplate>
               </Button.Template>
             </Button>
@@ -833,7 +834,6 @@
             <local:Reveal Shown="{Binding ErrorVisibility}">
               <local:FlashCard Kind="Error"
                                Content="{Binding ErrorLine}"
-                               FontSize="11"
                                Margin="0,8,0,0" />
             </local:Reveal>
           </StackPanel>
@@ -1023,6 +1023,7 @@
                   ToolTip="New Docker environment: worktrees from the source clones, database from the seed and the slot's containers"
                   Style="{StaticResource TextButton}"
                   Margin="0"
+                  Padding="11,0,11,0"
                   VerticalAlignment="Center"
                   FontWeight="Bold"
                   Content="+" />
@@ -1107,13 +1108,11 @@
                     <local:Reveal Shown="{Binding Docker.UnreachableVisibility, FallbackValue=Collapsed}">
                       <local:FlashCard Kind="Error"
                                        Content="{Binding Docker.UnreachableText}"
-                                       FontSize="11"
                                        Margin="0,6,0,0" />
                     </local:Reveal>
                     <local:Reveal Shown="{Binding Docker.EnvWarningVisibility, FallbackValue=Collapsed}">
                       <local:FlashCard Kind="Warning"
                                        Content="{Binding Docker.EnvWarningText}"
-                                       FontSize="11"
                                        Margin="0,6,0,0" />
                     </local:Reveal>
                     <!-- Free-form environment note, shared with the VSIX: typed here, it saves

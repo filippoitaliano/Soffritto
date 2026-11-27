@@ -506,9 +506,9 @@ local changes, a git operation half done or lacks the branch, nothing changes: t
 generic repository too, so a generic repository with work in progress or without `dev` blocks
 Reset and “Open in” for the environment it belongs to.
 
-**Work on the environment.** A PR panel card shows in a green tag (“Env 1”, “Env 1, 3”) the environments that sit exactly on
+**Work on the environment.** A PR panel card shows in a blue tag (“Env 1”, “Env 1, 3”) the environments that sit exactly on
 its PRs' branches, the other repositories on `dev`: the state “Open in” leaves. The environment
-card mirrors it: under the name, a green FlashCard for each work item (or PR without one) whose
+card mirrors it: under the name, a blue info FlashCard for each work item (or PR without one) whose
 branches the environment sits on; a click opens the work item. The rule is one, `EnvironmentWork`
 in Presentation, shared with the MCP server; it is recomputed with no reads of its own, after every
 branch read of the environment and every PR read, which the app runs even with the panel closed.
@@ -1185,7 +1185,7 @@ otherwise it does nothing and returns the new plan with its new code.
 Work items:
 
 - `environments_work` — for every environment the work items (or PRs without one) whose branches
-  it sits on, like the green tag of the PR panel and its mirror on the environment card: it reads
+  it sits on, like the blue tag of the PR panel and its mirror on the environment card: it reads
   the PRs from Azure DevOps once and the current branch of every clone or worktree.
 - `environment_status` and `docker_environment_status` have the same answer in the `work` section
   (`work: false` skips it). The PR read runs in parallel with the others and stops after 10 s:

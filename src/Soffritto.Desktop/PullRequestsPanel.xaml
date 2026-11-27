@@ -156,14 +156,14 @@
                     Margin="8,0,0,0"
                     Content="Open in ▾" />
             <!-- The environments already on these PRs' branches: the same state that “Open in” leaves.
-                 Green, like its mirror on the environment card. -->
+                 In the info colors, like its mirror on the environment card (an info FlashCard). -->
             <Border DockPanel.Dock="Right"
                     Visibility="{Binding MatchVisibility}"
                     Style="{StaticResource Tag}"
-                    Background="#1A6BB36B"
-                    BorderBrush="#4D6BB36B"
+                    Background="{DynamicResource Theme.FlashInfoFill}"
+                    BorderBrush="{DynamicResource Theme.FlashInfoBorder}"
                     ToolTip="{Binding MatchToolTip}">
-              <TextBlock Text="{Binding MatchText}" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.SuccessText}" />
+              <TextBlock Text="{Binding MatchText}" Style="{StaticResource TagText}" Foreground="{DynamicResource Theme.InfoText}" />
             </Border>
             <Button DockPanel.Dock="Left"
                     Visibility="{Binding WorkItemVisibility}"
