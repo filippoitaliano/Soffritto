@@ -13,8 +13,8 @@
     <AssemblyName>Soffritto</AssemblyName>
     <!-- The product icon: 16, 32, 48 and 256 px. -->
     <ApplicationIcon>app.ico</ApplicationIcon>
-    <!-- The Debug build can run next to the published one: a red tile with a yellow S instead of the
-         orange one with a white S tells it apart in the taskbar, the window and the tray. -->
+    <!-- The Debug build can run next to the published one: an orange tile with a white S instead of the
+         purple one tells it apart in the taskbar, the window and the tray. -->
     <ApplicationIcon Condition="'$(Configuration)' == 'Debug'">app-debug.ico</ApplicationIcon>
     <NoWarn>$(NoWarn);NETSDK1057</NoWarn>
 

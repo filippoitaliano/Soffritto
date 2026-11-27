@@ -179,7 +179,9 @@
                            Content="{Binding ActionLine}"
                            Visibility="{Binding ActionVisibility}"
                            Margin="12,0,12,10" />
-          <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource RowTemplate}" Visibility="{Binding Expander.BodyVisibility}" />
+          <local:Reveal Shown="{Binding Expander.BodyVisibility}">
+            <ItemsControl ItemsSource="{Binding Rows}" ItemTemplate="{StaticResource RowTemplate}" />
+          </local:Reveal>
         </StackPanel>
       </Border>
       <DataTemplate.Triggers>

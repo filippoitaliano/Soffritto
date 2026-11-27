@@ -335,12 +335,13 @@
                      Margin="8,0,0,0" />
           <TextBlock DockPanel.Dock="Left" Text="{Binding Header}" Style="{StaticResource CardTitle}" />
         </DockPanel>
-        <TextBox Visibility="{Binding Expander.BodyVisibility}"
-                 Text="{Binding Text, Mode=OneWay}"
-                 local:LogAutoScroll.IsEnabled="True"
-                 Style="{StaticResource LogBox}"
-                 MinHeight="60"
-                 Margin="0,8,0,0" />
+        <local:Reveal Shown="{Binding Expander.BodyVisibility}">
+          <TextBox Text="{Binding Text, Mode=OneWay}"
+                   local:LogAutoScroll.IsEnabled="True"
+                   Style="{StaticResource LogBox}"
+                   MinHeight="60"
+                   Margin="0,8,0,0" />
+        </local:Reveal>
       </StackPanel>
     </DataTemplate>
 
@@ -472,320 +473,335 @@
             </DockPanel>
 
             <!-- Card body: with the card collapsed, header, timestamp and errors remain. -->
-            <Border Visibility="{Binding Expander.BodyVisibility}" Style="{StaticResource CardSeparator}" />
-            <StackPanel Visibility="{Binding Expander.BodyVisibility}">
-            <!-- Editable drop-down with built-in search: typing filters the items by substring and
-                 the menu opens by itself; the arrows only move the highlight and a choice
-                 (Enter or click) runs git switch.
-                 IsTextSearchEnabled=False leaves filtering to the ViewModel instead of jumping by
-                 prefix; StaysOpenOnEdit keeps the menu open while typing. -->
-            <local:BranchComboBox DataContext="{Binding BranchPicker}"
-                                  ItemsSource="{Binding Branches}"
-                                  SelectedItem="{Binding SelectedBranch, Mode=TwoWay}"
-                                  Text="{Binding BranchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                  IsDropDownOpen="{Binding BranchDropDownOpen, Mode=TwoWay}"
-                                  IsEditable="True"
-                                  IsTextSearchEnabled="False"
-                                  StaysOpenOnEdit="True"
-                                  Visibility="{Binding DataContext.GitActionsVisibility, RelativeSource={RelativeSource AncestorType=StackPanel}}"
-                                  IsEnabled="{Binding DataContext.IsNotBusy, RelativeSource={RelativeSource AncestorType=StackPanel}}"
-                                  ToolTip="Type to search, arrows to scroll, Enter or click to switch branch (git switch)"
-                                  FontFamily="Consolas" FontWeight="Normal"
-                                  FontSize="13"
-                                  Margin="0,6,0,0" />
-
-            <!-- Git status and warning on the same line, centered: if space runs out the status is shortened. -->
-            <DockPanel HorizontalAlignment="Center" Margin="0,6,0,0">
-              <TextBlock DockPanel.Dock="Right"
-                         Text="{Binding UpstreamWarning}"
-                         Visibility="{Binding UpstreamWarningVisibility}"
-                         Foreground="#C42B1C"
-                         FontSize="12"
-                         FontWeight="Bold" />
-              <TextBlock DockPanel.Dock="Right"
-                         Text="·"
-                         Visibility="{Binding UpstreamWarningVisibility}"
-                         Opacity="0.65"
-                         FontSize="12"
-                         Margin="5,0" />
-              <TextBlock Text="{Binding RepoDetail}"
-                         ToolTip="{Binding RepoDetail}"
-                         Opacity="0.65"
-                         FontSize="12"
-                         TextTrimming="CharacterEllipsis" />
-            </DockPanel>
-
-            <!-- Dev tunnel, in the backend and frontend cards: a section with its own
-                 header, expanding and collapsing on its own inside the card body. -->
-            <StackPanel DataContext="{Binding Tunnel}"
-                        Visibility="{Binding DataContext.TunnelVisibility, RelativeSource={RelativeSource AncestorType=Border}}">
+            <local:Reveal Shown="{Binding Expander.BodyVisibility}">
               <Border Style="{StaticResource CardSeparator}" />
-              <DockPanel Style="{StaticResource CardHeader}" Margin="0,8,0,0">
-                <DockPanel.InputBindings>
-                  <MouseBinding Gesture="LeftClick" Command="{Binding State.Expander.ToggleCommand}" />
-                </DockPanel.InputBindings>
-                <TextBlock DockPanel.Dock="Left" Text="{Binding State.Expander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
-                <TextBlock DockPanel.Dock="Left" Text="&#xE774;" Style="{StaticResource CardIcon}" />
-                <!-- No commands here: the tunnel is turned on and off for the whole environment,
-                     from the header. The dot is the host's status. -->
-                <local:StatusDot DockPanel.Dock="Right"
-                                 Color="{Binding Host.StateColor}"
-                                 IsLoading="{Binding State.IsLoading}">
-                  <local:StatusDot.ToolTip>
-                    <StackPanel>
-                      <TextBlock Text="{Binding Host.StateToolTip}" />
-                      <TextBlock Text="{Binding State.Stamp}" Style="{StaticResource DotStamp}" />
-                    </StackPanel>
-                  </local:StatusDot.ToolTip>
-                </local:StatusDot>
-                <TextBlock DockPanel.Dock="Left"
-                           Text="{Binding State.Line}"
-                           ToolTip="{Binding State.Line}"
-                           Style="{StaticResource CardTitle}" />
-              </DockPanel>
+            </local:Reveal>
+            <local:Reveal Shown="{Binding Expander.BodyVisibility}">
+              <StackPanel>
+              <!-- Editable drop-down with built-in search: typing filters the items by substring and
+                   the menu opens by itself; the arrows only move the highlight and a choice
+                   (Enter or click) runs git switch.
+                   IsTextSearchEnabled=False leaves filtering to the ViewModel instead of jumping by
+                   prefix; StaysOpenOnEdit keeps the menu open while typing. -->
+              <local:BranchComboBox DataContext="{Binding BranchPicker}"
+                                    ItemsSource="{Binding Branches}"
+                                    SelectedItem="{Binding SelectedBranch, Mode=TwoWay}"
+                                    Text="{Binding BranchText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                    IsDropDownOpen="{Binding BranchDropDownOpen, Mode=TwoWay}"
+                                    IsEditable="True"
+                                    IsTextSearchEnabled="False"
+                                    StaysOpenOnEdit="True"
+                                    Visibility="{Binding DataContext.GitActionsVisibility, RelativeSource={RelativeSource AncestorType=StackPanel}}"
+                                    IsEnabled="{Binding DataContext.IsNotBusy, RelativeSource={RelativeSource AncestorType=StackPanel}}"
+                                    ToolTip="Type to search, arrows to scroll, Enter or click to switch branch (git switch)"
+                                    FontFamily="Consolas" FontWeight="Normal"
+                                    FontSize="13"
+                                    Margin="0,6,0,0" />
 
-              <StackPanel DataContext="{Binding State}" Visibility="{Binding Expander.BodyVisibility}">
-                <TextBlock Text="{Binding Detail}"
-                           Visibility="{Binding DetailVisibility}"
+              <!-- Git status and warning on the same line, centered: if space runs out the status is shortened. -->
+              <DockPanel HorizontalAlignment="Center" Margin="0,6,0,0">
+                <TextBlock DockPanel.Dock="Right"
+                           Text="{Binding UpstreamWarning}"
+                           Visibility="{Binding UpstreamWarningVisibility}"
+                           Foreground="#C42B1C"
+                           FontSize="12"
+                           FontWeight="Bold" />
+                <TextBlock DockPanel.Dock="Right"
+                           Text="·"
+                           Visibility="{Binding UpstreamWarningVisibility}"
                            Opacity="0.65"
                            FontSize="12"
-                           TextWrapping="Wrap"
-                           TextAlignment="Center"
-                           Margin="0,8,0,0" />
-
-                <!-- One row per port: number in the badge, host without scheme (public URLs are https),
-                     two buttons on the right: copy the URL and open it in the default browser.
-                     The note appears only for a port that does not respond or as copy
-                     feedback. -->
-                <local:LaneGrid ItemsSource="{Binding Ports}"
-                                Visibility="{Binding PortsVisibility}"
-                                Margin="0,8,0,0">
-                  <local:LaneGrid.ItemTemplate>
-                    <DataTemplate>
-                      <local:Lane Badge="{Binding PortNumber}" Text="{Binding Host}" Note="{Binding Note}" NoteBrush="{Binding NoteColor}">
-                        <local:LaneAction Glyph="&#xE8C8;" Command="{Binding CopyCommand}" ToolTip="{Binding CopyToolTip}" />
-                        <local:LaneAction Glyph="&#xE8A7;" Command="{Binding OpenCommand}" ToolTip="{Binding OpenToolTip}" />
-                      </local:Lane>
-                    </DataTemplate>
-                  </local:LaneGrid.ItemTemplate>
-                </local:LaneGrid>
-
-                <!-- No tunnel matches the clone: the account's tunnels with a short status. -->
-                <!-- Status dot, tunnel name and, in the grey note, host and ports. -->
-                <local:LaneGrid ItemsSource="{Binding List}"
-                                Visibility="{Binding ListVisibility}"
-                                Margin="0,8,0,0">
-                  <local:LaneGrid.ItemTemplate>
-                    <DataTemplate>
-                      <local:Lane Dot="{Binding StatusColor}" Text="{Binding Title}" ToolTip="{Binding Title}" Note="{Binding Kind}" NoteBrush="#5F6368" />
-                    </DataTemplate>
-                  </local:LaneGrid.ItemTemplate>
-                </local:LaneGrid>
-              </StackPanel>
-
-            </StackPanel>
-
-            <!-- Frontend preview, only in the frontend card: the playwright-cli browser open on this
-                 environment's dev server port, live and usable in a 16:9 frame. The dot is
-                 green when Claude's browser is there. -->
-            <StackPanel DataContext="{Binding Preview}"
-                        Visibility="{Binding DataContext.PreviewVisibility, RelativeSource={RelativeSource AncestorType=Border}}">
-              <Border Style="{StaticResource CardSeparator}" />
-              <DockPanel Style="{StaticResource CardHeader}" Margin="0,8,0,0">
-                <DockPanel.InputBindings>
-                  <MouseBinding Gesture="LeftClick" Command="{Binding Expander.ToggleCommand}" />
-                </DockPanel.InputBindings>
-                <TextBlock DockPanel.Dock="Left" Text="{Binding Expander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
-                <TextBlock DockPanel.Dock="Left" Text="&#xE7F4;" Style="{StaticResource CardIcon}" />
-                <local:StatusDot DockPanel.Dock="Right"
-                                 Color="{Binding SessionColor}"
-                                 ToolTip="{Binding HeaderToolTip}" />
-                <Button DockPanel.Dock="Right"
-                        Click="OpenPreview_Click"
-                        ToolTip="Expand to the whole window"
-                        Style="{StaticResource IconButton}"
-                        Content="&#xE740;" />
-                <Button DockPanel.Dock="Right"
-                        Command="{Binding OpenExternalCommand}"
-                        ToolTip="Open the page of Claude's browser in the default browser (or the dev server if there is none)"
-                        Style="{StaticResource IconButton}"
-                        Content="&#xE8A7;" />
-                <TextBlock DockPanel.Dock="Left"
-                           Text="{Binding Header}"
-                           ToolTip="{Binding HeaderToolTip}"
-                           Style="{StaticResource CardTitle}" />
+                           Margin="5,0" />
+                <TextBlock Text="{Binding RepoDetail}"
+                           ToolTip="{Binding RepoDetail}"
+                           Opacity="0.65"
+                           FontSize="12"
+                           TextTrimming="CharacterEllipsis" />
               </DockPanel>
 
-              <!-- The Viewbox sets the maximum height: 16:9, or the frame's aspect ratio when it is
-                   wider. With a frame the box shrinks to the image (a Uniform Image measures
-                   only the frame's area); without one it stays full. The content is clipped to
-                   the rounded corners with a mask: ClipToBounds would only clip to a
-                   rectangle. -->
-              <Grid Visibility="{Binding Expander.BodyVisibility}" Margin="0,8,0,0">
-                <Viewbox x:Name="PreviewSizer" Stretch="Uniform">
-                  <Rectangle Width="{Binding SizerWidth}" Height="{Binding SizerHeight}" />
-                </Viewbox>
-                <Border MaxHeight="{Binding ActualHeight, ElementName=PreviewSizer}">
-                  <Border.Style>
-                    <Style TargetType="Border" BasedOn="{StaticResource LaneFrame}">
-                      <Setter Property="HorizontalAlignment" Value="Center" />
-                      <Setter Property="VerticalAlignment" Value="Top" />
-                      <Style.Triggers>
-                        <DataTrigger Binding="{Binding Frame}" Value="{x:Null}">
-                          <Setter Property="HorizontalAlignment" Value="Stretch" />
-                          <Setter Property="VerticalAlignment" Value="Stretch" />
-                        </DataTrigger>
-                      </Style.Triggers>
-                    </Style>
-                  </Border.Style>
-                  <Grid>
-                    <Border x:Name="PreviewMask" CornerRadius="12" Background="{DynamicResource Theme.Field}" />
-                    <Grid>
-                      <Grid.OpacityMask>
-                        <VisualBrush Visual="{Binding ElementName=PreviewMask}" />
-                      </Grid.OpacityMask>
-                      <local:PlaywrightLiveView Visibility="{Binding ClaudeViewVisibility}" />
-                      <TextBlock Text="{Binding ClaudePlaceholder}"
-                                 Visibility="{Binding ClaudePlaceholderVisibility}"
-                                 Opacity="0.55"
-                                 FontSize="12"
-                                 TextWrapping="Wrap"
-                                 TextAlignment="Center"
-                                 HorizontalAlignment="Center"
-                                 VerticalAlignment="Center"
-                                 Margin="12" />
-                    </Grid>
-                  </Grid>
-                </Border>
-              </Grid>
-            </StackPanel>
-
-            <!-- Container log, only in the backend and frontend cards of a Docker environment:
-                 it is read only while the section is open (DevToolsController.FollowContainerLogAsync). -->
-            <ContentControl Content="{Binding ContainerLog}"
-                            ContentTemplate="{StaticResource LogSectionTemplate}"
-                            Visibility="{Binding ContainerLogVisibility}"
-                            Focusable="False" />
-
-            <!-- Migrations and contexts, only in the backend card: one section each at the bottom
-                 of the body, applied migrations unknown to the code first, because they must
-                 be seen before reading the context counters. -->
-            <StackPanel DataContext="{Binding Migrations}"
-                        Visibility="{Binding DataContext.MigrationsVisibility, RelativeSource={RelativeSource AncestorType=Border}}">
-              <StackPanel Visibility="{Binding UnknownVisibility}">
+              <!-- Dev tunnel, in the backend and frontend cards: a section with its own
+                   header, expanding and collapsing on its own inside the card body. -->
+              <StackPanel DataContext="{Binding Tunnel}"
+                          Visibility="{Binding DataContext.TunnelVisibility, RelativeSource={RelativeSource AncestorType=Border}}">
                 <Border Style="{StaticResource CardSeparator}" />
                 <DockPanel Style="{StaticResource CardHeader}" Margin="0,8,0,0">
                   <DockPanel.InputBindings>
-                    <MouseBinding Gesture="LeftClick" Command="{Binding UnknownExpander.ToggleCommand}" />
+                    <MouseBinding Gesture="LeftClick" Command="{Binding State.Expander.ToggleCommand}" />
                   </DockPanel.InputBindings>
-                  <TextBlock DockPanel.Dock="Left" Text="{Binding UnknownExpander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
-                  <TextBlock DockPanel.Dock="Left" Text="&#xE9CE;" Style="{StaticResource CardIcon}" />
-                  <local:StatusDot DockPanel.Dock="Right" Color="#E76F6F" ToolTip="{Binding UnknownHeader}" />
+                  <TextBlock DockPanel.Dock="Left" Text="{Binding State.Expander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
+                  <TextBlock DockPanel.Dock="Left" Text="&#xE774;" Style="{StaticResource CardIcon}" />
+                  <!-- No commands here: the tunnel is turned on and off for the whole environment,
+                       from the header. The dot is the host's status. -->
+                  <local:StatusDot DockPanel.Dock="Right"
+                                   Color="{Binding Host.StateColor}"
+                                   IsLoading="{Binding State.IsLoading}">
+                    <local:StatusDot.ToolTip>
+                      <StackPanel>
+                        <TextBlock Text="{Binding Host.StateToolTip}" />
+                        <TextBlock Text="{Binding State.Stamp}" Style="{StaticResource DotStamp}" />
+                      </StackPanel>
+                    </local:StatusDot.ToolTip>
+                  </local:StatusDot>
                   <TextBlock DockPanel.Dock="Left"
-                             Text="{Binding UnknownHeader}"
-                             ToolTip="{Binding UnknownHeader}"
+                             Text="{Binding State.Line}"
+                             ToolTip="{Binding State.Line}"
                              Style="{StaticResource CardTitle}" />
                 </DockPanel>
-                <local:LaneGrid ItemsSource="{Binding Unknown}" Margin="0,8,0,0" Visibility="{Binding UnknownExpander.BodyVisibility}">
-                  <local:LaneGrid.ItemTemplate>
-                    <DataTemplate>
-                      <local:Lane Text="{Binding MigrationId}" ToolTip="{Binding MigrationId}" />
-                    </DataTemplate>
-                  </local:LaneGrid.ItemTemplate>
-                </local:LaneGrid>
+
+                <local:Reveal DataContext="{Binding State}" Shown="{Binding Expander.BodyVisibility}">
+                  <StackPanel>
+                    <TextBlock Text="{Binding Detail}"
+                               Visibility="{Binding DetailVisibility}"
+                               Opacity="0.65"
+                               FontSize="12"
+                               TextWrapping="Wrap"
+                               TextAlignment="Center"
+                               Margin="0,8,0,0" />
+
+                    <!-- One row per port: number in the badge, host without scheme (public URLs are https),
+                         two buttons on the right: copy the URL and open it in the default browser.
+                         The note appears only for a port that does not respond or as copy
+                         feedback. -->
+                    <local:LaneGrid ItemsSource="{Binding Ports}"
+                                    Visibility="{Binding PortsVisibility}"
+                                    Margin="0,8,0,0">
+                      <local:LaneGrid.ItemTemplate>
+                        <DataTemplate>
+                          <local:Lane Badge="{Binding PortNumber}" Text="{Binding Host}" Note="{Binding Note}" NoteBrush="{Binding NoteColor}">
+                            <local:LaneAction Glyph="&#xE8C8;" Command="{Binding CopyCommand}" ToolTip="{Binding CopyToolTip}" />
+                            <local:LaneAction Glyph="&#xE8A7;" Command="{Binding OpenCommand}" ToolTip="{Binding OpenToolTip}" />
+                          </local:Lane>
+                        </DataTemplate>
+                      </local:LaneGrid.ItemTemplate>
+                    </local:LaneGrid>
+
+                    <!-- No tunnel matches the clone: the account's tunnels with a short status. -->
+                    <!-- Status dot, tunnel name and, in the grey note, host and ports. -->
+                    <local:LaneGrid ItemsSource="{Binding List}"
+                                    Visibility="{Binding ListVisibility}"
+                                    Margin="0,8,0,0">
+                      <local:LaneGrid.ItemTemplate>
+                        <DataTemplate>
+                          <local:Lane Dot="{Binding StatusColor}" Text="{Binding Title}" ToolTip="{Binding Title}" Note="{Binding Kind}" NoteBrush="#5F6368" />
+                        </DataTemplate>
+                      </local:LaneGrid.ItemTemplate>
+                    </local:LaneGrid>
+                  </StackPanel>
+                </local:Reveal>
+
               </StackPanel>
 
-              <ItemsControl ItemsSource="{Binding Contexts}">
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <StackPanel>
-                      <Border Style="{StaticResource CardSeparator}" />
-                      <!-- Clickable header: expands and collapses the section. The database update
-                           starts from the migration rows, not from here. -->
-                      <DockPanel Style="{StaticResource CardHeader}" Margin="0,8,0,0">
-                        <DockPanel.InputBindings>
-                          <MouseBinding Gesture="LeftClick" Command="{Binding Expander.ToggleCommand}" />
-                        </DockPanel.InputBindings>
-                        <TextBlock DockPanel.Dock="Left" Text="{Binding Expander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
-                        <TextBlock DockPanel.Dock="Left" Text="&#xEE94;" Style="{StaticResource CardIcon}" />
-                        <!-- Green when in sync, orange with migrations to fix. -->
-                        <local:StatusDot DockPanel.Dock="Right"
-                                         Color="{Binding StatusColor}"
-                                         IsLoading="{Binding IsLoading}">
-                          <local:StatusDot.ToolTip>
-                            <StackPanel>
-                              <TextBlock Text="{Binding StatusToolTip}" />
-                              <TextBlock Text="{Binding Stamp}" Style="{StaticResource DotStamp}" />
-                            </StackPanel>
-                          </local:StatusDot.ToolTip>
-                        </local:StatusDot>
-                        <TextBlock DockPanel.Dock="Left"
-                                   Text="{Binding Name}"
-                                   ToolTip="{Binding Name}"
-                                   Style="{StaticResource CardTitle}" />
-                      </DockPanel>
+              <!-- Frontend preview, only in the frontend card: the playwright-cli browser open on this
+                   environment's dev server port, live and usable in a 16:9 frame. The dot is
+                   green when Claude's browser is there. -->
+              <StackPanel DataContext="{Binding Preview}"
+                          Visibility="{Binding DataContext.PreviewVisibility, RelativeSource={RelativeSource AncestorType=Border}}">
+                <Border Style="{StaticResource CardSeparator}" />
+                <DockPanel Style="{StaticResource CardHeader}" Margin="0,8,0,0">
+                  <DockPanel.InputBindings>
+                    <MouseBinding Gesture="LeftClick" Command="{Binding Expander.ToggleCommand}" />
+                  </DockPanel.InputBindings>
+                  <TextBlock DockPanel.Dock="Left" Text="{Binding Expander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
+                  <TextBlock DockPanel.Dock="Left" Text="&#xE7F4;" Style="{StaticResource CardIcon}" />
+                  <local:StatusDot DockPanel.Dock="Right"
+                                   Color="{Binding SessionColor}"
+                                   ToolTip="{Binding HeaderToolTip}" />
+                  <Button DockPanel.Dock="Right"
+                          Click="OpenPreview_Click"
+                          ToolTip="Expand to the whole window"
+                          Style="{StaticResource IconButton}"
+                          Content="&#xE740;" />
+                  <Button DockPanel.Dock="Right"
+                          Command="{Binding OpenExternalCommand}"
+                          ToolTip="Open the page of Claude's browser in the default browser (or the dev server if there is none)"
+                          Style="{StaticResource IconButton}"
+                          Content="&#xE8A7;" />
+                  <TextBlock DockPanel.Dock="Left"
+                             Text="{Binding Header}"
+                             ToolTip="{Binding HeaderToolTip}"
+                             Style="{StaticResource CardTitle}" />
+                </DockPanel>
 
-                      <!-- Body: expanded by default only if the context is out of sync. -->
-                      <StackPanel Visibility="{Binding Expander.BodyVisibility}">
-                      <TextBlock Text="{Binding Note}"
-                                 Visibility="{Binding NoteVisibility}"
-                                 Opacity="0.65"
-                                 FontSize="12"
-                                 TextWrapping="Wrap"
-                                 TextAlignment="Center"
-                                 Margin="0,8,0,0" />
+                <!-- The Viewbox sets the maximum height: 16:9, or the frame's aspect ratio when it is
+                     wider. With a frame the box shrinks to the image (a Uniform Image measures
+                     only the frame's area); without one it stays full. The content is clipped to
+                     the rounded corners with a mask: ClipToBounds would only clip to a
+                     rectangle. -->
+                <local:Reveal Shown="{Binding Expander.BodyVisibility}">
+                  <Grid Margin="0,8,0,0">
+                    <Viewbox x:Name="PreviewSizer" Stretch="Uniform">
+                      <Rectangle Width="{Binding SizerWidth}" Height="{Binding SizerHeight}" />
+                    </Viewbox>
+                    <Border MaxHeight="{Binding ActualHeight, ElementName=PreviewSizer}">
+                      <Border.Style>
+                        <Style TargetType="Border" BasedOn="{StaticResource LaneFrame}">
+                          <Setter Property="HorizontalAlignment" Value="Center" />
+                          <Setter Property="VerticalAlignment" Value="Top" />
+                          <Style.Triggers>
+                            <DataTrigger Binding="{Binding Frame}" Value="{x:Null}">
+                              <Setter Property="HorizontalAlignment" Value="Stretch" />
+                              <Setter Property="VerticalAlignment" Value="Stretch" />
+                            </DataTrigger>
+                          </Style.Triggers>
+                        </Style>
+                      </Border.Style>
+                      <Grid>
+                        <Border x:Name="PreviewMask" CornerRadius="12" Background="{DynamicResource Theme.Field}" />
+                        <Grid>
+                          <Grid.OpacityMask>
+                            <VisualBrush Visual="{Binding ElementName=PreviewMask}" />
+                          </Grid.OpacityMask>
+                          <local:PlaywrightLiveView Visibility="{Binding ClaudeViewVisibility}" />
+                          <TextBlock Text="{Binding ClaudePlaceholder}"
+                                     Visibility="{Binding ClaudePlaceholderVisibility}"
+                                     Opacity="0.55"
+                                     FontSize="12"
+                                     TextWrapping="Wrap"
+                                     TextAlignment="Center"
+                                     HorizontalAlignment="Center"
+                                     VerticalAlignment="Center"
+                                     Margin="12" />
+                        </Grid>
+                      </Grid>
+                    </Border>
+                  </Grid>
+                </local:Reveal>
+              </StackPanel>
 
-                      <!-- Latest migrations, with the position in the context in the badge: the row's
-                           button runs the update up to that migration, with confirmation. The
-                           glyph tells the direction: Play forward, Undo for a rollback. -->
-                      <local:LaneGrid ItemsSource="{Binding Recent}"
-                                      Visibility="{Binding RecentVisibility}"
-                                      Margin="0,8,0,0">
+              <!-- Container log, only in the backend and frontend cards of a Docker environment:
+                   it is read only while the section is open (DevToolsController.FollowContainerLogAsync). -->
+              <ContentControl Content="{Binding ContainerLog}"
+                              ContentTemplate="{StaticResource LogSectionTemplate}"
+                              Visibility="{Binding ContainerLogVisibility}"
+                              Focusable="False" />
+
+              <!-- Migrations and contexts, only in the backend card: one section each at the bottom
+                   of the body, applied migrations unknown to the code first, because they must
+                   be seen before reading the context counters. -->
+              <StackPanel DataContext="{Binding Migrations}"
+                          Visibility="{Binding DataContext.MigrationsVisibility, RelativeSource={RelativeSource AncestorType=Border}}">
+                <local:Reveal Shown="{Binding UnknownVisibility}">
+                  <StackPanel>
+                    <Border Style="{StaticResource CardSeparator}" />
+                    <DockPanel Style="{StaticResource CardHeader}" Margin="0,8,0,0">
+                      <DockPanel.InputBindings>
+                        <MouseBinding Gesture="LeftClick" Command="{Binding UnknownExpander.ToggleCommand}" />
+                      </DockPanel.InputBindings>
+                      <TextBlock DockPanel.Dock="Left" Text="{Binding UnknownExpander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
+                      <TextBlock DockPanel.Dock="Left" Text="&#xE9CE;" Style="{StaticResource CardIcon}" />
+                      <local:StatusDot DockPanel.Dock="Right" Color="#E76F6F" ToolTip="{Binding UnknownHeader}" />
+                      <TextBlock DockPanel.Dock="Left"
+                                 Text="{Binding UnknownHeader}"
+                                 ToolTip="{Binding UnknownHeader}"
+                                 Style="{StaticResource CardTitle}" />
+                    </DockPanel>
+                    <local:Reveal Shown="{Binding UnknownExpander.BodyVisibility}">
+                      <local:LaneGrid ItemsSource="{Binding Unknown}" Margin="0,8,0,0">
                         <local:LaneGrid.ItemTemplate>
                           <DataTemplate>
-                            <local:Lane Badge="{Binding Position}" Text="{Binding Name}" Note="{Binding Note}" NoteBrush="{Binding NoteColor}">
-                              <local:LaneAction Glyph="{Binding RunGlyph}" Command="{Binding RunCommand}" IsEnabled="{Binding RunEnabled}" ToolTip="{Binding RunToolTip}" />
-                            </local:Lane>
+                            <local:Lane Text="{Binding MigrationId}" ToolTip="{Binding MigrationId}" />
                           </DataTemplate>
                         </local:LaneGrid.ItemTemplate>
                       </local:LaneGrid>
+                    </local:Reveal>
+                  </StackPanel>
+                </local:Reveal>
 
-                      <StackPanel Orientation="Horizontal"
-                                  HorizontalAlignment="Center"
-                                  Visibility="{Binding PagerVisibility}"
-                                  Margin="0,8,0,0">
-                        <Button Command="{Binding PreviousPageCommand}"
-                                IsEnabled="{Binding CanGoPrevious}"
-                                ToolTip="Newer migrations"
-                                Style="{StaticResource IconButton}"
-                                Margin="0"
-                                Content="&#xE76B;" />
-                        <TextBlock Text="{Binding PageLabel}"
-                                   FontSize="11"
-                                   Opacity="0.6"
-                                   VerticalAlignment="Center"
-                                   Margin="6,0,2,0" />
-                        <Button Command="{Binding NextPageCommand}"
-                                IsEnabled="{Binding CanGoNext}"
-                                ToolTip="Older migrations"
-                                Style="{StaticResource IconButton}"
-                                Content="&#xE76C;" />
-                      </StackPanel>
-                      </StackPanel>
+                <ItemsControl ItemsSource="{Binding Contexts}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel>
+                        <Border Style="{StaticResource CardSeparator}" />
+                        <!-- Clickable header: expands and collapses the section. The database update
+                             starts from the migration rows, not from here. -->
+                        <DockPanel Style="{StaticResource CardHeader}" Margin="0,8,0,0">
+                          <DockPanel.InputBindings>
+                            <MouseBinding Gesture="LeftClick" Command="{Binding Expander.ToggleCommand}" />
+                          </DockPanel.InputBindings>
+                          <TextBlock DockPanel.Dock="Left" Text="{Binding Expander.Glyph}" Style="{StaticResource ExpanderGlyph}" />
+                          <TextBlock DockPanel.Dock="Left" Text="&#xEE94;" Style="{StaticResource CardIcon}" />
+                          <!-- Green when in sync, orange with migrations to fix. -->
+                          <local:StatusDot DockPanel.Dock="Right"
+                                           Color="{Binding StatusColor}"
+                                           IsLoading="{Binding IsLoading}">
+                            <local:StatusDot.ToolTip>
+                              <StackPanel>
+                                <TextBlock Text="{Binding StatusToolTip}" />
+                                <TextBlock Text="{Binding Stamp}" Style="{StaticResource DotStamp}" />
+                              </StackPanel>
+                            </local:StatusDot.ToolTip>
+                          </local:StatusDot>
+                          <TextBlock DockPanel.Dock="Left"
+                                     Text="{Binding Name}"
+                                     ToolTip="{Binding Name}"
+                                     Style="{StaticResource CardTitle}" />
+                        </DockPanel>
 
-                    </StackPanel>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </StackPanel>
-            </StackPanel>
+                        <!-- Body: expanded by default only if the context is out of sync. -->
+                        <local:Reveal Shown="{Binding Expander.BodyVisibility}">
+                          <StackPanel>
+                          <TextBlock Text="{Binding Note}"
+                                     Visibility="{Binding NoteVisibility}"
+                                     Opacity="0.65"
+                                     FontSize="12"
+                                     TextWrapping="Wrap"
+                                     TextAlignment="Center"
+                                     Margin="0,8,0,0" />
+
+                          <!-- Latest migrations, with the position in the context in the badge: the row's
+                               button runs the update up to that migration, with confirmation. The
+                               glyph tells the direction: Play forward, Undo for a rollback. -->
+                          <local:LaneGrid ItemsSource="{Binding Recent}"
+                                          Visibility="{Binding RecentVisibility}"
+                                          Margin="0,8,0,0">
+                            <local:LaneGrid.ItemTemplate>
+                              <DataTemplate>
+                                <local:Lane Badge="{Binding Position}" Text="{Binding Name}" Note="{Binding Note}" NoteBrush="{Binding NoteColor}">
+                                  <local:LaneAction Glyph="{Binding RunGlyph}" Command="{Binding RunCommand}" IsEnabled="{Binding RunEnabled}" ToolTip="{Binding RunToolTip}" />
+                                </local:Lane>
+                              </DataTemplate>
+                            </local:LaneGrid.ItemTemplate>
+                          </local:LaneGrid>
+
+                          <StackPanel Orientation="Horizontal"
+                                      HorizontalAlignment="Center"
+                                      Visibility="{Binding PagerVisibility}"
+                                      Margin="0,8,0,0">
+                            <Button Command="{Binding PreviousPageCommand}"
+                                    IsEnabled="{Binding CanGoPrevious}"
+                                    ToolTip="Newer migrations"
+                                    Style="{StaticResource IconButton}"
+                                    Margin="0"
+                                    Content="&#xE76B;" />
+                            <TextBlock Text="{Binding PageLabel}"
+                                       FontSize="11"
+                                       Opacity="0.6"
+                                       VerticalAlignment="Center"
+                                       Margin="6,0,2,0" />
+                            <Button Command="{Binding NextPageCommand}"
+                                    IsEnabled="{Binding CanGoNext}"
+                                    ToolTip="Older migrations"
+                                    Style="{StaticResource IconButton}"
+                                    Content="&#xE76C;" />
+                          </StackPanel>
+                          </StackPanel>
+                        </local:Reveal>
+
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+              </StackPanel>
+            </local:Reveal>
 
             <!-- Configuration, database, git or action errors. -->
-            <local:FlashCard Kind="Error"
-                             Content="{Binding ErrorLine}"
-                             Visibility="{Binding ErrorVisibility}"
-                             FontSize="11"
-                             Margin="0,8,0,0" />
+            <local:Reveal Shown="{Binding ErrorVisibility}">
+              <local:FlashCard Kind="Error"
+                               Content="{Binding ErrorLine}"
+                               FontSize="11"
+                               Margin="0,8,0,0" />
+            </local:Reveal>
           </StackPanel>
         </StackPanel>
       </Border>
@@ -798,45 +814,9 @@
       <RowDefinition Height="*" />
     </Grid.RowDefinitions>
 
-    <!-- Window background under the header and the cards: the brand gradient, without the
-         logo. A light lavender base darkening toward the bottom right, plus three soft spots:
-         light blue at the top left, pale at the top center, lilac at the bottom right. It also
-         covers the header row, so the gradient shows in the rounded corners. -->
-    <Grid Grid.Row="0" Grid.RowSpan="2">
-      <Border>
-        <Border.Background>
-          <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
-            <GradientStop Offset="0" Color="{DynamicResource Theme.Base0}" />
-            <GradientStop Offset="0.5" Color="{DynamicResource Theme.Base1}" />
-            <GradientStop Offset="1" Color="{DynamicResource Theme.Base2}" />
-          </LinearGradientBrush>
-        </Border.Background>
-      </Border>
-      <Border>
-        <Border.Background>
-          <RadialGradientBrush Center="0.15,0.08" GradientOrigin="0.15,0.08" RadiusX="0.25" RadiusY="0.4">
-            <GradientStop Offset="0" Color="{DynamicResource Theme.SpotMint}" />
-            <GradientStop Offset="1" Color="{DynamicResource Theme.SpotMintClear}" />
-          </RadialGradientBrush>
-        </Border.Background>
-      </Border>
-      <Border>
-        <Border.Background>
-          <RadialGradientBrush Center="0.45,0.05" GradientOrigin="0.45,0.05" RadiusX="0.3" RadiusY="0.45">
-            <GradientStop Offset="0" Color="{DynamicResource Theme.SpotLight}" />
-            <GradientStop Offset="1" Color="{DynamicResource Theme.SpotLightClear}" />
-          </RadialGradientBrush>
-        </Border.Background>
-      </Border>
-      <Border>
-        <Border.Background>
-          <RadialGradientBrush Center="0.88,0.95" GradientOrigin="0.88,0.95" RadiusX="0.25" RadiusY="0.35">
-            <GradientStop Offset="0" Color="{DynamicResource Theme.SpotWarm}" />
-            <GradientStop Offset="1" Color="{DynamicResource Theme.SpotWarmClear}" />
-          </RadialGradientBrush>
-        </Border.Background>
-      </Border>
-    </Grid>
+    <!-- Window background under the header and the cards: a still pixel-art image in warm greys
+         (PixelBackdrop). It also covers the header row, so it shows in the rounded corners. -->
+    <local:PixelBackdrop Grid.Row="0" Grid.RowSpan="2" />
 
     <!-- Ctrl+T easter egg: a pixel-art landscape over the gradient, under the header and the
          cards, with the ground on the window's bottom edge like the kitten's feet. -->
@@ -956,8 +936,8 @@
                or the containers start) and the environment markers only when they apply: a
                purple layer stack for Docker, a red padlock for the protected database, a teal
                check if every repository is on dev.
-               The background only tells whether the column is shown (warm beige, raised) or
-               hidden (slate, flat).
+               The background only tells whether the column is shown (warm beige) or hidden
+               (transparent, outline only).
                Hovering opens the environment's card (ChipCard, at the bottom of the window). A
                click shows or hides the column; showing it scrolls it into view. -->
           <ItemsControl ItemsSource="{Binding Environments}" VerticalAlignment="Center">
@@ -978,37 +958,27 @@
                   <Button.Style>
                     <Style TargetType="Button" BasedOn="{StaticResource TextButton}">
                       <Style.Triggers>
-                        <!-- Hidden column: flat chip, without the buttons' lip and sheen, with a thin
-                             border; the hover veil stays so it is clear that it can be clicked. -->
+                        <!-- Hidden column: only the outline of the chip (the buttons' lip, plus a
+                             thin border that carries it around the top) on a transparent background. -->
                         <DataTrigger Binding="{Binding IsCollapsed}" Value="True">
-                          <Setter Property="Background" Value="{DynamicResource Theme.ChipHidden}" />
-                          <Setter Property="Template">
-                            <Setter.Value>
-                              <ControlTemplate TargetType="Button">
-                                <Grid>
-                                  <Border Background="{TemplateBinding Background}" BorderBrush="{DynamicResource Theme.ChipHiddenBorder}" BorderThickness="1" CornerRadius="{DynamicResource ButtonRadius}" />
-                                  <Border x:Name="Veil" Background="White" Opacity="0" CornerRadius="{DynamicResource ButtonRadius}" />
-                                  <ContentPresenter Margin="{TemplateBinding Padding}" HorizontalAlignment="Center" VerticalAlignment="Center" RecognizesAccessKey="False" />
-                                </Grid>
-                                <ControlTemplate.Triggers>
-                                  <Trigger Property="IsMouseOver" Value="True">
-                                    <Setter TargetName="Veil" Property="Opacity" Value="0.3" />
-                                  </Trigger>
-                                </ControlTemplate.Triggers>
-                              </ControlTemplate>
-                            </Setter.Value>
-                          </Setter>
+                          <Setter Property="Background" Value="Transparent" />
+                          <Setter Property="BorderBrush" Value="{DynamicResource Theme.ChipOutline}" />
+                          <Setter Property="BorderThickness" Value="1" />
                         </DataTrigger>
                       </Style.Triggers>
                     </Style>
                   </Button.Style>
-                  <StackPanel Orientation="Horizontal">
-                    <TextBlock Text="{Binding Number}" FontWeight="ExtraBold" VerticalAlignment="Center" />
-                    <local:StatusDot Color="{Binding StatusColor}" IsLoading="{Binding IsHeaderBusy}" DotSize="8" Width="8" Height="8" Margin="6,0,0,0" />
-                    <TextBlock Text="&#xE81E;" Visibility="{Binding KindBadgeVisibility}" Foreground="{DynamicResource Theme.DockerTagText}" Style="{StaticResource ChipGlyph}" />
-                    <TextBlock Text="&#xE72E;" Visibility="{Binding ProtectedDatabaseVisibility}" Foreground="{DynamicResource Theme.ProtectedDatabaseTagText}" Style="{StaticResource ChipGlyph}" />
-                    <TextBlock Text="&#xE930;" Visibility="{Binding SunsetVisibility}" Foreground="{DynamicResource Theme.ChipSunset}" Style="{StaticResource ChipGlyph}" />
-                  </StackPanel>
+                  <!-- SmoothWidth: a marker appearing or disappearing widens or narrows the chip
+                       with a short animation instead of a jump. -->
+                  <local:SmoothWidth>
+                    <StackPanel Orientation="Horizontal">
+                      <TextBlock Text="{Binding Number}" FontWeight="ExtraBold" VerticalAlignment="Center" />
+                      <local:StatusDot Color="{Binding StatusColor}" IsLoading="{Binding IsHeaderBusy}" DotSize="8" Width="8" Height="8" Margin="6,0,0,0" />
+                      <TextBlock Text="&#xE81E;" Visibility="{Binding KindBadgeVisibility}" Foreground="{DynamicResource Theme.DockerTagText}" Style="{StaticResource ChipGlyph}" />
+                      <TextBlock Text="&#xE72E;" Visibility="{Binding ProtectedDatabaseVisibility}" Foreground="{DynamicResource Theme.ProtectedDatabaseTagText}" Style="{StaticResource ChipGlyph}" />
+                      <TextBlock Text="&#xE930;" Visibility="{Binding SunsetVisibility}" Foreground="{DynamicResource Theme.ChipSunset}" Style="{StaticResource ChipGlyph}" />
+                    </StackPanel>
+                  </local:SmoothWidth>
                 </Button>
               </DataTemplate>
             </ItemsControl.ItemTemplate>
@@ -1054,7 +1024,6 @@
         <ItemsControl.ItemContainerStyle>
           <Style TargetType="ContentPresenter">
             <Setter Property="local:ColumnsPanel.IsCollapsed" Value="{Binding IsCollapsed}" />
-            <Setter Property="Visibility" Value="{Binding ColumnVisibility}" />
           </Style>
         </ItemsControl.ItemContainerStyle>
         <ItemsControl.ItemTemplate>
@@ -1070,7 +1039,7 @@
               </Grid.RowDefinitions>
                 <!-- The environment card, at the top of the column: name, dot, activity, environment
                      actions, eye to hide the column, and note. -->
-                <Border Style="{StaticResource Section}" Visibility="{Binding ColumnVisibility}" local:CardBusy.IsBusy="{Binding IsHeaderBusy}">
+                <Border Style="{StaticResource Section}" local:CardBusy.IsBusy="{Binding IsHeaderBusy}">
                   <StackPanel>
                     <DockPanel Style="{StaticResource CardHeader}" Cursor="Arrow">
                       <!-- Pulsing light blue while the environment reads, runs an action or (Docker) the
@@ -1103,16 +1072,18 @@
                       <ContentControl DockPanel.Dock="Left" Content="{Binding}" ContentTemplate="{StaticResource EnvironmentTags}" Focusable="False" IsTabStop="False" VerticalAlignment="Center" />
                     </DockPanel>
                     <!-- Only in Docker environments: docker not responding and warnings about the slot's env files (names, never values). -->
-                    <local:FlashCard Kind="Error"
-                                     Content="{Binding Docker.UnreachableText}"
-                                     Visibility="{Binding Docker.UnreachableVisibility, FallbackValue=Collapsed}"
-                                     FontSize="11"
-                                     Margin="0,6,0,0" />
-                    <local:FlashCard Kind="Warning"
-                                     Content="{Binding Docker.EnvWarningText}"
-                                     Visibility="{Binding Docker.EnvWarningVisibility, FallbackValue=Collapsed}"
-                                     FontSize="11"
-                                     Margin="0,6,0,0" />
+                    <local:Reveal Shown="{Binding Docker.UnreachableVisibility, FallbackValue=Collapsed}">
+                      <local:FlashCard Kind="Error"
+                                       Content="{Binding Docker.UnreachableText}"
+                                       FontSize="11"
+                                       Margin="0,6,0,0" />
+                    </local:Reveal>
+                    <local:Reveal Shown="{Binding Docker.EnvWarningVisibility, FallbackValue=Collapsed}">
+                      <local:FlashCard Kind="Warning"
+                                       Content="{Binding Docker.EnvWarningText}"
+                                       FontSize="11"
+                                       Margin="0,6,0,0" />
+                    </local:Reveal>
                     <!-- Free-form environment note, shared with the VSIX: typed here, it saves
                          itself. The placeholder sits under the transparent box. -->
                     <Border Margin="0,6,0,2" CornerRadius="10" Background="{DynamicResource Theme.Note}">
@@ -1191,7 +1162,7 @@
                   </StackPanel>
                 </Border>
                 <!-- The catalog cards the environment includes, in catalog order. -->
-                <ItemsControl Grid.Row="1" ItemsSource="{Binding Repos}" ItemTemplate="{StaticResource RepoCardTemplate}" Visibility="{Binding ColumnVisibility}" />
+                <ItemsControl Grid.Row="1" ItemsSource="{Binding Repos}" ItemTemplate="{StaticResource RepoCardTemplate}" ItemContainerStyle="{StaticResource EnterSoftly}" />
             </Grid>
           </DataTemplate>
         </ItemsControl.ItemTemplate>

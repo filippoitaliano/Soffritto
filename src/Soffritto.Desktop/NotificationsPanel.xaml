@@ -127,7 +127,7 @@
                      FontSize="12"
                      FontStyle="Italic"
                      Margin="6,4,0,0" />
-          <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource NotificationTemplate}" />
+          <ItemsControl ItemsSource="{Binding Items}" ItemTemplate="{StaticResource NotificationTemplate}" ItemContainerStyle="{StaticResource EnterSoftly}" />
         </StackPanel>
       </ScrollViewer>
     </DockPanel>

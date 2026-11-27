@@ -21,7 +21,7 @@
   <Color x:Key="Theme.SpotLightClear">#00FFF0D8</Color>
   <Color x:Key="Theme.SpotWarm">#40583848</Color>
   <Color x:Key="Theme.SpotWarmClear">#00583848</Color>
-  <Color x:Key="Theme.ChromeGradient">#2B2421</Color>
+  <Color x:Key="Theme.ChromeBackdrop">#27282A</Color>
   <SolidColorBrush x:Key="Theme.Text" Color="#ECE4D8" />
   <SolidColorBrush x:Key="Theme.TextStrong" Color="#F6EEE2" />
   <SolidColorBrush x:Key="Theme.TextSoft" Color="#DACDBA" />
@@ -75,8 +75,7 @@
   <SolidColorBrush x:Key="Theme.FlashErrorFill" Color="#24E0605A" />
   <SolidColorBrush x:Key="Theme.FlashErrorBorder" Color="#60E0605A" />
   <SolidColorBrush x:Key="Theme.FlashErrorBadge" Color="#D9534A" />
-  <SolidColorBrush x:Key="Theme.ChipHidden" Color="#262B31" />
-  <SolidColorBrush x:Key="Theme.ChipHiddenBorder" Color="#3B434D" />
+  <SolidColorBrush x:Key="Theme.ChipOutline" Color="#24FFFFFF" />
   <SolidColorBrush x:Key="Theme.ChipSunset" Color="#4FD1BE" />
   <SolidColorBrush x:Key="Theme.DockerTagText" Color="#B49CFF" />
   <SolidColorBrush x:Key="Theme.HighlightTagText" Color="#F0A860" />

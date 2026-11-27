@@ -18,8 +18,8 @@ public partial class MainWindow : Window
     private SnipShortcutHook? snipHook;
     private bool exiting;
 
-    // With the gradient the color comes from the theme (Theme.ChromeGradient): espresso by day, darker at night.
-    private readonly SolidColorBrush chrome = new(Color.FromRgb(0x3A, 0x31, 0x28));
+    // With the default background the color comes from the theme (Theme.ChromeBackdrop): slate grey by day, darker at night.
+    private readonly SolidColorBrush chrome = new(Color.FromRgb(0x3B, 0x3D, 0x3F));
 
     /// <param name="setupNotice">What happened to the configuration at startup (import, errors): the setup reports it.</param>
     /// <param name="openSetup">No usable configuration: the setup opens right away and cannot be closed.</param>
@@ -127,7 +127,7 @@ public partial class MainWindow : Window
 
     private void HideDocker() => HideFloating(Docker);
 
-    private Color ChromeTarget() => Scenery.ChromeColor ?? (Color)FindResource("Theme.ChromeGradient");
+    private Color ChromeTarget() => Scenery.ChromeColor ?? (Color)FindResource("Theme.ChromeBackdrop");
 
     private void AnimateChrome() => chrome.BeginAnimation(
         SolidColorBrush.ColorProperty,

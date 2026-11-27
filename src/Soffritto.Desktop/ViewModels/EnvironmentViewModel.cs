@@ -28,7 +28,7 @@ public sealed class EnvironmentViewModel : ObservableObject
 
         Number = layout.Number;
         SchemaLock = layout.SchemaLock;
-        Title = $"ENVIRONMENT {layout.Number}";
+        Title = $"ENV {layout.Number}";
         Repos = layout.Repos.Select(location => CreateCard(layout.Number, location)).ToList();
         Previews = Repos.Where(card => card.Preview is not null).Select(card => card.Preview!).ToList();
         backendCard = Repos.FirstOrDefault(card => card.Type == RepositoryType.Backend && card.IsPrimary);
@@ -206,14 +206,10 @@ public sealed class EnvironmentViewModel : ObservableObject
                     AppSettings.Current.SetCollapsed(Number, value);
                 }
 
-                OnPropertyChanged(nameof(ColumnVisibility));
                 CollapsedChanged?.Invoke();
             }
         }
     }
-
-    public string ColumnVisibility => isCollapsed ? "Collapsed" : "Visible";
-
 
     public ICommand ToggleCollapseCommand { get; }
 
